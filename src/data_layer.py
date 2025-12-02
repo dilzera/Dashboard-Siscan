@@ -876,16 +876,26 @@ def get_unit_demographics_sql(health_unit, year=None, region=None):
         COUNT(*) as total
     FROM exam_records
     WHERE {where_clause}
-    GROUP BY faixa_etaria, birads_max
+    GROUP BY 
+        CASE 
+            WHEN paciente__idade IS NULL THEN 'Não informado'
+            WHEN paciente__idade < 30 THEN '< 30 anos'
+            WHEN paciente__idade BETWEEN 30 AND 39 THEN '30-39 anos'
+            WHEN paciente__idade BETWEEN 40 AND 49 THEN '40-49 anos'
+            WHEN paciente__idade BETWEEN 50 AND 59 THEN '50-59 anos'
+            WHEN paciente__idade BETWEEN 60 AND 69 THEN '60-69 anos'
+            ELSE '70+ anos'
+        END, 
+        birads_max
     ORDER BY 
-        CASE faixa_etaria
-            WHEN '< 30 anos' THEN 1
-            WHEN '30-39 anos' THEN 2
-            WHEN '40-49 anos' THEN 3
-            WHEN '50-59 anos' THEN 4
-            WHEN '60-69 anos' THEN 5
-            WHEN '70+ anos' THEN 6
-            ELSE 7
+        CASE 
+            WHEN paciente__idade IS NULL THEN 7
+            WHEN paciente__idade < 30 THEN 1
+            WHEN paciente__idade BETWEEN 30 AND 39 THEN 2
+            WHEN paciente__idade BETWEEN 40 AND 49 THEN 3
+            WHEN paciente__idade BETWEEN 50 AND 59 THEN 4
+            WHEN paciente__idade BETWEEN 60 AND 69 THEN 5
+            ELSE 6
         END,
         birads_max
     """
@@ -919,15 +929,23 @@ def get_unit_agility_sql(health_unit, year=None, region=None):
         ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as percentual
     FROM exam_records
     WHERE {where_clause}
-    GROUP BY faixa_espera
+    GROUP BY 
+        CASE 
+            WHEN wait_days IS NULL THEN 'Não informado'
+            WHEN wait_days <= 7 THEN 'Até 7 dias'
+            WHEN wait_days <= 14 THEN '8-14 dias'
+            WHEN wait_days <= 30 THEN '15-30 dias'
+            WHEN wait_days <= 60 THEN '31-60 dias'
+            ELSE '> 60 dias'
+        END
     ORDER BY 
-        CASE faixa_espera
-            WHEN 'Até 7 dias' THEN 1
-            WHEN '8-14 dias' THEN 2
-            WHEN '15-30 dias' THEN 3
-            WHEN '31-60 dias' THEN 4
-            WHEN '> 60 dias' THEN 5
-            ELSE 6
+        CASE 
+            WHEN wait_days IS NULL THEN 6
+            WHEN wait_days <= 7 THEN 1
+            WHEN wait_days <= 14 THEN 2
+            WHEN wait_days <= 30 THEN 3
+            WHEN wait_days <= 60 THEN 4
+            ELSE 5
         END
     """
     
