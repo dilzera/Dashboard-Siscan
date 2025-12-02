@@ -1140,3 +1140,257 @@ def get_unit_follow_up_count_sql(health_unit, year=None, region=None):
     if not row:
         return 0
     return int(row[0]) if row[0] else 0
+
+
+def get_indicators_data_sql(year=None, region=None, health_unit=None):
+    """Get all indicators data for the Indicadores tab"""
+    where_clause, params = _build_where_clause(year, None, region, None, exclude_outliers=True)
+    
+    if health_unit:
+        if where_clause:
+            where_clause += " AND unidade_de_saude__nome = :ind_health_unit"
+        else:
+            where_clause = " WHERE unidade_de_saude__nome = :ind_health_unit"
+        params['ind_health_unit'] = health_unit
+    
+    base_where = where_clause if where_clause else " WHERE 1=1"
+    
+    engine = get_engine()
+    
+    indicators = {}
+    
+    with engine.connect() as conn:
+        ind1_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
+        AND paciente__idade >= 50 AND paciente__idade <= 74
+        """
+        result = conn.execute(text(ind1_query), params)
+        row = result.fetchone()
+        indicators['rastreamento_50_74'] = int(row[0]) if row and row[0] else 0
+        
+        ind2_query = f"""
+        SELECT 
+            COALESCE(distrito_sanitario, 'Não informado') as distrito,
+            COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
+        AND paciente__idade >= 50 AND paciente__idade <= 74
+        GROUP BY distrito_sanitario
+        ORDER BY total DESC
+        """
+        result = conn.execute(text(ind2_query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+        indicators['rastreamento_por_distrito'] = df
+        
+        ind2b_query = f"""
+        SELECT 
+            unidade_de_saude__nome as unidade,
+            COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
+        AND paciente__idade >= 50 AND paciente__idade <= 74
+        GROUP BY unidade_de_saude__nome
+        ORDER BY total DESC
+        LIMIT 20
+        """
+        result = conn.execute(text(ind2b_query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+        indicators['rastreamento_por_unidade'] = df
+        
+        ind3_query = f"""
+        SELECT 
+            ROUND(AVG(
+                (responsavel_pelo_resultado__data_da_liberacao - unidade_de_saude__data_da_solicitacao)
+            )::numeric, 1) as media_dias,
+            PERCENTILE_CONT(0.5) WITHIN GROUP (
+                ORDER BY (responsavel_pelo_resultado__data_da_liberacao - unidade_de_saude__data_da_solicitacao)
+            ) as mediana_dias
+        FROM exam_records
+        {base_where}
+        AND responsavel_pelo_resultado__data_da_liberacao IS NOT NULL
+        AND unidade_de_saude__data_da_solicitacao IS NOT NULL
+        AND responsavel_pelo_resultado__data_da_liberacao >= unidade_de_saude__data_da_solicitacao
+        """
+        result = conn.execute(text(ind3_query), params)
+        row = result.fetchone()
+        indicators['tempo_solicitacao_liberacao'] = {
+            'media': float(row[0]) if row and row[0] else 0,
+            'mediana': float(row[1]) if row and row[1] else 0
+        }
+        
+        ind4_query = f"""
+        SELECT 
+            ROUND(AVG(
+                (responsavel_pelo_resultado__data_da_liberacao - prestador_de_servico__data_da_realizacao)
+            )::numeric, 1) as media_dias,
+            PERCENTILE_CONT(0.5) WITHIN GROUP (
+                ORDER BY (responsavel_pelo_resultado__data_da_liberacao - prestador_de_servico__data_da_realizacao)
+            ) as mediana_dias
+        FROM exam_records
+        {base_where}
+        AND responsavel_pelo_resultado__data_da_liberacao IS NOT NULL
+        AND prestador_de_servico__data_da_realizacao IS NOT NULL
+        AND responsavel_pelo_resultado__data_da_liberacao >= prestador_de_servico__data_da_realizacao
+        """
+        result = conn.execute(text(ind4_query), params)
+        row = result.fetchone()
+        indicators['tempo_realizacao_liberacao'] = {
+            'media': float(row[0]) if row and row[0] else 0,
+            'mediana': float(row[1]) if row and row[1] else 0
+        }
+        
+        ind5_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND birads_max = '0'
+        """
+        result = conn.execute(text(ind5_query), params)
+        row = result.fetchone()
+        indicators['categoria_0'] = int(row[0]) if row and row[0] else 0
+        
+        ind6_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND birads_max = '3'
+        AND (
+            resultado_exame__achados_benignos__achados_benignos ILIKE '%nódulo%'
+            OR resultado_exame__achados_benignos__achados_benignos ILIKE '%nodulo%'
+        )
+        """
+        result = conn.execute(text(ind6_query), params)
+        row = result.fetchone()
+        indicators['categoria_3_nodulo'] = int(row[0]) if row and row[0] else 0
+        
+        ind6b_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND birads_max = '3'
+        """
+        result = conn.execute(text(ind6b_query), params)
+        row = result.fetchone()
+        indicators['categoria_3_total'] = int(row[0]) if row and row[0] else 0
+        
+        ind7_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND birads_max IN ('4', '5')
+        AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
+        """
+        result = conn.execute(text(ind7_query), params)
+        row = result.fetchone()
+        indicators['categoria_4_5_rastreamento'] = int(row[0]) if row and row[0] else 0
+        
+        ind8_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND paciente__idade >= 50 AND paciente__idade <= 74
+        AND (
+            birads_max = '0'
+            OR resultado_exame__mama_direita__tipo_de_mama IN ('Densa', 'Predominantemente Densa')
+            OR resultado_exame__mama_esquerda__tipo_de_mama IN ('Densa', 'Predominantemente Densa')
+        )
+        """
+        result = conn.execute(text(ind8_query), params)
+        row = result.fetchone()
+        indicators['idade_50_74_densas_cat0'] = int(row[0]) if row and row[0] else 0
+        
+        ind9_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND paciente__idade < 49
+        AND birads_max IN ('4', '5')
+        """
+        result = conn.execute(text(ind9_query), params)
+        row = result.fetchone()
+        indicators['idade_menor_49_cat_4_5'] = int(row[0]) if row and row[0] else 0
+        
+        ind10_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND paciente__idade < 40
+        AND (
+            resultado_exame__achados_benignos__achados_benignos ILIKE '%nódulo%'
+            OR resultado_exame__achados_benignos__achados_benignos ILIKE '%nodulo%'
+        )
+        """
+        result = conn.execute(text(ind10_query), params)
+        row = result.fetchone()
+        indicators['idade_menor_40_nodulo'] = int(row[0]) if row and row[0] else 0
+        
+        total_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        """
+        result = conn.execute(text(total_query), params)
+        row = result.fetchone()
+        indicators['total_exames'] = int(row[0]) if row and row[0] else 0
+    
+    return indicators
+
+
+def get_indicator_details_sql(indicator_type, year=None, region=None, health_unit=None, limit=100):
+    """Get detailed list of patients for a specific indicator"""
+    where_clause, params = _build_where_clause(year, None, region, None, exclude_outliers=True)
+    
+    if health_unit:
+        if where_clause:
+            where_clause += " AND unidade_de_saude__nome = :ind_health_unit"
+        else:
+            where_clause = " WHERE unidade_de_saude__nome = :ind_health_unit"
+        params['ind_health_unit'] = health_unit
+    
+    base_where = where_clause if where_clause else " WHERE 1=1"
+    params['detail_limit'] = limit
+    
+    base_select = """
+        paciente__nome as nome,
+        paciente__idade as idade,
+        paciente__cartao_sus as cartao_sus,
+        unidade_de_saude__nome as unidade,
+        distrito_sanitario as distrito,
+        birads_max as birads,
+        unidade_de_saude__data_da_solicitacao as data_solicitacao,
+        prestador_de_servico__data_da_realizacao as data_realizacao,
+        responsavel_pelo_resultado__data_da_liberacao as data_liberacao
+    """
+    
+    indicator_conditions = {
+        'rastreamento_50_74': "AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo' AND paciente__idade >= 50 AND paciente__idade <= 74",
+        'categoria_0': "AND birads_max = '0'",
+        'categoria_3_nodulo': "AND birads_max = '3' AND (resultado_exame__achados_benignos__achados_benignos ILIKE '%nódulo%' OR resultado_exame__achados_benignos__achados_benignos ILIKE '%nodulo%')",
+        'categoria_4_5_rastreamento': "AND birads_max IN ('4', '5') AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'",
+        'idade_50_74_densas_cat0': "AND paciente__idade >= 50 AND paciente__idade <= 74 AND (birads_max = '0' OR resultado_exame__mama_direita__tipo_de_mama IN ('Densa', 'Predominantemente Densa') OR resultado_exame__mama_esquerda__tipo_de_mama IN ('Densa', 'Predominantemente Densa'))",
+        'idade_menor_49_cat_4_5': "AND paciente__idade < 49 AND birads_max IN ('4', '5')",
+        'idade_menor_40_nodulo': "AND paciente__idade < 40 AND (resultado_exame__achados_benignos__achados_benignos ILIKE '%nódulo%' OR resultado_exame__achados_benignos__achados_benignos ILIKE '%nodulo%')"
+    }
+    
+    condition = indicator_conditions.get(indicator_type, "")
+    
+    query = f"""
+    SELECT {base_select}
+    FROM exam_records
+    {base_where}
+    {condition}
+    ORDER BY unidade_de_saude__data_da_solicitacao DESC
+    LIMIT :detail_limit
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df

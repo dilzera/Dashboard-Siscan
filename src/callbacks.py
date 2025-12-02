@@ -1,6 +1,8 @@
 from dash import Input, Output, State, html, dcc, callback_context, no_update
 from datetime import datetime
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
     get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
@@ -8,8 +10,10 @@ from src.data_layer import (
     get_patient_navigation_summary_sql, get_patient_navigation_list_sql, get_patient_navigation_stats_sql,
     get_patient_data_list_sql, get_patient_data_count_sql,
     get_unit_kpis_sql, get_unit_demographics_sql, get_unit_agility_sql,
-    get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql
+    get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql,
+    get_indicators_data_sql
 )
+from src.config import COLORS
 from src.components.cards import create_kpi_card, create_chart_card
 from src.components.charts import (
     create_line_chart, create_birads_bar_chart,
@@ -320,3 +324,168 @@ def register_callbacks(app):
                 error_msg,
                 ""
             )
+    
+    import dash_bootstrap_components as dbc
+    from src.components.layout import create_indicator_card, create_time_indicator_card
+    
+    @app.callback(
+        Output('indicator-1-card', 'children'),
+        Output('indicator-2-charts', 'children'),
+        Output('indicator-3-card', 'children'),
+        Output('indicator-4-card', 'children'),
+        Output('indicator-5-card', 'children'),
+        Output('indicator-6-card', 'children'),
+        Output('indicator-7-card', 'children'),
+        Output('indicator-8-card', 'children'),
+        Output('indicator-9-card', 'children'),
+        Output('indicator-10-card', 'children'),
+        Input('refresh-btn', 'n_clicks'),
+        State('year-filter', 'value'),
+        State('region-filter', 'value'),
+        State('health-unit-filter', 'value'),
+        prevent_initial_call=False
+    )
+    def update_indicators(n_clicks, year, region, health_unit):
+        try:
+            indicators = get_indicators_data_sql(year, region, health_unit)
+            
+            total = indicators.get('total_exames', 1)
+            
+            ind1 = create_indicator_card(
+                'Mamografia de Rastreamento (50-74 anos)',
+                'Medir a cobertura da população alvo. Exames de rastreamento em mulheres na faixa etária recomendada.',
+                indicators.get('rastreamento_50_74', 0),
+                percentage=(indicators.get('rastreamento_50_74', 0) / total * 100) if total > 0 else 0,
+                icon_class='fas fa-users'
+            )
+            
+            distrito_df = indicators.get('rastreamento_por_distrito', pd.DataFrame())
+            unidade_df = indicators.get('rastreamento_por_unidade', pd.DataFrame())
+            
+            if not distrito_df.empty:
+                fig_distrito = px.bar(
+                    distrito_df.head(10),
+                    x='total',
+                    y='distrito',
+                    orientation='h',
+                    title='Por Distrito Sanitário',
+                    labels={'total': 'Exames', 'distrito': ''},
+                    color_discrete_sequence=[COLORS['primary']]
+                )
+                fig_distrito.update_layout(
+                    height=250,
+                    margin=dict(l=10, r=10, t=40, b=10),
+                    font=dict(size=10),
+                    showlegend=False
+                )
+                chart_distrito = dcc.Graph(figure=fig_distrito, config={'displayModeBar': False})
+            else:
+                chart_distrito = html.P('Sem dados de distrito', className='text-muted')
+            
+            if not unidade_df.empty:
+                fig_unidade = px.bar(
+                    unidade_df.head(10),
+                    x='total',
+                    y='unidade',
+                    orientation='h',
+                    title='Top 10 Unidades de Saúde',
+                    labels={'total': 'Exames', 'unidade': ''},
+                    color_discrete_sequence=[COLORS['secondary']]
+                )
+                fig_unidade.update_layout(
+                    height=250,
+                    margin=dict(l=10, r=10, t=40, b=10),
+                    font=dict(size=10),
+                    showlegend=False
+                )
+                chart_unidade = dcc.Graph(figure=fig_unidade, config={'displayModeBar': False})
+            else:
+                chart_unidade = html.P('Sem dados de unidade', className='text-muted')
+            
+            ind2 = html.Div([
+                dbc.Card([
+                    dbc.CardBody([
+                        html.H6('Cobertura por Unidade/Distrito', className='mb-3', style={'fontSize': '0.95rem', 'fontWeight': '600'}),
+                        html.P('Medir a cobertura da população alvo por unidade de saúde ou distrito sanitário.', 
+                               className='text-muted mb-3', style={'fontSize': '0.8rem'}),
+                        dbc.Tabs([
+                            dbc.Tab(chart_distrito, label='Por Distrito'),
+                            dbc.Tab(chart_unidade, label='Por Unidade')
+                        ], className='nav-tabs-sm')
+                    ])
+                ], className='h-100 shadow-sm', style={'borderLeft': f'4px solid {COLORS["primary"]}'})
+            ])
+            
+            tempo_sol_lib = indicators.get('tempo_solicitacao_liberacao', {'media': 0, 'mediana': 0})
+            ind3 = create_time_indicator_card(
+                'Solicitação até Liberação do Laudo',
+                'Medir a agilidade de acesso ao exame e tempo de espera total desde a solicitação até a liberação do resultado.',
+                tempo_sol_lib['media'],
+                tempo_sol_lib['mediana'],
+                icon_class='fas fa-hourglass-half'
+            )
+            
+            tempo_real_lib = indicators.get('tempo_realizacao_liberacao', {'media': 0, 'mediana': 0})
+            ind4 = create_time_indicator_card(
+                'Realização até Liberação do Resultado',
+                'Medir a eficiência do prestador na agilidade da entrega dos resultados.',
+                tempo_real_lib['media'],
+                tempo_real_lib['mediana'],
+                icon_class='fas fa-file-medical'
+            )
+            
+            ind5 = create_indicator_card(
+                'Exames Categoria 0',
+                'Encaminhamento para US de mamas. Exames que necessitam de avaliação adicional por imagem.',
+                indicators.get('categoria_0', 0),
+                percentage=(indicators.get('categoria_0', 0) / total * 100) if total > 0 else 0,
+                icon_class='fas fa-search-plus'
+            )
+            
+            cat3_nodulo = indicators.get('categoria_3_nodulo', 0)
+            cat3_total = indicators.get('categoria_3_total', 0)
+            ind6 = create_indicator_card(
+                'Categoria 3 com Nódulo',
+                f'Encaminhamento para US de mamas e Mastologia. Total Cat. 3: {cat3_total:,} exames.',
+                cat3_nodulo,
+                percentage=(cat3_nodulo / cat3_total * 100) if cat3_total > 0 else 0,
+                icon_class='fas fa-notes-medical'
+            )
+            
+            ind7 = create_indicator_card(
+                'Categoria 4/5 - Rastreamento',
+                'Necessidade de biópsia na população feminina. Encaminhamento para a Cancerologia.',
+                indicators.get('categoria_4_5_rastreamento', 0),
+                percentage=(indicators.get('categoria_4_5_rastreamento', 0) / total * 100) if total > 0 else 0,
+                icon_class='fas fa-exclamation-circle'
+            )
+            
+            ind8 = create_indicator_card(
+                '50-74 anos: Mamas Densas ou Cat. 0',
+                'Encaminhamento para US de mamas. Pacientes na faixa etária alvo com mamas densas ou classificação BI-RADS 0.',
+                indicators.get('idade_50_74_densas_cat0', 0),
+                percentage=(indicators.get('idade_50_74_densas_cat0', 0) / total * 100) if total > 0 else 0,
+                icon_class='fas fa-female'
+            )
+            
+            ind9 = create_indicator_card(
+                'Idade < 49 anos: Categoria 4/5',
+                'Mostra incidência de lesão suspeita fora da faixa etária de rastreamento.',
+                indicators.get('idade_menor_49_cat_4_5', 0),
+                icon_class='fas fa-user-clock'
+            )
+            
+            ind10 = create_indicator_card(
+                'Idade < 40 anos com Nódulo',
+                'Encaminhamento para US de mamas. Pacientes jovens com presença de nódulo no laudo.',
+                indicators.get('idade_menor_40_nodulo', 0),
+                icon_class='fas fa-user-md'
+            )
+            
+            return ind1, ind2, ind3, ind4, ind5, ind6, ind7, ind8, ind9, ind10
+            
+        except Exception as e:
+            error_card = html.Div([
+                html.P(f'Erro ao carregar indicadores: {str(e)}', className='text-danger')
+            ])
+            return (error_card,) * 10

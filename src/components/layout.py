@@ -457,6 +457,149 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
     ])
 
 
+def create_indicator_card(title, description, value, percentage=None, icon_class='fas fa-chart-bar', color='primary'):
+    """Create a card for an indicator with value and description"""
+    percentage_badge = None
+    if percentage is not None:
+        percentage_badge = html.Span(
+            f'{percentage:.1f}%',
+            className='badge bg-secondary ms-2',
+            style={'fontSize': '0.8rem'}
+        )
+    
+    return dbc.Card([
+        dbc.CardBody([
+            html.Div([
+                html.I(className=f'{icon_class} me-2', style={'color': COLORS['primary']}),
+                html.H6(title, className='mb-0 d-inline', style={'fontSize': '0.95rem', 'fontWeight': '600'})
+            ], className='mb-2'),
+            html.Div([
+                html.Span(
+                    f'{value:,}' if isinstance(value, int) else str(value),
+                    style={'fontSize': '1.5rem', 'fontWeight': '700', 'color': COLORS['primary']}
+                ),
+                percentage_badge
+            ]),
+            html.P(
+                description,
+                className='text-muted mb-0 mt-2',
+                style={'fontSize': '0.8rem', 'lineHeight': '1.3'}
+            )
+        ])
+    ], className='h-100 shadow-sm', style={'borderLeft': f'4px solid {COLORS["primary"]}'})
+
+
+def create_time_indicator_card(title, description, media, mediana, icon_class='fas fa-clock'):
+    """Create a card for time-based indicators showing average and median"""
+    return dbc.Card([
+        dbc.CardBody([
+            html.Div([
+                html.I(className=f'{icon_class} me-2', style={'color': COLORS['primary']}),
+                html.H6(title, className='mb-0 d-inline', style={'fontSize': '0.95rem', 'fontWeight': '600'})
+            ], className='mb-2'),
+            dbc.Row([
+                dbc.Col([
+                    html.Div('Média', className='text-muted', style={'fontSize': '0.75rem'}),
+                    html.Span(
+                        f'{media:.1f} dias',
+                        style={'fontSize': '1.2rem', 'fontWeight': '700', 'color': COLORS['primary']}
+                    )
+                ], width=6),
+                dbc.Col([
+                    html.Div('Mediana', className='text-muted', style={'fontSize': '0.75rem'}),
+                    html.Span(
+                        f'{mediana:.1f} dias',
+                        style={'fontSize': '1.2rem', 'fontWeight': '700', 'color': COLORS['secondary']}
+                    )
+                ], width=6)
+            ]),
+            html.P(
+                description,
+                className='text-muted mb-0 mt-2',
+                style={'fontSize': '0.8rem', 'lineHeight': '1.3'}
+            )
+        ])
+    ], className='h-100 shadow-sm', style={'borderLeft': f'4px solid {COLORS["primary"]}'})
+
+
+def create_indicators_tab(initial_content=None):
+    """Create the Indicators tab with all 10 indicators organized in blocks"""
+    
+    return html.Div([
+        html.Div([
+            html.H5('Indicadores de Rastreamento e Encaminhamento', className='mb-3'),
+            html.P('Indicadores clínicos para monitoramento da cobertura populacional e encaminhamentos.', 
+                   className='text-muted mb-4')
+        ]),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-users me-2'),
+                'Cobertura da População Alvo'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    html.Div(id='indicator-1-card')
+                ], lg=6, md=12, className='mb-3'),
+                dbc.Col([
+                    html.Div(id='indicator-2-charts')
+                ], lg=6, md=12, className='mb-3')
+            ], className='mb-4')
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-clock me-2'),
+                'Agilidade no Acesso e Entrega de Resultados'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    html.Div(id='indicator-3-card')
+                ], lg=6, md=12, className='mb-3'),
+                dbc.Col([
+                    html.Div(id='indicator-4-card')
+                ], lg=6, md=12, className='mb-3')
+            ], className='mb-4')
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-directions me-2'),
+                'Encaminhamentos por Categoria BI-RADS'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    html.Div(id='indicator-5-card')
+                ], lg=4, md=6, className='mb-3'),
+                dbc.Col([
+                    html.Div(id='indicator-6-card')
+                ], lg=4, md=6, className='mb-3'),
+                dbc.Col([
+                    html.Div(id='indicator-7-card')
+                ], lg=4, md=12, className='mb-3')
+            ], className='mb-4')
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-exclamation-triangle me-2'),
+                'Casos Especiais e Fora da Faixa Etária'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    html.Div(id='indicator-8-card')
+                ], lg=4, md=6, className='mb-3'),
+                dbc.Col([
+                    html.Div(id='indicator-9-card')
+                ], lg=4, md=6, className='mb-3'),
+                dbc.Col([
+                    html.Div(id='indicator-10-card')
+                ], lg=4, md=12, className='mb-3')
+            ], className='mb-4')
+        ], className='mb-4 p-3 bg-white rounded shadow-sm')
+    ])
+
+
 def create_tabs(initial_content=None, sex_options=None, birads_options=None, health_units=None):
     return dbc.Tabs([
         dbc.Tab(
@@ -475,6 +618,12 @@ def create_tabs(initial_content=None, sex_options=None, birads_options=None, hea
             create_outliers_tab(initial_content),
             label='Auditoria de Outliers',
             tab_id='tab-outliers',
+            className='p-3'
+        ),
+        dbc.Tab(
+            create_indicators_tab(initial_content),
+            label='Indicadores',
+            tab_id='tab-indicators',
             className='p-3'
         ),
         dbc.Tab(

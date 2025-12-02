@@ -112,6 +112,26 @@ python tests/test_dashboard.py
 
 ## Recent Changes
 
+- 02/12/2025: Aba Indicadores implementada
+  - Nova aba "Indicadores" com 10 indicadores clínicos organizados em 4 blocos
+  - **Cobertura da População Alvo**:
+    - Mamografia de Rastreamento / Idade 50-74 anos (71.421 exames)
+    - Distribuição por Distrito Sanitário e Unidade de Saúde
+  - **Agilidade no Acesso e Entrega de Resultados**:
+    - Tempo Solicitação -> Liberação (média: 23.2 dias, mediana: 20.0 dias)
+    - Tempo Realização -> Liberação (média: 10.7 dias, mediana: 7.0 dias)
+  - **Encaminhamentos por Categoria BI-RADS**:
+    - Categoria 0: 1.783 (encaminhamento para US de mamas)
+    - Categoria 3 com Nódulo: 69 (encaminhamento para US + Mastologia)
+    - Categoria 4/5 Rastreamento: 1.810 (encaminhamento para Cancerologia)
+  - **Casos Especiais e Fora da Faixa Etária**:
+    - 50-74 anos com Mamas Densas ou Cat 0: 45.384 (encaminhamento para US)
+    - Idade < 49 anos com Cat 4/5: 287 (lesão suspeita fora da faixa)
+    - Idade < 40 anos com Nódulo: 22 (encaminhamento para US)
+  - Gráficos de barras horizontais para distribuição por distrito e unidade
+  - Cards informativos com valores absolutos e percentuais
+  - Integração com filtros globais (ano, distrito sanitário, unidade)
+
 - 02/12/2025: Paleta de cores Saúde Já implementada
   - Cabeçalho teal (#17a2b8) com logo "Saúde" branco e "Já" vermelho
   - Abas com estilo teal e indicador de aba ativa
