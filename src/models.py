@@ -22,6 +22,7 @@ class ExamRecord(Base):
     unidade_de_saude__data_da_solicitacao = Column(Date)
     unidade_de_saude__uf = Column(String(10))
     unidade_de_saude__municipio = Column(String(200))
+    distrito_sanitario = Column(String(100), index=True)
     unidade_de_saude__n_do_exame = Column(String(100))
     unidade_de_saude__n_do_protocolo = Column(String(100))
     unidade_de_saude__n_do_prontuario = Column(String(100))

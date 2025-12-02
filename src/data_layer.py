@@ -42,7 +42,7 @@ def _build_where_clause(year=None, health_unit=None, region=None, conformity_sta
         params['conformity_status'] = conformity_status
     
     if region:
-        conditions.append("unidade_de_saude__uf = :region")
+        conditions.append("distrito_sanitario = :region")
         params['region'] = region
     
     where_clause = ""
@@ -67,11 +67,11 @@ def get_health_units():
 
 def get_regions():
     engine = get_engine()
-    query = "SELECT DISTINCT unidade_de_saude__uf FROM exam_records WHERE unidade_de_saude__uf IS NOT NULL ORDER BY unidade_de_saude__uf"
+    query = "SELECT DISTINCT distrito_sanitario FROM exam_records WHERE distrito_sanitario IS NOT NULL ORDER BY distrito_sanitario"
     with engine.connect() as conn:
         result = conn.execute(text(query))
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
-    return df['unidade_de_saude__uf'].dropna().tolist()
+    return df['distrito_sanitario'].dropna().tolist()
 
 
 def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status=None):
@@ -231,7 +231,7 @@ def get_filtered_data(year=None, health_unit=None, conformity_status=None, regio
         params['conformity_status'] = conformity_status
     
     if region:
-        conditions.append("unidade_de_saude__uf = :region")
+        conditions.append("distrito_sanitario = :region")
         params['region'] = region
     
     if municipality:

@@ -9,7 +9,7 @@ Este projeto é um MVP de dashboard interativo para visualização e análise de
 ## Features
 
 - **KPIs em tempo real**: Média e mediana de espera, taxa de conformidade, casos de alto risco
-- **Filtros dinâmicos**: Ano, Unidade de Saúde, Região, Status de conformidade
+- **Filtros dinâmicos**: Ano, Unidade de Saúde, Distrito Sanitário, Status de conformidade
 - **Visualizações interativas**: Gráficos de linha, barras, pizza e gauge com Plotly
 - **Três seções principais**:
   - Visão Geral de Performance (volume mensal, conformidade por unidade)
@@ -81,6 +81,12 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
   - Tipo D (Espera > 365 dias): 121 registros
 
 ## Recent Changes
+
+- 02/12/2025: Vínculo Unidade de Saúde x Distrito Sanitário
+  - Filtro "UF" alterado para "Distrito Sanitário"
+  - Mapeamento CNES -> Distrito importado de planilha (109 unidades)
+  - 10 distritos: CIC, BOA VISTA, BOQUEIRÃO, CAJURU, SANTA FELICIDADE, BAIRRO NOVO, PINHEIRINHO, PORTÃO, TATUQUARA, MATRIZ
+  - 92.295 registros vinculados (89% do total)
 
 - 02/12/2025: Filtro de período restrito a 2023+
   - Filtro de ano limitado a 2023, 2024, 2025 e 2026
