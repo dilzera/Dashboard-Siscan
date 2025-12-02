@@ -1,33 +1,34 @@
 import os
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
+SESSION_SECRET = os.environ.get('SESSION_SECRET', 'change-this-in-production')
 
 CACHE_TIMEOUT = 300
 
 COLORS = {
-    'primary': '#17a2b8',
-    'secondary': '#138496',
+    'primary': '#005B96',
+    'secondary': '#00A6A6',
     'success': '#27ae60',
     'warning': '#f39c12',
-    'danger': '#e74c3c',
-    'info': '#17a2b8',
-    'light': '#f8f9fa',
-    'dark': '#2c3e50',
-    'background': '#f0f4f7',
+    'danger': '#E76F51',
+    'info': '#005B96',
+    'light': '#F5F5F5',
+    'dark': '#1F2933',
+    'background': '#F5F5F5',
     'card_bg': '#ffffff',
-    'text': '#2c3e50',
+    'text': '#1F2933',
     'text_muted': '#6c757d',
-    'header_bg': '#17a2b8',
-    'sidebar_bg': '#1a8a9e',
-    'accent': '#e74c3c',
-    'table_header': '#17a2b8',
+    'header_bg': '#005B96',
+    'sidebar_bg': '#004A7C',
+    'accent': '#E76F51',
+    'table_header': '#005B96',
     'table_row_alt': '#f8f9fa',
     'birads_0': '#95a5a6',
     'birads_1': '#27ae60',
     'birads_2': '#2ecc71',
     'birads_3': '#f1c40f',
     'birads_4': '#e67e22',
-    'birads_5': '#e74c3c',
+    'birads_5': '#E76F51',
 }
 
 BIRADS_COLORS = {

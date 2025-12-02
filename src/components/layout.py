@@ -3,31 +3,114 @@ from dash import html, dcc
 from src.config import COLORS
 
 
-def create_header():
+def create_login_layout(colors):
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.I(className='fas fa-heartbeat', style={'fontSize': '3rem', 'color': colors['primary']}),
+                    html.H1([
+                        html.Span('Dashboard ', style={'color': colors['primary']}),
+                        html.Span('SISCAN', style={'color': colors['accent']})
+                    ], style={'marginTop': '15px', 'marginBottom': '5px'}),
+                    html.P('Sistema de Monitoramento de Mamografia', 
+                           style={'color': colors['text_muted'], 'fontSize': '0.95rem'})
+                ], className='login-logo'),
+                
+                html.Hr(style={'margin': '20px 0'}),
+                
+                html.Div([
+                    dbc.Label('Usuário', className='fw-bold'),
+                    dbc.Input(
+                        id='login-username',
+                        type='text',
+                        placeholder='Digite seu usuário',
+                        className='mb-3',
+                        style={'borderRadius': '5px'}
+                    ),
+                    
+                    dbc.Label('Senha', className='fw-bold'),
+                    dbc.Input(
+                        id='login-password',
+                        type='password',
+                        placeholder='Digite sua senha',
+                        className='mb-3',
+                        style={'borderRadius': '5px'}
+                    ),
+                    
+                    html.Div(id='login-error', style={'display': 'none'}),
+                    
+                    dbc.Button(
+                        [html.I(className='fas fa-sign-in-alt me-2'), 'Entrar'],
+                        id='login-button',
+                        color='primary',
+                        className='w-100 mt-3',
+                        style={
+                            'backgroundColor': colors['primary'],
+                            'borderColor': colors['primary'],
+                            'padding': '12px',
+                            'fontSize': '1.1rem',
+                            'fontWeight': '600',
+                            'borderRadius': '5px'
+                        }
+                    )
+                ]),
+                
+                html.Div([
+                    html.I(className='fas fa-shield-alt me-2', style={'color': colors['secondary']}),
+                    html.Span('Acesso restrito a usuários autorizados', 
+                             style={'color': colors['text_muted'], 'fontSize': '0.85rem'})
+                ], className='text-center mt-4')
+            ], className='login-card')
+        ], className='login-container')
+    ])
+
+
+def create_header(user_name=None):
+    user_section = []
+    if user_name:
+        user_section = [
+            html.Div([
+                html.I(className='fas fa-user-circle me-2', style={'fontSize': '1.2rem'}),
+                html.Span(user_name, className='user-badge'),
+                dbc.Button(
+                    [html.I(className='fas fa-sign-out-alt me-1'), 'Sair'],
+                    id='logout-button',
+                    size='sm',
+                    outline=True,
+                    color='light',
+                    className='ms-3',
+                    style={'borderRadius': '20px'}
+                )
+            ], className='user-info', style={'color': 'white'})
+        ]
+    
     return dbc.Navbar(
         dbc.Container([
             dbc.Row([
                 dbc.Col([
                     html.Div([
+                        html.I(className='fas fa-heartbeat me-2', style={'color': 'white', 'fontSize': '1.3rem'}),
                         html.Span(
-                            "Saúde",
+                            "Dashboard",
                             style={'color': 'white', 'fontWeight': '700', 'fontSize': '1.5rem'}
                         ),
                         html.Span(
-                            "Já",
-                            style={'color': '#e74c3c', 'fontWeight': '700', 'fontSize': '1.5rem'}
+                            " SISCAN",
+                            style={'color': COLORS['accent'], 'fontWeight': '700', 'fontSize': '1.5rem'}
                         ),
                         html.Span(
-                            " Painel de Monitoramento Exame Mamografia",
-                            style={'color': 'white', 'fontWeight': '400', 'fontSize': '1.1rem', 'marginLeft': '10px'}
+                            " - Monitoramento de Mamografia",
+                            style={'color': 'rgba(255,255,255,0.8)', 'fontWeight': '400', 'fontSize': '1rem', 'marginLeft': '10px'}
                         ),
                     ], style={'display': 'flex', 'alignItems': 'center'})
-                ])
-            ], align='center')
+                ], width='auto'),
+                dbc.Col(user_section, width='auto', className='ms-auto')
+            ], align='center', justify='between', className='w-100')
         ], fluid=True),
         style={
             'backgroundColor': COLORS['header_bg'],
-            'boxShadow': '0 2px 4px rgba(0,0,0,0.1)'
+            'boxShadow': '0 2px 4px rgba(0,0,0,0.15)'
         },
         dark=True,
         className='mb-4'
@@ -664,13 +747,13 @@ def create_footer():
 def create_main_layout(years, health_units, regions, initial_content=None,
                        selected_year=None, selected_health_unit=None,
                        selected_region=None, selected_conformity=None,
-                       sex_options=None, birads_options=None):
+                       sex_options=None, birads_options=None, user_name=None):
     last_update_text = ''
     if initial_content:
         last_update_text = initial_content.get('last_update', '')
     
     return html.Div([
-        create_header(),
+        create_header(user_name=user_name),
         
         dbc.Container([
             create_filters(years, health_units, regions, 

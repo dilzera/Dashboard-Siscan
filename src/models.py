@@ -1,10 +1,35 @@
-from sqlalchemy import Column, Integer, String, Date, Float, DateTime, Text, BigInteger, create_engine
+from sqlalchemy import Column, Integer, String, Date, Float, DateTime, Text, BigInteger, Boolean, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from flask_login import UserMixin
+from passlib.hash import bcrypt
 from src.config import DATABASE_URL
 import hashlib
+from datetime import datetime
 
 Base = declarative_base()
+
+
+class User(Base, UserMixin):
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    name = Column(String(200), nullable=False)
+    role = Column(String(50), default='viewer')
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_login = Column(DateTime)
+    
+    def set_password(self, password):
+        self.password_hash = bcrypt.hash(password)
+    
+    def check_password(self, password):
+        return bcrypt.verify(password, self.password_hash)
+    
+    def get_id(self):
+        return str(self.id)
 
 
 class ExamRecord(Base):
