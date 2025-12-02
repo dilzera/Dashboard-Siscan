@@ -82,6 +82,14 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
 
 ## Recent Changes
 
+- 02/12/2025: Dados do Paciente implementado
+  - Nova aba "Dados do Paciente" com listagem completa de todos os registros
+  - Filtros específicos: busca por nome, sexo, BI-RADS
+  - Paginação: 25, 50 ou 100 registros por página
+  - 18 campos clínicos exibidos: Nome, Idade, Sexo, Data Nascimento, Nome da Mãe, Unidade de Saúde, Data Solicitação, Data Realização, Data Liberação, Prestador de Serviço, Nº Exame, Tipo Mamografia, Tipo Mama, Linfonodos Axilares, Achados Benignos, BI-RADS Direita, BI-RADS Esquerda, Recomendações
+  - Integração com botão "Atualizar Dados" do dashboard principal
+  - Queries SQL parametrizadas para segurança
+
 - 02/12/2025: Navegação da Paciente implementada
   - Nova aba "Navegação da Paciente" para acompanhar pacientes com múltiplos atendimentos
   - Estatísticas: total de pacientes com múltiplos exames, média de exames por paciente

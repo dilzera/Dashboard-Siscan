@@ -187,6 +187,7 @@ def register_callbacks(app):
         Input('patient-data-search-btn', 'n_clicks'),
         Input('patient-data-prev-btn', 'n_clicks'),
         Input('patient-data-next-btn', 'n_clicks'),
+        Input('refresh-btn', 'n_clicks'),
         State('year-filter', 'value'),
         State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
@@ -198,7 +199,7 @@ def register_callbacks(app):
         State('patient-data-current-page', 'data'),
         prevent_initial_call=True
     )
-    def update_patient_data(search_clicks, prev_clicks, next_clicks,
+    def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks,
                             year, health_unit, region, conformity,
                             patient_name, sex, birads, page_size, current_page):
         try:
@@ -208,7 +209,7 @@ def register_callbacks(app):
             
             triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
             
-            if triggered_id == 'patient-data-search-btn':
+            if triggered_id in ['patient-data-search-btn', 'refresh-btn']:
                 current_page = 1
             elif triggered_id == 'patient-data-prev-btn':
                 current_page = max(1, current_page - 1)
