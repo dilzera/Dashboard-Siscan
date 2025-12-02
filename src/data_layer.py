@@ -649,3 +649,135 @@ def get_patient_navigation_stats_sql(year=None, health_unit=None, region=None, c
         'max_exames_paciente': row[3] or 0,
         'media_exames_por_paciente': float(row[4]) if row[4] else 0
     }
+
+
+def _build_patient_data_where_clause(year=None, health_unit=None, region=None, conformity=None, 
+                                      patient_name=None, sex=None, birads=None):
+    """Build a safe parameterized WHERE clause for patient data queries"""
+    conditions = ["unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
+    params = {}
+    
+    if year:
+        conditions.append("EXTRACT(YEAR FROM unidade_de_saude__data_da_solicitacao) = :pd_year")
+        params['pd_year'] = year
+    if health_unit:
+        conditions.append("unidade_de_saude__nome = :pd_health_unit")
+        params['pd_health_unit'] = health_unit
+    if region:
+        conditions.append("distrito_sanitario = :pd_region")
+        params['pd_region'] = region
+    if conformity:
+        conditions.append("conformity_status = :pd_conformity")
+        params['pd_conformity'] = conformity
+    if patient_name:
+        conditions.append("UPPER(paciente__nome) LIKE UPPER(:pd_patient_name)")
+        params['pd_patient_name'] = f"%{patient_name}%"
+    if sex:
+        conditions.append("paciente__sexo = :pd_sex")
+        params['pd_sex'] = sex
+    if birads:
+        conditions.append("birads_max = :pd_birads")
+        params['pd_birads'] = birads
+    
+    return " AND ".join(conditions), params
+
+
+def get_patient_data_list_sql(year=None, health_unit=None, region=None, conformity=None,
+                               patient_name=None, sex=None, birads=None, 
+                               page=1, page_size=50):
+    """Get paginated list of patient data with all clinical details"""
+    where_clause, params = _build_patient_data_where_clause(
+        year, health_unit, region, conformity, patient_name, sex, birads
+    )
+    
+    offset = (page - 1) * page_size
+    params['pd_limit'] = page_size
+    params['pd_offset'] = offset
+    
+    query = f"""
+    SELECT 
+        paciente__nome as nome,
+        paciente__idade as idade,
+        paciente__sexo as sexo,
+        paciente__data_do_nascimento as data_nascimento,
+        paciente__mae as nome_mae,
+        unidade_de_saude__nome as unidade_saude,
+        unidade_de_saude__data_da_solicitacao as data_solicitacao,
+        prestador_de_servico__data_da_realizacao as data_realizacao,
+        responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
+        prestador_de_servico__nome as prestador_servico,
+        unidade_de_saude__n_do_exame as numero_exame,
+        COALESCE(resultado_exame__indicacao__tipo_de_mamografia, resultado_exame__indicacao__mamografia_de_rastreamento) as tipo_mamografia,
+        COALESCE(resultado_exame__mama_direita__tipo_de_mama, resultado_exame__mama_esquerda__tipo_de_mama) as tipo_mama,
+        resultado_exame__linfonodos_axilares__linfonodos_axilares as linfonodos_axilares,
+        resultado_exame__achados_benignos__achados_benignos as achados_benignos,
+        resultado_exame__classificacao_radiologica__mama_direita as birads_direita_class,
+        resultado_exame__classificacao_radiologica__mama_esquerda as birads_esquerda_class,
+        resultado_exame__recomendacoes as recomendacoes,
+        birads_max,
+        distrito_sanitario,
+        conformity_status,
+        wait_days
+    FROM exam_records
+    WHERE {where_clause}
+    ORDER BY unidade_de_saude__data_da_solicitacao DESC, paciente__nome
+    LIMIT :pd_limit OFFSET :pd_offset
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_patient_data_count_sql(year=None, health_unit=None, region=None, conformity=None,
+                                patient_name=None, sex=None, birads=None):
+    """Get total count of patient records for pagination"""
+    where_clause, params = _build_patient_data_where_clause(
+        year, health_unit, region, conformity, patient_name, sex, birads
+    )
+    
+    query = f"""
+    SELECT COUNT(*) as total
+    FROM exam_records
+    WHERE {where_clause}
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        row = result.fetchone()
+    
+    return row[0] or 0
+
+
+def get_sex_options():
+    """Get distinct sex values for filter"""
+    engine = get_engine()
+    query = """
+    SELECT DISTINCT paciente__sexo 
+    FROM exam_records 
+    WHERE paciente__sexo IS NOT NULL 
+    ORDER BY paciente__sexo
+    """
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    return df['paciente__sexo'].dropna().tolist()
+
+
+def get_birads_options():
+    """Get distinct BI-RADS values for filter"""
+    engine = get_engine()
+    query = """
+    SELECT DISTINCT birads_max 
+    FROM exam_records 
+    WHERE birads_max IS NOT NULL AND birads_max != ''
+    ORDER BY birads_max
+    """
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    return df['birads_max'].dropna().tolist()
