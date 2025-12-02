@@ -1,5 +1,6 @@
 import plotly.express as px
 import plotly.graph_objects as go
+from dash import dcc
 from src.config import COLORS, BIRADS_COLORS, CONFORMITY_TARGET
 
 
@@ -22,7 +23,7 @@ def create_empty_figure(message="Sem dados disponíveis"):
         margin=dict(l=20, r=20, t=20, b=20),
         height=300
     )
-    return fig
+    return dcc.Graph(figure=fig, config={'displayModeBar': False})
 
 
 def create_line_chart(df, x_col, y_col, title=None):
@@ -59,7 +60,7 @@ def create_line_chart(df, x_col, y_col, title=None):
         hovermode='x unified'
     )
     
-    return fig
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
 
 
 def create_bar_chart(df, x_col, y_col, orientation='v', color=None, title=None):
@@ -98,7 +99,7 @@ def create_bar_chart(df, x_col, y_col, orientation='v', color=None, title=None):
         showlegend=False
     )
     
-    return fig
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
 
 
 def create_birads_bar_chart(df):
@@ -132,7 +133,7 @@ def create_birads_bar_chart(df):
         )
     )
     
-    return fig
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
 
 
 def create_conformity_chart(df):
@@ -177,7 +178,7 @@ def create_conformity_chart(df):
         )
     )
     
-    return fig
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
 
 
 def create_pie_chart(df, names_col, values_col):
@@ -204,7 +205,7 @@ def create_pie_chart(df, names_col, values_col):
         showlegend=False
     )
     
-    return fig
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
 
 
 def create_gauge_chart(value, title, max_value=100):
@@ -241,4 +242,4 @@ def create_gauge_chart(value, title, max_value=100):
         height=250
     )
     
-    return fig
+    return dcc.Graph(figure=fig, config={'displayModeBar': False})
