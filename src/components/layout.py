@@ -27,7 +27,8 @@ def create_header():
     )
 
 
-def create_filters(years, health_units, regions):
+def create_filters(years, health_units, regions, selected_year=None, selected_health_unit=None, 
+                   selected_region=None, selected_conformity=None):
     return dbc.Card([
         dbc.CardBody([
             dbc.Row([
@@ -36,6 +37,7 @@ def create_filters(years, health_units, regions):
                     dcc.Dropdown(
                         id='year-filter',
                         options=[{'label': str(y), 'value': y} for y in years],
+                        value=selected_year,
                         placeholder='Todos os anos',
                         clearable=True,
                         style={'fontSize': '0.9rem'}
@@ -47,6 +49,7 @@ def create_filters(years, health_units, regions):
                     dcc.Dropdown(
                         id='health-unit-filter',
                         options=[{'label': u, 'value': u} for u in health_units],
+                        value=selected_health_unit,
                         placeholder='Todas as unidades',
                         clearable=True,
                         searchable=True,
@@ -59,6 +62,7 @@ def create_filters(years, health_units, regions):
                     dcc.Dropdown(
                         id='region-filter',
                         options=[{'label': r, 'value': r} for r in regions],
+                        value=selected_region,
                         placeholder='Todos os estados',
                         clearable=True,
                         style={'fontSize': '0.9rem'}
@@ -73,6 +77,7 @@ def create_filters(years, health_units, regions):
                             {'label': 'Dentro do Prazo', 'value': 'Dentro do Prazo'},
                             {'label': 'Fora do Prazo', 'value': 'Fora do Prazo'}
                         ],
+                        value=selected_conformity,
                         placeholder='Todos',
                         clearable=True,
                         style={'fontSize': '0.9rem'}
@@ -87,7 +92,8 @@ def create_filters(years, health_units, regions):
                         id='refresh-btn',
                         color='primary',
                         size='sm',
-                        className='mt-3'
+                        className='mt-3',
+                        n_clicks=0
                     ),
                     html.Small(
                         id='last-update',
@@ -107,7 +113,14 @@ def create_filters(years, health_units, regions):
     )
 
 
-def create_kpi_row():
+def create_kpi_row(initial_content=None):
+    if initial_content:
+        return dbc.Row([
+            dbc.Col(html.Div(initial_content['kpi_mean'], id='kpi-mean-wait'), lg=3, md=6, className='mb-3'),
+            dbc.Col(html.Div(initial_content['kpi_median'], id='kpi-median-wait'), lg=3, md=6, className='mb-3'),
+            dbc.Col(html.Div(initial_content['kpi_conformity'], id='kpi-conformity'), lg=3, md=6, className='mb-3'),
+            dbc.Col(html.Div(initial_content['kpi_risk'], id='kpi-high-risk'), lg=3, md=6, className='mb-3'),
+        ], className='mb-4')
     return dbc.Row([
         dbc.Col(html.Div(id='kpi-mean-wait'), lg=3, md=6, className='mb-3'),
         dbc.Col(html.Div(id='kpi-median-wait'), lg=3, md=6, className='mb-3'),
@@ -116,16 +129,16 @@ def create_kpi_row():
     ], className='mb-4')
 
 
-def create_tabs():
+def create_tabs(initial_content=None):
     return dbc.Tabs([
         dbc.Tab(
-            create_performance_tab(),
+            create_performance_tab(initial_content),
             label='Visão Geral de Performance',
             tab_id='tab-performance',
             className='p-3'
         ),
         dbc.Tab(
-            create_audit_tab(),
+            create_audit_tab(initial_content),
             label='Auditoria de Risco',
             tab_id='tab-audit',
             className='p-3'
@@ -133,7 +146,17 @@ def create_tabs():
     ], id='main-tabs', active_tab='tab-performance')
 
 
-def create_performance_tab():
+def create_performance_tab(initial_content=None):
+    if initial_content:
+        return html.Div([
+            dbc.Row([
+                dbc.Col(html.Div(initial_content['chart_volume'], id='chart-monthly-volume'), lg=8, className='mb-4'),
+                dbc.Col(html.Div(initial_content['gauge_chart'], id='chart-conformity-gauge'), lg=4, className='mb-4')
+            ]),
+            dbc.Row([
+                dbc.Col(html.Div(initial_content['chart_conformity'], id='chart-conformity-by-unit'), lg=12, className='mb-4')
+            ])
+        ])
     return html.Div([
         dbc.Row([
             dbc.Col([
@@ -151,7 +174,17 @@ def create_performance_tab():
     ])
 
 
-def create_audit_tab():
+def create_audit_tab(initial_content=None):
+    if initial_content:
+        return html.Div([
+            dbc.Row([
+                dbc.Col(html.Div(initial_content['chart_birads'], id='chart-birads-dist'), lg=6, className='mb-4'),
+                dbc.Col(html.Div(initial_content['chart_birads_pie'], id='chart-birads-pie'), lg=6, className='mb-4')
+            ]),
+            dbc.Row([
+                dbc.Col(html.Div(initial_content['table_risk'], id='table-high-risk'), lg=12, className='mb-4')
+            ])
+        ])
     return html.Div([
         dbc.Row([
             dbc.Col([
@@ -183,17 +216,24 @@ def create_footer():
     )
 
 
-def create_main_layout(years, health_units, regions):
+def create_main_layout(years, health_units, regions, initial_content=None,
+                       selected_year=None, selected_health_unit=None,
+                       selected_region=None, selected_conformity=None):
+    last_update_text = ''
+    if initial_content:
+        last_update_text = initial_content.get('last_update', '')
+    
     return html.Div([
-        dcc.Store(id='data-store'),
-        dcc.Interval(id='interval-component', interval=300000, n_intervals=0),
-        
         create_header(),
         
         dbc.Container([
-            create_filters(years, health_units, regions),
-            create_kpi_row(),
-            create_tabs(),
+            create_filters(years, health_units, regions, 
+                          selected_year, selected_health_unit, 
+                          selected_region, selected_conformity),
+            html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
+                    style={'fontSize': '0.85rem'}),
+            create_kpi_row(initial_content),
+            create_tabs(initial_content),
             create_footer()
         ], fluid=True, className='px-4')
     ], style={'backgroundColor': COLORS['background'], 'minHeight': '100vh'})

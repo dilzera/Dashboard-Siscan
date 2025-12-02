@@ -4,39 +4,199 @@ from src.models import get_engine
 from datetime import datetime, timedelta
 
 
-def get_dataframe(query=None, params=None):
-    engine = get_engine()
-    if query is None:
-        query = "SELECT * FROM exam_records"
-    return pd.read_sql(query, engine, params=params)
+def _build_where_clause(year=None, health_unit=None, region=None, conformity_status=None):
+    conditions = []
+    params = {}
+    
+    if year:
+        conditions.append("year = :year")
+        params['year'] = year
+    
+    if health_unit:
+        conditions.append("unidade_de_saude__nome = :health_unit")
+        params['health_unit'] = health_unit
+    
+    if conformity_status:
+        conditions.append("conformity_status = :conformity_status")
+        params['conformity_status'] = conformity_status
+    
+    if region:
+        conditions.append("unidade_de_saude__uf = :region")
+        params['region'] = region
+    
+    where_clause = ""
+    if conditions:
+        where_clause = " WHERE " + " AND ".join(conditions)
+    
+    return where_clause, params
 
 
 def get_years():
     engine = get_engine()
     query = "SELECT DISTINCT year FROM exam_records WHERE year IS NOT NULL ORDER BY year DESC"
-    df = pd.read_sql(query, engine)
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return [int(y) for y in df['year'].dropna().tolist()]
 
 
 def get_health_units():
     engine = get_engine()
-    query = "SELECT DISTINCT unidade_de_saude__nome FROM exam_records WHERE unidade_de_saude__nome IS NOT NULL ORDER BY unidade_de_saude__nome"
-    df = pd.read_sql(query, engine)
+    query = "SELECT DISTINCT unidade_de_saude__nome FROM exam_records WHERE unidade_de_saude__nome IS NOT NULL ORDER BY unidade_de_saude__nome LIMIT 500"
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df['unidade_de_saude__nome'].dropna().tolist()
 
 
 def get_regions():
     engine = get_engine()
     query = "SELECT DISTINCT unidade_de_saude__uf FROM exam_records WHERE unidade_de_saude__uf IS NOT NULL ORDER BY unidade_de_saude__uf"
-    df = pd.read_sql(query, engine)
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df['unidade_de_saude__uf'].dropna().tolist()
 
 
-def get_municipalities():
+def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    
+    query = f"""
+    SELECT 
+        COUNT(*) as total_exams,
+        COALESCE(AVG(wait_days), 0) as mean_wait,
+        COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY wait_days), 0) as median_wait,
+        COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) as conformity_count,
+        COUNT(CASE WHEN birads_max IN ('4', '5') THEN 1 END) as high_risk_count,
+        COUNT(DISTINCT patient_unique_id) as unique_patients
+    FROM exam_records
+    {where_clause}
+    """
+    
     engine = get_engine()
-    query = "SELECT DISTINCT unidade_de_saude__municipio FROM exam_records WHERE unidade_de_saude__municipio IS NOT NULL ORDER BY unidade_de_saude__municipio"
-    df = pd.read_sql(query, engine)
-    return df['unidade_de_saude__municipio'].dropna().tolist()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        row = result.fetchone()
+    
+    total_exams = row[0] or 0
+    mean_wait = float(row[1]) if row[1] else 0
+    median_wait = float(row[2]) if row[2] else 0
+    conformity_count = row[3] or 0
+    high_risk_count = row[4] or 0
+    unique_patients = row[5] or 0
+    
+    conformity_rate = (conformity_count / total_exams * 100) if total_exams > 0 else 0
+    
+    return {
+        'mean_wait': round(mean_wait, 1),
+        'median_wait': round(median_wait, 1),
+        'conformity_rate': round(conformity_rate, 1),
+        'total_exams': total_exams,
+        'high_risk_count': high_risk_count,
+        'unique_patients': unique_patients
+    }
+
+
+def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_status=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    
+    query = f"""
+    SELECT 
+        TO_CHAR(unidade_de_saude__data_da_solicitacao, 'YYYY-MM') as month_year,
+        COUNT(*) as count
+    FROM exam_records
+    {where_clause}
+    {"AND" if where_clause else "WHERE"} unidade_de_saude__data_da_solicitacao IS NOT NULL
+    GROUP BY TO_CHAR(unidade_de_saude__data_da_solicitacao, 'YYYY-MM')
+    ORDER BY month_year
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_birads_distribution_sql(year=None, health_unit=None, region=None, conformity_status=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    
+    query = f"""
+    SELECT 
+        birads_max as birads_category,
+        COUNT(*) as count
+    FROM exam_records
+    {where_clause}
+    {"AND" if where_clause else "WHERE"} birads_max IS NOT NULL
+    GROUP BY birads_max
+    ORDER BY birads_max
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conformity_status=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    
+    query = f"""
+    SELECT 
+        unidade_de_saude__nome as health_unit,
+        COUNT(*) as total,
+        COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) as dentro_prazo,
+        COUNT(CASE WHEN conformity_status = 'Fora do Prazo' THEN 1 END) as fora_prazo
+    FROM exam_records
+    {where_clause}
+    {"AND" if where_clause else "WHERE"} unidade_de_saude__nome IS NOT NULL
+    GROUP BY unidade_de_saude__nome
+    ORDER BY total DESC
+    LIMIT 10
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    if not df.empty:
+        df['Dentro do Prazo'] = df['dentro_prazo']
+        df['Fora do Prazo'] = df['fora_prazo']
+        df['conformity_rate'] = (df['Dentro do Prazo'] / df['total'] * 100).round(1)
+    
+    return df
+
+
+def get_high_risk_cases_sql(year=None, health_unit=None, region=None, conformity_status=None, limit=20):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    
+    query = f"""
+    SELECT 
+        patient_unique_id as patient_id,
+        paciente__nome as patient_name,
+        unidade_de_saude__nome as health_unit,
+        birads_max as birads_category,
+        wait_days,
+        conformity_status,
+        unidade_de_saude__data_da_solicitacao as request_date
+    FROM exam_records
+    {where_clause}
+    {"AND" if where_clause else "WHERE"} birads_max IN ('4', '5')
+    ORDER BY wait_days DESC NULLS LAST
+    LIMIT :limit_val
+    """
+    params['limit_val'] = limit
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
 
 
 def get_filtered_data(year=None, health_unit=None, conformity_status=None, region=None, municipality=None):
@@ -66,8 +226,13 @@ def get_filtered_data(year=None, health_unit=None, conformity_status=None, regio
     query = "SELECT * FROM exam_records"
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
+    query += " LIMIT 1000"
     
-    return get_dataframe(query, params)
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    return df
 
 
 def get_kpi_data(df):
