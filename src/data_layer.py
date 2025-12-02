@@ -484,3 +484,130 @@ def get_outliers_summary_sql():
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     
     return df
+
+
+def get_patient_navigation_summary_sql():
+    """Get summary of patients with multiple exams"""
+    query = """
+    WITH patient_exam_counts AS (
+        SELECT 
+            patient_unique_id,
+            COUNT(*) as total_exames
+        FROM exam_records
+        WHERE patient_unique_id IS NOT NULL
+        AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        GROUP BY patient_unique_id
+        HAVING COUNT(*) > 1
+    )
+    SELECT 
+        total_exames as numero_atendimentos,
+        COUNT(*) as total_pacientes
+    FROM patient_exam_counts
+    GROUP BY total_exames
+    ORDER BY total_exames
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_patient_navigation_list_sql(min_exams=2, limit=100):
+    """Get list of patients with multiple exams and their exam history"""
+    query = f"""
+    WITH patient_exam_counts AS (
+        SELECT 
+            patient_unique_id,
+            COUNT(*) as total_exames,
+            MAX(paciente__nome) as nome_paciente,
+            MAX(paciente__cartao_sus) as cartao_sus
+        FROM exam_records
+        WHERE patient_unique_id IS NOT NULL
+        AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        GROUP BY patient_unique_id
+        HAVING COUNT(*) >= {min_exams}
+    ),
+    patient_exams AS (
+        SELECT 
+            e.patient_unique_id,
+            p.nome_paciente,
+            p.cartao_sus,
+            p.total_exames,
+            e.unidade_de_saude__data_da_solicitacao as data_solicitacao,
+            e.prestador_de_servico__data_da_realizacao as data_realizacao,
+            e.birads_max,
+            e.birads_direita,
+            e.birads_esquerda,
+            e.unidade_de_saude__nome as unidade_saude,
+            e.distrito_sanitario,
+            e.wait_days,
+            e.conformity_status,
+            ROW_NUMBER() OVER (PARTITION BY e.patient_unique_id ORDER BY e.unidade_de_saude__data_da_solicitacao) as exam_order
+        FROM exam_records e
+        INNER JOIN patient_exam_counts p ON e.patient_unique_id = p.patient_unique_id
+        WHERE e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+    )
+    SELECT 
+        patient_unique_id,
+        nome_paciente,
+        cartao_sus,
+        total_exames,
+        exam_order,
+        data_solicitacao,
+        data_realizacao,
+        birads_max,
+        birads_direita,
+        birads_esquerda,
+        unidade_saude,
+        distrito_sanitario,
+        wait_days,
+        conformity_status
+    FROM patient_exams
+    ORDER BY total_exames DESC, nome_paciente, exam_order
+    LIMIT {limit * 10}
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_patient_navigation_stats_sql():
+    """Get overall statistics for patient navigation"""
+    query = """
+    WITH patient_exam_counts AS (
+        SELECT 
+            patient_unique_id,
+            COUNT(*) as total_exames
+        FROM exam_records
+        WHERE patient_unique_id IS NOT NULL
+        AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        GROUP BY patient_unique_id
+    )
+    SELECT 
+        COUNT(*) FILTER (WHERE total_exames > 1) as pacientes_multiplos_exames,
+        COUNT(*) as total_pacientes,
+        SUM(total_exames) FILTER (WHERE total_exames > 1) as total_exames_multiplos,
+        MAX(total_exames) as max_exames_paciente,
+        ROUND(AVG(total_exames) FILTER (WHERE total_exames > 1), 1) as media_exames_por_paciente
+    FROM patient_exam_counts
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        row = result.fetchone()
+    
+    return {
+        'pacientes_multiplos_exames': row[0] or 0,
+        'total_pacientes': row[1] or 0,
+        'total_exames_multiplos': row[2] or 0,
+        'max_exames_paciente': row[3] or 0,
+        'media_exames_por_paciente': float(row[4]) if row[4] else 0
+    }

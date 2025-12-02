@@ -4,14 +4,18 @@ import pandas as pd
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
     get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
-    get_outliers_audit_sql, get_outliers_summary_sql
+    get_outliers_audit_sql, get_outliers_summary_sql,
+    get_patient_navigation_summary_sql, get_patient_navigation_list_sql, get_patient_navigation_stats_sql
 )
 from src.components.cards import create_kpi_card, create_chart_card
 from src.components.charts import (
     create_line_chart, create_birads_bar_chart,
     create_conformity_chart, create_gauge_chart, create_pie_chart
 )
-from src.components.tables import create_high_risk_table, create_outliers_table, create_outliers_summary_cards
+from src.components.tables import (
+    create_high_risk_table, create_outliers_table, create_outliers_summary_cards,
+    create_patient_navigation_stats_cards, create_patient_navigation_table
+)
 
 
 def build_dashboard_content(year=None, health_unit=None, region=None, conformity=None):
@@ -88,6 +92,11 @@ def build_dashboard_content(year=None, health_unit=None, region=None, conformity
     outliers_table = create_outliers_table(outliers_df)
     outliers_summary = create_outliers_summary_cards(outliers_summary_df)
     
+    navigation_stats = get_patient_navigation_stats_sql()
+    navigation_list_df = get_patient_navigation_list_sql(min_exams=2, limit=50)
+    navigation_stats_cards = create_patient_navigation_stats_cards(navigation_stats)
+    navigation_table = create_patient_navigation_table(navigation_list_df)
+    
     last_update = f'Última atualização: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}'
     
     return {
@@ -103,6 +112,8 @@ def build_dashboard_content(year=None, health_unit=None, region=None, conformity
         'table_risk': table_risk,
         'outliers_table': outliers_table,
         'outliers_summary': outliers_summary,
+        'navigation_stats': navigation_stats_cards,
+        'navigation_table': navigation_table,
         'last_update': last_update
     }
 
@@ -121,6 +132,8 @@ def register_callbacks(app):
         Output('table-high-risk', 'children'),
         Output('outliers-summary', 'children'),
         Output('outliers-table', 'children'),
+        Output('navigation-stats', 'children'),
+        Output('navigation-table', 'children'),
         Output('last-update-display', 'children'),
         Input('refresh-btn', 'n_clicks'),
         State('year-filter', 'value'),
@@ -145,6 +158,8 @@ def register_callbacks(app):
                 content['table_risk'],
                 content['outliers_summary'],
                 content['outliers_table'],
+                content['navigation_stats'],
+                content['navigation_table'],
                 content['last_update']
             )
         except Exception as e:
@@ -156,5 +171,6 @@ def register_callbacks(app):
             return (
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_card, error_card,
-                error_card, error_card, error_card, error_card, error_message
+                error_card, error_card, error_card, error_card,
+                error_card, error_card, error_message
             )

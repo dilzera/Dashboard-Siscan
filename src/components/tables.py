@@ -227,3 +227,185 @@ def create_outliers_summary_cards(summary_df):
     ], md=3, sm=6, className='mb-3')
     
     return dbc.Row([total_card] + cards)
+
+
+def create_patient_navigation_stats_cards(stats):
+    if not stats:
+        return html.Div('Nenhum dado disponível', className='text-muted')
+    
+    cards = []
+    
+    cards.append(dbc.Col([
+        dbc.Card([
+            dbc.CardBody([
+                html.Div([
+                    html.I(className='fas fa-users fa-2x', style={'color': COLORS['primary']}),
+                    html.Span(' Pacientes', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                ], className='d-flex align-items-center mb-2'),
+                html.H3(f'{stats["pacientes_multiplos_exames"]:,}'.replace(',', '.'), 
+                       style={'color': COLORS['primary'], 'fontWeight': '600'}),
+                html.Small('Com múltiplos atendimentos', className='text-muted')
+            ])
+        ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+    ], md=3, sm=6, className='mb-3'))
+    
+    cards.append(dbc.Col([
+        dbc.Card([
+            dbc.CardBody([
+                html.Div([
+                    html.I(className='fas fa-file-medical fa-2x', style={'color': COLORS['info']}),
+                    html.Span(' Exames', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                ], className='d-flex align-items-center mb-2'),
+                html.H3(f'{stats["total_exames_multiplos"]:,}'.replace(',', '.'), 
+                       style={'color': COLORS['info'], 'fontWeight': '600'}),
+                html.Small('Total de exames dessas pacientes', className='text-muted')
+            ])
+        ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+    ], md=3, sm=6, className='mb-3'))
+    
+    cards.append(dbc.Col([
+        dbc.Card([
+            dbc.CardBody([
+                html.Div([
+                    html.I(className='fas fa-chart-line fa-2x', style={'color': COLORS['success']}),
+                    html.Span(' Média', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                ], className='d-flex align-items-center mb-2'),
+                html.H3(f'{stats["media_exames_por_paciente"]:.1f}', 
+                       style={'color': COLORS['success'], 'fontWeight': '600'}),
+                html.Small('Exames por paciente', className='text-muted')
+            ])
+        ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+    ], md=3, sm=6, className='mb-3'))
+    
+    cards.append(dbc.Col([
+        dbc.Card([
+            dbc.CardBody([
+                html.Div([
+                    html.I(className='fas fa-trophy fa-2x', style={'color': COLORS['warning']}),
+                    html.Span(' Máximo', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                ], className='d-flex align-items-center mb-2'),
+                html.H3(f'{stats["max_exames_paciente"]}', 
+                       style={'color': COLORS['warning'], 'fontWeight': '600'}),
+                html.Small('Maior número de atendimentos', className='text-muted')
+            ])
+        ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+    ], md=3, sm=6, className='mb-3'))
+    
+    return dbc.Row(cards)
+
+
+def create_patient_navigation_table(df):
+    if df.empty:
+        return html.Div(
+            html.P('Nenhuma paciente com múltiplos atendimentos encontrada', className='text-muted text-center py-4'),
+            className='border rounded'
+        )
+    
+    grouped = df.groupby('patient_unique_id')
+    
+    accordion_items = []
+    
+    patient_count = 0
+    for patient_id, group in grouped:
+        if patient_count >= 50:
+            break
+        patient_count += 1
+        
+        first_row = group.iloc[0]
+        nome = str(first_row.get('nome_paciente', ''))[:40]
+        cartao_sus = str(first_row.get('cartao_sus', ''))
+        total_exames = first_row.get('total_exames', len(group))
+        
+        exams_rows = []
+        for _, exam in group.iterrows():
+            birads = exam.get('birads_max', '-')
+            birads_d = exam.get('birads_direita', '-')
+            birads_e = exam.get('birads_esquerda', '-')
+            
+            birads_color = BIRADS_COLORS.get(str(birads), COLORS['secondary'])
+            
+            data_sol = str(exam.get('data_solicitacao', ''))[:10]
+            data_real = str(exam.get('data_realizacao', ''))[:10] if exam.get('data_realizacao') else '-'
+            unidade = str(exam.get('unidade_saude', '-'))[:30]
+            wait = exam.get('wait_days', '-')
+            ordem = exam.get('exam_order', '-')
+            
+            exams_rows.append(html.Tr([
+                html.Td(f'{ordem}º', style={'fontWeight': '500', 'textAlign': 'center'}),
+                html.Td(data_sol, style={'fontSize': '0.85rem'}),
+                html.Td(data_real, style={'fontSize': '0.85rem'}),
+                html.Td(
+                    dbc.Badge(f'BI-RADS {birads}', style={'backgroundColor': birads_color}),
+                    style={'textAlign': 'center'}
+                ),
+                html.Td(f'D:{birads_d} E:{birads_e}', style={'fontSize': '0.8rem', 'color': '#666'}),
+                html.Td(unidade, style={'fontSize': '0.85rem'}),
+                html.Td(f'{wait} dias' if wait and wait != '-' else '-', style={'fontSize': '0.85rem'})
+            ]))
+        
+        exam_table = dbc.Table(
+            [
+                html.Thead(html.Tr([
+                    html.Th('#', style={'width': '50px', 'textAlign': 'center'}),
+                    html.Th('Solicitação', style={'width': '100px'}),
+                    html.Th('Realização', style={'width': '100px'}),
+                    html.Th('BI-RADS', style={'width': '100px', 'textAlign': 'center'}),
+                    html.Th('Detalhe', style={'width': '100px'}),
+                    html.Th('Unidade de Saúde'),
+                    html.Th('Espera', style={'width': '80px'})
+                ])),
+                html.Tbody(exams_rows)
+            ],
+            bordered=True,
+            hover=True,
+            responsive=True,
+            striped=True,
+            size='sm',
+            className='mb-0'
+        )
+        
+        accordion_items.append(
+            dbc.AccordionItem(
+                exam_table,
+                title=html.Div([
+                    html.Span(nome, style={'fontWeight': '500'}),
+                    html.Span(f' | CNS: {cartao_sus}', style={'color': '#666', 'fontSize': '0.9rem'}),
+                    dbc.Badge(f'{total_exames} exames', color='primary', className='ms-2')
+                ]),
+                item_id=str(patient_id)
+            )
+        )
+    
+    return dbc.Card([
+        dbc.CardHeader(
+            html.H5('Histórico de Atendimentos por Paciente', className='mb-0', style={'fontWeight': '500'}),
+            style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}
+        ),
+        dbc.CardBody([
+            html.P(f'Mostrando {min(50, len(grouped))} pacientes com mais atendimentos', 
+                   className='text-muted mb-3', style={'fontSize': '0.85rem'}),
+            dbc.Accordion(accordion_items, start_collapsed=True, flush=True)
+        ])
+    ],
+        className='shadow-sm',
+        style={
+            'borderRadius': '10px',
+            'border': 'none',
+            'backgroundColor': COLORS['card_bg']
+        }
+    )
+
+
+def create_patient_navigation_summary_chart(summary_df):
+    if summary_df.empty:
+        return html.Div('Nenhum dado disponível', className='text-muted text-center py-4')
+    
+    from src.components.charts import create_bar_chart
+    return create_bar_chart(
+        summary_df, 
+        'numero_atendimentos', 
+        'total_pacientes',
+        'Distribuição por Número de Atendimentos',
+        'Número de Atendimentos',
+        'Quantidade de Pacientes'
+    )

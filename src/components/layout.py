@@ -213,6 +213,34 @@ def create_outliers_tab(initial_content=None):
     ])
 
 
+def create_patient_navigation_tab(initial_content=None):
+    if initial_content and 'navigation_stats' in initial_content:
+        return html.Div([
+            html.Div([
+                html.H5('Navegação da Paciente', className='mb-3'),
+                html.P('Pacientes com múltiplos atendimentos e histórico de exames.', 
+                       className='text-muted mb-4')
+            ]),
+            html.Div(initial_content.get('navigation_stats', ''), id='navigation-stats'),
+            html.Hr(className='my-4'),
+            dbc.Row([
+                dbc.Col(html.Div(initial_content.get('navigation_table', ''), id='navigation-table'), lg=12, className='mb-4')
+            ])
+        ])
+    return html.Div([
+        html.Div([
+            html.H5('Navegação da Paciente', className='mb-3'),
+            html.P('Pacientes com múltiplos atendimentos e histórico de exames.', 
+                   className='text-muted mb-4')
+        ]),
+        html.Div(id='navigation-stats'),
+        html.Hr(className='my-4'),
+        dbc.Row([
+            dbc.Col(html.Div(id='navigation-table'), lg=12, className='mb-4')
+        ])
+    ])
+
+
 def create_tabs(initial_content=None):
     return dbc.Tabs([
         dbc.Tab(
@@ -231,6 +259,12 @@ def create_tabs(initial_content=None):
             create_outliers_tab(initial_content),
             label='Auditoria de Outliers',
             tab_id='tab-outliers',
+            className='p-3'
+        ),
+        dbc.Tab(
+            create_patient_navigation_tab(initial_content),
+            label='Navegação da Paciente',
+            tab_id='tab-navigation',
             className='p-3'
         )
     ], id='main-tabs', active_tab='tab-performance')
