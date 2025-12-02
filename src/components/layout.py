@@ -8,22 +8,29 @@ def create_header():
         dbc.Container([
             dbc.Row([
                 dbc.Col([
-                    html.H4(
-                        "SISCAN Dashboard",
-                        className='mb-0',
-                        style={'color': 'white', 'fontWeight': '600'}
-                    ),
-                    html.Small(
-                        "Sistema de Acompanhamento de Mamografias",
-                        className='text-light opacity-75'
-                    )
+                    html.Div([
+                        html.Span(
+                            "Saúde",
+                            style={'color': 'white', 'fontWeight': '700', 'fontSize': '1.5rem'}
+                        ),
+                        html.Span(
+                            "Já",
+                            style={'color': '#e74c3c', 'fontWeight': '700', 'fontSize': '1.5rem'}
+                        ),
+                        html.Span(
+                            " Painel de Monitoramento Exame Mamografia",
+                            style={'color': 'white', 'fontWeight': '400', 'fontSize': '1.1rem', 'marginLeft': '10px'}
+                        ),
+                    ], style={'display': 'flex', 'alignItems': 'center'})
                 ])
             ], align='center')
         ], fluid=True),
-        color='dark',
+        style={
+            'backgroundColor': COLORS['header_bg'],
+            'boxShadow': '0 2px 4px rgba(0,0,0,0.1)'
+        },
         dark=True,
-        className='mb-4',
-        style={'boxShadow': '0 2px 4px rgba(0,0,0,0.1)'}
+        className='mb-4'
     )
 
 
@@ -90,10 +97,14 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     dbc.Button(
                         [html.I(className='fas fa-sync-alt me-2'), 'Atualizar Dados'],
                         id='refresh-btn',
-                        color='primary',
                         size='sm',
                         className='mt-3',
-                        n_clicks=0
+                        n_clicks=0,
+                        style={
+                            'backgroundColor': COLORS['primary'],
+                            'borderColor': COLORS['primary'],
+                            'color': 'white'
+                        }
                     ),
                     html.Small(
                         id='last-update',

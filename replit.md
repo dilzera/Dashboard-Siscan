@@ -1,10 +1,19 @@
-# SISCAN Dashboard
+# Saúde Já - Painel de Monitoramento de Mamografia
 
-Sistema de Dashboards Web Interativos para acompanhamento de mamografias, desenvolvido em Python com Dash.
+Sistema de Dashboards Web Interativos para acompanhamento de mamografias em Curitiba, desenvolvido em Python com Dash.
 
 ## Overview
 
 Este projeto é um MVP de dashboard interativo para visualização e análise de dados de exames de mamografia do sistema SISCAN. O sistema consome dados de um banco PostgreSQL e apresenta visualizações interativas para análise de performance e auditoria de risco.
+
+## Design
+
+**Paleta de Cores (Saúde Já)**:
+- Primary/Header: Teal (#17a2b8)
+- Secondary: Dark Teal (#138496)
+- Accent: Vermelho coral (#e74c3c)
+- Background: Cinza claro (#f0f4f7)
+- Cards: Branco (#ffffff)
 
 ## Features
 
@@ -81,6 +90,18 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
   - Tipo D (Espera > 365 dias): 121 registros
 
 ## Recent Changes
+
+- 02/12/2025: Paleta de cores Saúde Já implementada
+  - Cabeçalho teal (#17a2b8) com logo "Saúde" branco e "Já" vermelho
+  - Abas com estilo teal e indicador de aba ativa
+  - Botões com cor primária teal
+  - Tabelas com cabeçalhos teal e linhas alternadas
+  - CSS customizado via app.index_string
+
+- 02/12/2025: Correções SQL na aba Unidade de Saúde
+  - Corrigido erro de alias em GROUP BY (PostgreSQL não permite aliases)
+  - Corrigido erro de tipo em ROUND (cast para ::numeric)
+  - Queries de demografia e agilidade reestruturadas com subqueries
 
 - 02/12/2025: Aba Unidade de Saúde implementada
   - Nova aba "Unidade de Saúde" com análise detalhada por unidade
