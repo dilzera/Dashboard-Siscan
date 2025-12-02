@@ -6,17 +6,21 @@ from src.data_layer import (
     get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
     get_outliers_audit_sql, get_outliers_summary_sql,
     get_patient_navigation_summary_sql, get_patient_navigation_list_sql, get_patient_navigation_stats_sql,
-    get_patient_data_list_sql, get_patient_data_count_sql
+    get_patient_data_list_sql, get_patient_data_count_sql,
+    get_unit_kpis_sql, get_unit_demographics_sql, get_unit_agility_sql,
+    get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql
 )
 from src.components.cards import create_kpi_card, create_chart_card
 from src.components.charts import (
     create_line_chart, create_birads_bar_chart,
-    create_conformity_chart, create_gauge_chart, create_pie_chart
+    create_conformity_chart, create_gauge_chart, create_pie_chart,
+    create_demographics_heatmap, create_agility_chart, create_wait_time_trend_chart,
+    create_empty_figure
 )
 from src.components.tables import (
     create_high_risk_table, create_outliers_table, create_outliers_summary_cards,
     create_patient_navigation_stats_cards, create_patient_navigation_table,
-    create_patient_data_table
+    create_patient_data_table, create_follow_up_overdue_table, create_unit_kpi_cards
 )
 
 
@@ -246,3 +250,73 @@ def register_callbacks(app):
                 html.P(f'Erro ao carregar dados: {str(e)}', className='text-danger')
             ])
             return error_msg, 'Erro', 'Página 1 de 1', 1, True, True
+    
+    @app.callback(
+        Output('unit-kpis', 'children'),
+        Output('unit-demographics-chart', 'children'),
+        Output('unit-agility-chart', 'children'),
+        Output('unit-wait-time-chart', 'children'),
+        Output('unit-follow-up-table', 'children'),
+        Output('unit-follow-up-count', 'children'),
+        Input('unit-analysis-btn', 'n_clicks'),
+        Input('refresh-btn', 'n_clicks'),
+        State('unit-analysis-selector', 'value'),
+        State('year-filter', 'value'),
+        State('region-filter', 'value'),
+        prevent_initial_call=True
+    )
+    def update_health_unit_analysis(btn_clicks, refresh_clicks, selected_unit, year, region):
+        try:
+            if not selected_unit:
+                empty_msg = html.Div([
+                    html.P('Selecione uma unidade de saúde para visualizar a análise.', 
+                           className='text-muted text-center py-4')
+                ])
+                return (
+                    html.Div('Selecione uma unidade para ver os indicadores', className='text-muted'),
+                    create_empty_figure("Selecione uma unidade de saúde"),
+                    create_empty_figure("Selecione uma unidade de saúde"),
+                    create_empty_figure("Selecione uma unidade de saúde"),
+                    empty_msg,
+                    ""
+                )
+            
+            kpis = get_unit_kpis_sql(selected_unit, year, region)
+            kpi_cards = create_unit_kpi_cards(kpis)
+            
+            demographics_df = get_unit_demographics_sql(selected_unit, year, region)
+            demographics_chart = create_demographics_heatmap(demographics_df)
+            
+            agility_df = get_unit_agility_sql(selected_unit, year, region)
+            agility_chart = create_agility_chart(agility_df)
+            
+            wait_time_df = get_unit_wait_time_trend_sql(selected_unit, year, region)
+            wait_time_chart = create_wait_time_trend_chart(wait_time_df)
+            
+            follow_up_df = get_unit_follow_up_overdue_sql(selected_unit, year, region, limit=100)
+            follow_up_table = create_follow_up_overdue_table(follow_up_df)
+            
+            follow_up_count = get_unit_follow_up_count_sql(selected_unit, year, region)
+            follow_up_badge = f'{follow_up_count} pacientes' if follow_up_count > 0 else ''
+            
+            return (
+                kpi_cards,
+                demographics_chart,
+                agility_chart,
+                wait_time_chart,
+                follow_up_table,
+                follow_up_badge
+            )
+            
+        except Exception as e:
+            error_msg = html.Div([
+                html.P(f'Erro ao carregar análise: {str(e)}', className='text-danger')
+            ])
+            return (
+                error_msg,
+                create_empty_figure(f"Erro: {str(e)[:50]}"),
+                create_empty_figure(f"Erro: {str(e)[:50]}"),
+                create_empty_figure(f"Erro: {str(e)[:50]}"),
+                error_msg,
+                ""
+            )

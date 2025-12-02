@@ -781,3 +781,287 @@ def get_birads_options():
         result = conn.execute(text(query))
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df['birads_max'].dropna().tolist()
+
+
+def _build_unit_where_clause(health_unit, year=None, region=None):
+    """Build WHERE clause for health unit specific queries"""
+    conditions = [
+        "unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
+        "unidade_de_saude__nome = :unit_name"
+    ]
+    params = {'unit_name': health_unit}
+    
+    conditions.extend(_get_outlier_exclusion_conditions())
+    
+    if year:
+        conditions.append("EXTRACT(YEAR FROM unidade_de_saude__data_da_solicitacao) = :unit_year")
+        params['unit_year'] = year
+    if region:
+        conditions.append("distrito_sanitario = :unit_region")
+        params['unit_region'] = region
+    
+    return " AND ".join(conditions), params
+
+
+def get_unit_kpis_sql(health_unit, year=None, region=None):
+    """Get KPIs for a specific health unit"""
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    
+    query = f"""
+    SELECT 
+        COUNT(*) as total_exames,
+        COUNT(DISTINCT patient_unique_id) as total_pacientes,
+        COALESCE(AVG(wait_days), 0) as media_espera,
+        COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY wait_days), 0) as mediana_espera,
+        COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as taxa_conformidade,
+        COUNT(CASE WHEN birads_max IN ('4', '5') THEN 1 END) as casos_alto_risco
+    FROM exam_records
+    WHERE {where_clause}
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        row = result.fetchone()
+    
+    return {
+        'total_exames': row[0] or 0,
+        'total_pacientes': row[1] or 0,
+        'media_espera': round(float(row[2]) if row[2] else 0, 1),
+        'mediana_espera': round(float(row[3]) if row[3] else 0, 1),
+        'taxa_conformidade': round(float(row[4]) if row[4] else 0, 1),
+        'casos_alto_risco': row[5] or 0
+    }
+
+
+def get_unit_demographics_sql(health_unit, year=None, region=None):
+    """Get patient demographics by age group and BI-RADS for a health unit"""
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    
+    query = f"""
+    SELECT 
+        CASE 
+            WHEN paciente__idade IS NULL THEN 'Não informado'
+            WHEN paciente__idade < 30 THEN '< 30 anos'
+            WHEN paciente__idade BETWEEN 30 AND 39 THEN '30-39 anos'
+            WHEN paciente__idade BETWEEN 40 AND 49 THEN '40-49 anos'
+            WHEN paciente__idade BETWEEN 50 AND 59 THEN '50-59 anos'
+            WHEN paciente__idade BETWEEN 60 AND 69 THEN '60-69 anos'
+            ELSE '70+ anos'
+        END as faixa_etaria,
+        birads_max,
+        COUNT(*) as total
+    FROM exam_records
+    WHERE {where_clause}
+    GROUP BY faixa_etaria, birads_max
+    ORDER BY 
+        CASE faixa_etaria
+            WHEN '< 30 anos' THEN 1
+            WHEN '30-39 anos' THEN 2
+            WHEN '40-49 anos' THEN 3
+            WHEN '50-59 anos' THEN 4
+            WHEN '60-69 anos' THEN 5
+            WHEN '70+ anos' THEN 6
+            ELSE 7
+        END,
+        birads_max
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_unit_agility_sql(health_unit, year=None, region=None):
+    """Get service agility distribution (wait time buckets) for a health unit"""
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    
+    query = f"""
+    SELECT 
+        CASE 
+            WHEN wait_days IS NULL THEN 'Não informado'
+            WHEN wait_days <= 7 THEN 'Até 7 dias'
+            WHEN wait_days <= 14 THEN '8-14 dias'
+            WHEN wait_days <= 30 THEN '15-30 dias'
+            WHEN wait_days <= 60 THEN '31-60 dias'
+            ELSE '> 60 dias'
+        END as faixa_espera,
+        COUNT(*) as total,
+        ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as percentual
+    FROM exam_records
+    WHERE {where_clause}
+    GROUP BY faixa_espera
+    ORDER BY 
+        CASE faixa_espera
+            WHEN 'Até 7 dias' THEN 1
+            WHEN '8-14 dias' THEN 2
+            WHEN '15-30 dias' THEN 3
+            WHEN '31-60 dias' THEN 4
+            WHEN '> 60 dias' THEN 5
+            ELSE 6
+        END
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_unit_wait_time_trend_sql(health_unit, year=None, region=None):
+    """Get monthly average wait time trend for a health unit"""
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    
+    query = f"""
+    SELECT 
+        TO_CHAR(unidade_de_saude__data_da_solicitacao, 'YYYY-MM') as mes,
+        COUNT(*) as total_exames,
+        ROUND(AVG(wait_days), 1) as media_espera,
+        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY wait_days), 1) as mediana_espera
+    FROM exam_records
+    WHERE {where_clause}
+        AND wait_days IS NOT NULL
+    GROUP BY TO_CHAR(unidade_de_saude__data_da_solicitacao, 'YYYY-MM')
+    ORDER BY mes
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=100):
+    """
+    Get patients who had exams but haven't returned for follow-up.
+    Follow-up intervals based on BI-RADS:
+    - BI-RADS 0: Additional imaging needed - 30 days
+    - BI-RADS 3: Probably benign, short-term follow-up - 180 days (6 months)
+    - BI-RADS 4/5: Suspicious/Malignant - 30 days (biopsy needed)
+    - BI-RADS 1/2: Normal/Benign - 365 days (annual screening)
+    """
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    params['follow_limit'] = limit
+    
+    query = f"""
+    WITH latest_exams AS (
+        SELECT 
+            patient_unique_id,
+            paciente__nome,
+            paciente__cartao_sus,
+            paciente__idade,
+            birads_max,
+            birads_direita,
+            birads_esquerda,
+            unidade_de_saude__data_da_solicitacao as data_exame,
+            prestador_de_servico__data_da_realizacao as data_realizacao,
+            wait_days,
+            ROW_NUMBER() OVER (PARTITION BY patient_unique_id ORDER BY unidade_de_saude__data_da_solicitacao DESC) as rn
+        FROM exam_records
+        WHERE {where_clause}
+    ),
+    patients_with_followup AS (
+        SELECT 
+            patient_unique_id,
+            paciente__nome,
+            paciente__cartao_sus,
+            paciente__idade,
+            birads_max,
+            birads_direita,
+            birads_esquerda,
+            data_exame,
+            data_realizacao,
+            wait_days,
+            CASE 
+                WHEN birads_max = '0' THEN 30
+                WHEN birads_max = '3' THEN 180
+                WHEN birads_max IN ('4', '5') THEN 30
+                ELSE 365
+            END as intervalo_retorno_dias,
+            CASE 
+                WHEN birads_max = '0' THEN 'Necessita imagem adicional'
+                WHEN birads_max = '3' THEN 'Provavelmente benigno - acompanhamento'
+                WHEN birads_max IN ('4', '5') THEN 'Suspeito - biópsia recomendada'
+                ELSE 'Rastreamento anual'
+            END as motivo_retorno
+        FROM latest_exams
+        WHERE rn = 1
+            AND birads_max IN ('0', '3', '4', '5')
+    )
+    SELECT 
+        paciente__nome as nome,
+        paciente__cartao_sus as cartao_sus,
+        paciente__idade as idade,
+        birads_max,
+        birads_direita,
+        birads_esquerda,
+        data_exame,
+        data_realizacao,
+        wait_days as espera_dias,
+        intervalo_retorno_dias,
+        motivo_retorno,
+        (COALESCE(data_realizacao, data_exame) + (intervalo_retorno_dias || ' days')::INTERVAL)::DATE as data_prevista_retorno,
+        (CURRENT_DATE - (COALESCE(data_realizacao, data_exame) + (intervalo_retorno_dias || ' days')::INTERVAL)::DATE) as dias_atraso
+    FROM patients_with_followup
+    WHERE (COALESCE(data_realizacao, data_exame) + (intervalo_retorno_dias || ' days')::INTERVAL)::DATE < CURRENT_DATE
+    ORDER BY dias_atraso DESC
+    LIMIT :follow_limit
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_unit_follow_up_count_sql(health_unit, year=None, region=None):
+    """Get count of patients with overdue follow-up"""
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    
+    query = f"""
+    WITH latest_exams AS (
+        SELECT 
+            patient_unique_id,
+            birads_max,
+            unidade_de_saude__data_da_solicitacao as data_exame,
+            prestador_de_servico__data_da_realizacao as data_realizacao,
+            ROW_NUMBER() OVER (PARTITION BY patient_unique_id ORDER BY unidade_de_saude__data_da_solicitacao DESC) as rn
+        FROM exam_records
+        WHERE {where_clause}
+    ),
+    patients_with_followup AS (
+        SELECT 
+            patient_unique_id,
+            birads_max,
+            data_exame,
+            data_realizacao,
+            CASE 
+                WHEN birads_max = '0' THEN 30
+                WHEN birads_max = '3' THEN 180
+                WHEN birads_max IN ('4', '5') THEN 30
+                ELSE 365
+            END as intervalo_retorno_dias
+        FROM latest_exams
+        WHERE rn = 1
+            AND birads_max IN ('0', '3', '4', '5')
+    )
+    SELECT COUNT(*) as total
+    FROM patients_with_followup
+    WHERE (COALESCE(data_realizacao, data_exame) + (intervalo_retorno_dias || ' days')::INTERVAL)::DATE < CURRENT_DATE
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        row = result.fetchone()
+    
+    return row[0] or 0

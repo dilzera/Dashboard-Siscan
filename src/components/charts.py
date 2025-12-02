@@ -243,3 +243,154 @@ def create_gauge_chart(value, title, max_value=100):
     )
     
     return dcc.Graph(figure=fig, config={'displayModeBar': False})
+
+
+def create_demographics_heatmap(df):
+    """Create heatmap showing patients by age group and BI-RADS"""
+    if df.empty:
+        return create_empty_figure("Selecione uma unidade de saúde")
+    
+    pivot_df = df.pivot_table(
+        index='faixa_etaria', 
+        columns='birads_max', 
+        values='total', 
+        fill_value=0,
+        aggfunc='sum'
+    )
+    
+    age_order = ['< 30 anos', '30-39 anos', '40-49 anos', '50-59 anos', '60-69 anos', '70+ anos', 'Não informado']
+    existing_ages = [a for a in age_order if a in pivot_df.index]
+    pivot_df = pivot_df.reindex(existing_ages)
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot_df.values,
+        x=pivot_df.columns.tolist(),
+        y=pivot_df.index.tolist(),
+        colorscale='Blues',
+        text=pivot_df.values,
+        texttemplate='%{text}',
+        textfont={'size': 12},
+        hovertemplate='Faixa Etária: %{y}<br>BI-RADS: %{x}<br>Total: %{z}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=100, r=20, t=30, b=40),
+        height=350,
+        xaxis=dict(
+            title='BI-RADS',
+            side='bottom'
+        ),
+        yaxis=dict(
+            title='Faixa Etária',
+            autorange='reversed'
+        )
+    )
+    
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
+
+
+def create_agility_chart(df):
+    """Create bar chart showing service agility distribution"""
+    if df.empty:
+        return create_empty_figure("Selecione uma unidade de saúde")
+    
+    colors = {
+        'Até 7 dias': COLORS['success'],
+        '8-14 dias': '#52c41a',
+        '15-30 dias': COLORS['warning'],
+        '31-60 dias': '#fa8c16',
+        '> 60 dias': COLORS['danger'],
+        'Não informado': COLORS['text_muted']
+    }
+    
+    bar_colors = [colors.get(cat, COLORS['secondary']) for cat in df['faixa_espera']]
+    
+    fig = go.Figure(data=[
+        go.Bar(
+            x=df['faixa_espera'],
+            y=df['total'],
+            marker_color=bar_colors,
+            text=[f'{t} ({p}%)' for t, p in zip(df['total'], df['percentual'])],
+            textposition='auto'
+        )
+    ])
+    
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=40, r=20, t=30, b=60),
+        height=350,
+        xaxis=dict(
+            title='Tempo de Espera',
+            gridcolor='rgba(0,0,0,0.05)',
+            tickangle=-30
+        ),
+        yaxis=dict(
+            title='Quantidade de Exames',
+            gridcolor='rgba(0,0,0,0.05)'
+        )
+    )
+    
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})
+
+
+def create_wait_time_trend_chart(df):
+    """Create line chart showing monthly average wait time trend"""
+    if df.empty:
+        return create_empty_figure("Selecione uma unidade de saúde")
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=df['mes'],
+        y=df['media_espera'],
+        mode='lines+markers',
+        name='Média',
+        line=dict(color=COLORS['primary'], width=3),
+        marker=dict(size=8)
+    ))
+    
+    fig.add_trace(go.Scatter(
+        x=df['mes'],
+        y=df['mediana_espera'],
+        mode='lines+markers',
+        name='Mediana',
+        line=dict(color=COLORS['secondary'], width=2, dash='dash'),
+        marker=dict(size=6)
+    ))
+    
+    fig.add_hline(
+        y=30,
+        line_dash="dot",
+        line_color=COLORS['danger'],
+        annotation_text="Meta 30 dias",
+        annotation_position="right"
+    )
+    
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=40, r=20, t=30, b=60),
+        height=350,
+        xaxis=dict(
+            title='Mês',
+            gridcolor='rgba(0,0,0,0.05)',
+            tickangle=-45
+        ),
+        yaxis=dict(
+            title='Dias de Espera',
+            gridcolor='rgba(0,0,0,0.05)'
+        ),
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='right',
+            x=1
+        ),
+        hovermode='x unified'
+    )
+    
+    return dcc.Graph(figure=fig, config={'displayModeBar': True, 'displaylogo': False})

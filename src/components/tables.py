@@ -530,3 +530,181 @@ def create_patient_data_table(df):
             'backgroundColor': COLORS['card_bg']
         }
     )
+
+
+def create_follow_up_overdue_table(df):
+    """Create table showing patients with overdue follow-up appointments"""
+    if df.empty:
+        return html.Div(
+            html.P('Nenhuma paciente com retorno pendente encontrada', 
+                   className='text-muted text-center py-4'),
+            className='border rounded'
+        )
+    
+    header = html.Thead(
+        html.Tr([
+            html.Th('Nome', style={'fontSize': '0.8rem', 'minWidth': '150px'}),
+            html.Th('Idade', style={'fontSize': '0.8rem', 'width': '60px'}),
+            html.Th('BI-RADS', style={'fontSize': '0.8rem', 'width': '80px'}),
+            html.Th('Data Exame', style={'fontSize': '0.8rem', 'width': '100px'}),
+            html.Th('Data Prevista', style={'fontSize': '0.8rem', 'width': '100px'}),
+            html.Th('Dias Atraso', style={'fontSize': '0.8rem', 'width': '90px'}),
+            html.Th('Motivo Retorno', style={'fontSize': '0.8rem', 'minWidth': '180px'}),
+            html.Th('Cartão SUS', style={'fontSize': '0.8rem', 'width': '130px'})
+        ])
+    )
+    
+    rows = []
+    for _, row in df.iterrows():
+        nome = str(row.get('nome', ''))[:30]
+        if len(str(row.get('nome', ''))) > 30:
+            nome += '...'
+        
+        idade = row.get('idade', '-')
+        if idade and idade != '-':
+            try:
+                idade = f'{int(float(idade))} anos'
+            except:
+                idade = '-'
+        
+        birads = row.get('birads_max', '-')
+        birads_color = BIRADS_COLORS.get(str(birads), COLORS['secondary'])
+        
+        data_exame = str(row.get('data_exame', ''))[:10] if row.get('data_exame') else '-'
+        data_prevista = str(row.get('data_prevista_retorno', ''))[:10] if row.get('data_prevista_retorno') else '-'
+        
+        dias_atraso = row.get('dias_atraso', 0)
+        try:
+            dias_atraso = int(dias_atraso)
+        except:
+            dias_atraso = 0
+        
+        if dias_atraso > 180:
+            atraso_color = COLORS['danger']
+            atraso_badge = 'danger'
+        elif dias_atraso > 90:
+            atraso_color = '#fa8c16'
+            atraso_badge = 'warning'
+        else:
+            atraso_color = COLORS['warning']
+            atraso_badge = 'warning'
+        
+        motivo = str(row.get('motivo_retorno', '-'))
+        cartao = str(row.get('cartao_sus', '-'))
+        
+        cells = [
+            html.Td(nome, style={'fontSize': '0.8rem', 'fontWeight': '500'}),
+            html.Td(idade, style={'fontSize': '0.8rem'}),
+            html.Td(
+                dbc.Badge(f'{birads}', style={'backgroundColor': birads_color}),
+                style={'textAlign': 'center'}
+            ),
+            html.Td(data_exame, style={'fontSize': '0.8rem'}),
+            html.Td(data_prevista, style={'fontSize': '0.8rem'}),
+            html.Td(
+                dbc.Badge(f'{dias_atraso} dias', color=atraso_badge, className='fw-bold'),
+                style={'textAlign': 'center'}
+            ),
+            html.Td(motivo, style={'fontSize': '0.75rem', 'color': '#666'}),
+            html.Td(cartao, style={'fontSize': '0.75rem', 'fontFamily': 'monospace'})
+        ]
+        rows.append(html.Tr(cells))
+    
+    body = html.Tbody(rows)
+    
+    return dbc.Card([
+        dbc.CardHeader([
+            html.Div([
+                html.H5('Pacientes com Retorno Pendente', className='mb-0', style={'fontWeight': '500'}),
+                html.Small('Ordenado por dias de atraso (maior primeiro)', className='text-muted')
+            ])
+        ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
+        dbc.CardBody([
+            html.Div([
+                dbc.Table(
+                    [header, body],
+                    bordered=True,
+                    hover=True,
+                    responsive=True,
+                    striped=True,
+                    size='sm',
+                    className='mb-0'
+                )
+            ], style={'maxHeight': '400px', 'overflowY': 'auto', 'overflowX': 'auto'})
+        ], className='p-2')
+    ],
+        className='shadow-sm',
+        style={
+            'borderRadius': '10px',
+            'border': 'none',
+            'backgroundColor': COLORS['card_bg']
+        }
+    )
+
+
+def create_unit_kpi_cards(kpis):
+    """Create KPI cards for health unit overview"""
+    if not kpis:
+        return html.Div('Selecione uma unidade de saúde', className='text-muted')
+    
+    cards = [
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.Div([
+                        html.I(className='fas fa-file-medical fa-2x', style={'color': COLORS['primary']}),
+                        html.Span(' Total Exames', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                    ], className='d-flex align-items-center mb-2'),
+                    html.H3(f'{kpis["total_exames"]:,}'.replace(',', '.'), 
+                           style={'color': COLORS['primary'], 'fontWeight': '600'}),
+                    html.Small(f'{kpis["total_pacientes"]:,} pacientes'.replace(',', '.'), className='text-muted')
+                ])
+            ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+        ], md=2, sm=4, className='mb-3'),
+        
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.Div([
+                        html.I(className='fas fa-clock fa-2x', style={'color': COLORS['info']}),
+                        html.Span(' Média Espera', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                    ], className='d-flex align-items-center mb-2'),
+                    html.H3(f'{kpis["media_espera"]} dias', 
+                           style={'color': COLORS['info'], 'fontWeight': '600'}),
+                    html.Small(f'Mediana: {kpis["mediana_espera"]} dias', className='text-muted')
+                ])
+            ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+        ], md=2, sm=4, className='mb-3'),
+        
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.Div([
+                        html.I(className='fas fa-check-circle fa-2x', 
+                              style={'color': COLORS['success'] if kpis["taxa_conformidade"] >= 70 else COLORS['warning']}),
+                        html.Span(' Conformidade', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                    ], className='d-flex align-items-center mb-2'),
+                    html.H3(f'{kpis["taxa_conformidade"]}%', 
+                           style={'color': COLORS['success'] if kpis["taxa_conformidade"] >= 70 else COLORS['warning'], 
+                                  'fontWeight': '600'}),
+                    html.Small('Exames em até 30 dias', className='text-muted')
+                ])
+            ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+        ], md=2, sm=4, className='mb-3'),
+        
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.Div([
+                        html.I(className='fas fa-exclamation-triangle fa-2x', style={'color': COLORS['danger']}),
+                        html.Span(' Alto Risco', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                    ], className='d-flex align-items-center mb-2'),
+                    html.H3(f'{kpis["casos_alto_risco"]}', 
+                           style={'color': COLORS['danger'], 'fontWeight': '600'}),
+                    html.Small('BI-RADS 4 e 5', className='text-muted')
+                ])
+            ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+        ], md=2, sm=4, className='mb-3'),
+    ]
+    
+    return dbc.Row(cards)

@@ -241,6 +241,104 @@ def create_patient_navigation_tab(initial_content=None):
     ])
 
 
+def create_health_unit_tab(health_units=None, initial_content=None):
+    """Create the health unit analysis tab"""
+    units = health_units or []
+    
+    unit_selector = dbc.Card([
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col([
+                    html.Label('Selecione a Unidade de Saúde', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    dcc.Dropdown(
+                        id='unit-analysis-selector',
+                        options=[{'label': u, 'value': u} for u in units],
+                        placeholder='Selecione uma unidade...',
+                        clearable=True,
+                        searchable=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=8, sm=12, className='mb-2 mb-md-0'),
+                
+                dbc.Col([
+                    html.Label('\u00a0', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Button(
+                        [html.I(className='fas fa-chart-bar me-2'), 'Analisar Unidade'],
+                        id='unit-analysis-btn',
+                        color='primary',
+                        size='sm',
+                        className='w-100',
+                        n_clicks=0
+                    )
+                ], md=4, sm=12)
+            ])
+        ])
+    ], className='shadow-sm mb-4', style={'borderRadius': '10px', 'border': 'none'})
+    
+    return html.Div([
+        html.Div([
+            html.H5('Análise por Unidade de Saúde', className='mb-3'),
+            html.P('Visão detalhada do desempenho de cada unidade de saúde.', 
+                   className='text-muted mb-4')
+        ]),
+        unit_selector,
+        
+        html.Div(id='unit-kpis', className='mb-4'),
+        
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.H6('Pacientes por Faixa Etária e BI-RADS', className='mb-0')
+                    ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
+                    dbc.CardBody([
+                        html.Div(id='unit-demographics-chart')
+                    ])
+                ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+            ], lg=6, className='mb-4'),
+            
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.H6('Agilidade no Atendimento', className='mb-0')
+                    ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
+                    dbc.CardBody([
+                        html.Div(id='unit-agility-chart')
+                    ])
+                ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+            ], lg=6, className='mb-4')
+        ]),
+        
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.H6('Tempo Médio de Espera por Mês', className='mb-0')
+                    ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
+                    dbc.CardBody([
+                        html.Div(id='unit-wait-time-chart')
+                    ])
+                ], className='shadow-sm', style={'borderRadius': '10px', 'border': 'none'})
+            ], lg=12, className='mb-4')
+        ]),
+        
+        dbc.Row([
+            dbc.Col([
+                html.Div([
+                    html.Div([
+                        html.H6('Pacientes Sem Retorno', className='mb-1'),
+                        html.Small([
+                            'Pacientes com BI-RADS 0, 3, 4 ou 5 que não retornaram na data prevista. ',
+                            dbc.Badge(id='unit-follow-up-count', color='danger', className='ms-2')
+                        ], className='text-muted')
+                    ], className='mb-3'),
+                    html.Div(id='unit-follow-up-table')
+                ])
+            ], lg=12, className='mb-4')
+        ])
+    ])
+
+
 def create_patient_data_tab(sex_options=None, birads_options=None, initial_content=None):
     sex_opts = sex_options or []
     birads_opts = birads_options or []
@@ -348,7 +446,7 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
     ])
 
 
-def create_tabs(initial_content=None, sex_options=None, birads_options=None):
+def create_tabs(initial_content=None, sex_options=None, birads_options=None, health_units=None):
     return dbc.Tabs([
         dbc.Tab(
             create_performance_tab(initial_content),
@@ -378,6 +476,12 @@ def create_tabs(initial_content=None, sex_options=None, birads_options=None):
             create_patient_data_tab(sex_options, birads_options, initial_content),
             label='Dados do Paciente',
             tab_id='tab-patient-data',
+            className='p-3'
+        ),
+        dbc.Tab(
+            create_health_unit_tab(health_units, initial_content),
+            label='Unidade de Saúde',
+            tab_id='tab-health-unit',
             className='p-3'
         )
     ], id='main-tabs', active_tab='tab-performance')
@@ -415,7 +519,7 @@ def create_main_layout(years, health_units, regions, initial_content=None,
             html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
                     style={'fontSize': '0.85rem'}),
             create_kpi_row(initial_content),
-            create_tabs(initial_content, sex_options, birads_options),
+            create_tabs(initial_content, sex_options, birads_options, health_units),
             create_footer()
         ], fluid=True, className='px-4')
     ], style={'backgroundColor': COLORS['background'], 'minHeight': '100vh'})

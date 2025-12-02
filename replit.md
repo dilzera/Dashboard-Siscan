@@ -82,6 +82,20 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
 
 ## Recent Changes
 
+- 02/12/2025: Aba Unidade de Saúde implementada
+  - Nova aba "Unidade de Saúde" com análise detalhada por unidade
+  - Seletor de unidade com dropdown pesquisável
+  - KPIs específicos: total exames, pacientes, média/mediana de espera, taxa de conformidade, casos alto risco
+  - Gráfico de demografia: heatmap de pacientes por faixa etária x BI-RADS
+  - Gráfico de agilidade: distribuição de tempo de espera em faixas (até 7 dias, 8-14, 15-30, 31-60, >60)
+  - Gráfico de tendência: média e mediana de espera mensal com meta de 30 dias
+  - Tabela de retorno pendente: pacientes com BI-RADS 0/3/4/5 que não retornaram
+    - BI-RADS 0: 30 dias (imagem adicional)
+    - BI-RADS 3: 180 dias (acompanhamento)
+    - BI-RADS 4/5: 30 dias (biópsia)
+  - Contador de dias de atraso desde a data prevista de retorno
+  - Integração com filtros globais (ano, distrito sanitário)
+
 - 02/12/2025: Dados do Paciente implementado
   - Nova aba "Dados do Paciente" com listagem completa de todos os registros
   - Filtros específicos: busca por nome, sexo, BI-RADS
