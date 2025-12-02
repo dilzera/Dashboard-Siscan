@@ -988,8 +988,8 @@ def get_unit_wait_time_trend_sql(health_unit, year=None, region=None):
     SELECT 
         TO_CHAR(unidade_de_saude__data_da_solicitacao, 'YYYY-MM') as mes,
         COUNT(*) as total_exames,
-        ROUND(AVG(wait_days), 1) as media_espera,
-        ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY wait_days), 1) as mediana_espera
+        ROUND(AVG(wait_days)::numeric, 1) as media_espera,
+        ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY wait_days))::numeric, 1) as mediana_espera
     FROM exam_records
     WHERE {where_clause}
         AND wait_days IS NOT NULL
