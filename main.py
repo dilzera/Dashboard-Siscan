@@ -2,7 +2,7 @@ import dash
 from dash import Dash, dcc, html
 import dash_bootstrap_components as dbc
 from flask import request, make_response
-from src.data_layer import get_years, get_health_units, get_regions
+from src.data_layer import get_years, get_health_units, get_regions, get_sex_options, get_birads_options
 from src.components.layout import create_main_layout
 from src.callbacks import build_dashboard_content
 
@@ -30,6 +30,8 @@ def add_headers(response):
 years = get_years()
 health_units = get_health_units()
 regions = get_regions()
+sex_options = get_sex_options()
+birads_options = get_birads_options()
 
 
 initial_content = build_dashboard_content()
@@ -38,7 +40,9 @@ app.layout = create_main_layout(
     years, 
     health_units, 
     regions, 
-    initial_content
+    initial_content,
+    sex_options=sex_options,
+    birads_options=birads_options
 )
 
 from src.callbacks import register_callbacks

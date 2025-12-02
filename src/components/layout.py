@@ -241,7 +241,114 @@ def create_patient_navigation_tab(initial_content=None):
     ])
 
 
-def create_tabs(initial_content=None):
+def create_patient_data_tab(sex_options=None, birads_options=None, initial_content=None):
+    sex_opts = sex_options or []
+    birads_opts = birads_options or []
+    
+    filters_row = dbc.Card([
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col([
+                    html.Label('Buscar por Nome', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Input(
+                        id='patient-data-name-filter',
+                        type='text',
+                        placeholder='Digite o nome do paciente...',
+                        debounce=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=4, sm=12, className='mb-2 mb-md-0'),
+                
+                dbc.Col([
+                    html.Label('Sexo', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dcc.Dropdown(
+                        id='patient-data-sex-filter',
+                        options=[{'label': s, 'value': s} for s in sex_opts],
+                        placeholder='Todos',
+                        clearable=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=2, sm=6, className='mb-2 mb-md-0'),
+                
+                dbc.Col([
+                    html.Label('BI-RADS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dcc.Dropdown(
+                        id='patient-data-birads-filter',
+                        options=[{'label': f'Categoria {b}', 'value': b} for b in birads_opts],
+                        placeholder='Todos',
+                        clearable=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=2, sm=6, className='mb-2 mb-md-0'),
+                
+                dbc.Col([
+                    html.Label('Registros por página', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dcc.Dropdown(
+                        id='patient-data-page-size',
+                        options=[
+                            {'label': '25', 'value': 25},
+                            {'label': '50', 'value': 50},
+                            {'label': '100', 'value': 100}
+                        ],
+                        value=50,
+                        clearable=False,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=2, sm=6, className='mb-2 mb-md-0'),
+                
+                dbc.Col([
+                    html.Label('\u00a0', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Button(
+                        [html.I(className='fas fa-search me-2'), 'Buscar'],
+                        id='patient-data-search-btn',
+                        color='primary',
+                        size='sm',
+                        className='w-100',
+                        n_clicks=0
+                    )
+                ], md=2, sm=6)
+            ])
+        ])
+    ], className='shadow-sm mb-4', style={'borderRadius': '10px', 'border': 'none'})
+    
+    pagination_row = dbc.Row([
+        dbc.Col([
+            html.Div([
+                dbc.Button(
+                    html.I(className='fas fa-chevron-left'),
+                    id='patient-data-prev-btn',
+                    color='secondary',
+                    size='sm',
+                    className='me-2',
+                    disabled=True
+                ),
+                html.Span(id='patient-data-page-info', className='mx-3', style={'fontSize': '0.9rem'}),
+                dbc.Button(
+                    html.I(className='fas fa-chevron-right'),
+                    id='patient-data-next-btn',
+                    color='secondary',
+                    size='sm',
+                    className='ms-2'
+                )
+            ], className='d-flex align-items-center justify-content-center my-3')
+        ])
+    ])
+    
+    return html.Div([
+        html.Div([
+            html.H5('Dados do Paciente', className='mb-3'),
+            html.P('Listagem completa dos registros de exames com dados clínicos detalhados.', 
+                   className='text-muted mb-4')
+        ]),
+        filters_row,
+        html.Div(id='patient-data-count', className='text-muted mb-2', style={'fontSize': '0.85rem'}),
+        dcc.Store(id='patient-data-current-page', data=1),
+        html.Div(id='patient-data-table', className='mb-3'),
+        pagination_row
+    ])
+
+
+def create_tabs(initial_content=None, sex_options=None, birads_options=None):
     return dbc.Tabs([
         dbc.Tab(
             create_performance_tab(initial_content),
@@ -266,6 +373,12 @@ def create_tabs(initial_content=None):
             label='Navegação da Paciente',
             tab_id='tab-navigation',
             className='p-3'
+        ),
+        dbc.Tab(
+            create_patient_data_tab(sex_options, birads_options, initial_content),
+            label='Dados do Paciente',
+            tab_id='tab-patient-data',
+            className='p-3'
         )
     ], id='main-tabs', active_tab='tab-performance')
 
@@ -286,7 +399,8 @@ def create_footer():
 
 def create_main_layout(years, health_units, regions, initial_content=None,
                        selected_year=None, selected_health_unit=None,
-                       selected_region=None, selected_conformity=None):
+                       selected_region=None, selected_conformity=None,
+                       sex_options=None, birads_options=None):
     last_update_text = ''
     if initial_content:
         last_update_text = initial_content.get('last_update', '')
@@ -301,7 +415,7 @@ def create_main_layout(years, health_units, regions, initial_content=None,
             html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
                     style={'fontSize': '0.85rem'}),
             create_kpi_row(initial_content),
-            create_tabs(initial_content),
+            create_tabs(initial_content, sex_options, birads_options),
             create_footer()
         ], fluid=True, className='px-4')
     ], style={'backgroundColor': COLORS['background'], 'minHeight': '100vh'})

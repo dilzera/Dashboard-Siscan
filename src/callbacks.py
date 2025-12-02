@@ -1,11 +1,12 @@
-from dash import Input, Output, State, html, dcc, callback_context
+from dash import Input, Output, State, html, dcc, callback_context, no_update
 from datetime import datetime
 import pandas as pd
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
     get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
     get_outliers_audit_sql, get_outliers_summary_sql,
-    get_patient_navigation_summary_sql, get_patient_navigation_list_sql, get_patient_navigation_stats_sql
+    get_patient_navigation_summary_sql, get_patient_navigation_list_sql, get_patient_navigation_stats_sql,
+    get_patient_data_list_sql, get_patient_data_count_sql
 )
 from src.components.cards import create_kpi_card, create_chart_card
 from src.components.charts import (
@@ -14,7 +15,8 @@ from src.components.charts import (
 )
 from src.components.tables import (
     create_high_risk_table, create_outliers_table, create_outliers_summary_cards,
-    create_patient_navigation_stats_cards, create_patient_navigation_table
+    create_patient_navigation_stats_cards, create_patient_navigation_table,
+    create_patient_data_table
 )
 
 
@@ -174,3 +176,72 @@ def register_callbacks(app):
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_message
             )
+    
+    @app.callback(
+        Output('patient-data-table', 'children'),
+        Output('patient-data-count', 'children'),
+        Output('patient-data-page-info', 'children'),
+        Output('patient-data-current-page', 'data'),
+        Output('patient-data-prev-btn', 'disabled'),
+        Output('patient-data-next-btn', 'disabled'),
+        Input('patient-data-search-btn', 'n_clicks'),
+        Input('patient-data-prev-btn', 'n_clicks'),
+        Input('patient-data-next-btn', 'n_clicks'),
+        State('year-filter', 'value'),
+        State('health-unit-filter', 'value'),
+        State('region-filter', 'value'),
+        State('conformity-filter', 'value'),
+        State('patient-data-name-filter', 'value'),
+        State('patient-data-sex-filter', 'value'),
+        State('patient-data-birads-filter', 'value'),
+        State('patient-data-page-size', 'value'),
+        State('patient-data-current-page', 'data'),
+        prevent_initial_call=True
+    )
+    def update_patient_data(search_clicks, prev_clicks, next_clicks,
+                            year, health_unit, region, conformity,
+                            patient_name, sex, birads, page_size, current_page):
+        try:
+            ctx = callback_context
+            if not ctx.triggered:
+                return no_update, no_update, no_update, no_update, no_update, no_update
+            
+            triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            
+            if triggered_id == 'patient-data-search-btn':
+                current_page = 1
+            elif triggered_id == 'patient-data-prev-btn':
+                current_page = max(1, current_page - 1)
+            elif triggered_id == 'patient-data-next-btn':
+                current_page = current_page + 1
+            
+            page_size = page_size or 50
+            
+            total_count = get_patient_data_count_sql(
+                year, health_unit, region, conformity,
+                patient_name, sex, birads
+            )
+            
+            total_pages = max(1, (total_count + page_size - 1) // page_size)
+            current_page = min(current_page, total_pages)
+            
+            df = get_patient_data_list_sql(
+                year, health_unit, region, conformity,
+                patient_name, sex, birads,
+                page=current_page, page_size=page_size
+            )
+            
+            table = create_patient_data_table(df)
+            count_text = f'Total de registros: {total_count:,}'.replace(',', '.')
+            page_info = f'Página {current_page} de {total_pages}'
+            
+            prev_disabled = current_page <= 1
+            next_disabled = current_page >= total_pages
+            
+            return table, count_text, page_info, current_page, prev_disabled, next_disabled
+            
+        except Exception as e:
+            error_msg = html.Div([
+                html.P(f'Erro ao carregar dados: {str(e)}', className='text-danger')
+            ])
+            return error_msg, 'Erro', 'Página 1 de 1', 1, True, True

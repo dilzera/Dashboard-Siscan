@@ -409,3 +409,124 @@ def create_patient_navigation_summary_chart(summary_df):
         'Número de Atendimentos',
         'Quantidade de Pacientes'
     )
+
+
+def create_patient_data_table(df):
+    if df.empty:
+        return html.Div(
+            html.P('Nenhum registro encontrado. Clique em "Buscar" para carregar os dados.', 
+                   className='text-muted text-center py-4'),
+            className='border rounded'
+        )
+    
+    column_config = [
+        ('nome', 'Nome', 200),
+        ('idade', 'Idade', 60),
+        ('sexo', 'Sexo', 60),
+        ('data_nascimento', 'Data Nasc.', 100),
+        ('nome_mae', 'Nome da Mãe', 180),
+        ('unidade_saude', 'Unidade de Saúde', 180),
+        ('data_solicitacao', 'Solicitação', 100),
+        ('data_realizacao', 'Realização', 100),
+        ('data_liberacao', 'Liberação', 100),
+        ('prestador_servico', 'Prestador', 150),
+        ('numero_exame', 'Nº Exame', 100),
+        ('tipo_mamografia', 'Tipo Mamo', 120),
+        ('tipo_mama', 'Tipo Mama', 150),
+        ('linfonodos_axilares', 'Linfonodos', 150),
+        ('achados_benignos', 'Achados Benignos', 200),
+        ('birads_direita_class', 'BI-RADS Dir.', 100),
+        ('birads_esquerda_class', 'BI-RADS Esq.', 100),
+        ('recomendacoes', 'Recomendações', 200),
+    ]
+    
+    available_cols = [(col, label, width) for col, label, width in column_config if col in df.columns]
+    
+    header = html.Thead(
+        html.Tr([
+            html.Th(label, style={
+                'fontSize': '0.75rem', 
+                'minWidth': f'{width}px',
+                'whiteSpace': 'nowrap',
+                'position': 'sticky',
+                'top': '0',
+                'backgroundColor': '#f8f9fa',
+                'zIndex': '1'
+            }) 
+            for col, label, width in available_cols
+        ])
+    )
+    
+    rows = []
+    for _, row in df.iterrows():
+        cells = []
+        for col, label, width in available_cols:
+            value = row.get(col)
+            
+            if pd.isna(value) or value is None or str(value).lower() == 'none':
+                cell_content = '-'
+            elif col in ['data_solicitacao', 'data_realizacao', 'data_liberacao', 'data_nascimento']:
+                cell_content = str(value)[:10] if value else '-'
+            elif col == 'nome':
+                name = str(value)[:35]
+                if len(str(value)) > 35:
+                    name += '...'
+                cell_content = name
+            elif col == 'nome_mae':
+                name = str(value)[:30]
+                if len(str(value)) > 30:
+                    name += '...'
+                cell_content = name
+            elif col in ['birads_direita_class', 'birads_esquerda_class']:
+                cell_content = dbc.Badge(str(value), color='info', className='px-2')
+            elif col == 'idade':
+                try:
+                    cell_content = f'{int(float(value))} anos'
+                except:
+                    cell_content = str(value)
+            elif col in ['recomendacoes', 'achados_benignos', 'linfonodos_axilares', 'tipo_mama', 'tipo_mamografia']:
+                text = str(value)[:50]
+                if len(str(value)) > 50:
+                    text += '...'
+                cell_content = html.Span(text, title=str(value))
+            elif col == 'prestador_servico':
+                text = str(value)[:25]
+                if len(str(value)) > 25:
+                    text += '...'
+                cell_content = text
+            elif col == 'unidade_saude':
+                text = str(value)[:30]
+                if len(str(value)) > 30:
+                    text += '...'
+                cell_content = text
+            else:
+                cell_content = str(value)
+            
+            cells.append(html.Td(cell_content, style={'fontSize': '0.8rem', 'verticalAlign': 'middle'}))
+        rows.append(html.Tr(cells))
+    
+    body = html.Tbody(rows)
+    
+    return dbc.Card([
+        dbc.CardBody([
+            html.Div([
+                dbc.Table(
+                    [header, body],
+                    bordered=True,
+                    hover=True,
+                    responsive=True,
+                    striped=True,
+                    size='sm',
+                    className='mb-0',
+                    style={'fontSize': '0.8rem'}
+                )
+            ], style={'maxHeight': '500px', 'overflowY': 'auto', 'overflowX': 'auto'})
+        ], className='p-2')
+    ],
+        className='shadow-sm',
+        style={
+            'borderRadius': '10px',
+            'border': 'none',
+            'backgroundColor': COLORS['card_bg']
+        }
+    )
