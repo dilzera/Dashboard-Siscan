@@ -1,4 +1,4 @@
-# Saúde Já - Painel de Monitoramento de Mamografia
+# Dashboard SISCAN - Sistema de Monitoramento de Mamografia
 
 Sistema de Dashboards Web Interativos para acompanhamento de mamografias em Curitiba, desenvolvido em Python com Dash.
 
@@ -6,14 +6,25 @@ Sistema de Dashboards Web Interativos para acompanhamento de mamografias em Curi
 
 Este projeto é um MVP de dashboard interativo para visualização e análise de dados de exames de mamografia do sistema SISCAN. O sistema consome dados de um banco PostgreSQL e apresenta visualizações interativas para análise de performance e auditoria de risco.
 
+**IMPORTANTE**: Este sistema lida com dados de pacientes reais e é protegido por autenticação.
+
+## Autenticação
+
+O sistema possui autenticação obrigatória via Flask-Login:
+- **Usuário padrão**: admin (senha configurável via ADMIN_PASSWORD env var)
+- Sessões com timeout de 30 minutos (session.permanent = True)
+- Senhas criptografadas com werkzeug (scrypt)
+- Proteção de todas as rotas do dashboard
+
 ## Design
 
-**Paleta de Cores (Saúde Já)**:
-- Primary/Header: Teal (#17a2b8)
-- Secondary: Dark Teal (#138496)
-- Accent: Vermelho coral (#e74c3c)
-- Background: Cinza claro (#f0f4f7)
+**Paleta de Cores (Dashboard SISCAN)**:
+- Primary/Header: Azul marinho (#005B96)
+- Secondary: Teal (#00A6A6)
+- Accent: Coral (#E76F51)
+- Background: Cinza claro (#F5F5F5)
 - Cards: Branco (#ffffff)
+- Text: Dark (#1F2933)
 
 ## Features
 
@@ -111,6 +122,23 @@ python tests/test_dashboard.py
   - Tipo D (Espera > 365 dias): 121 registros
 
 ## Recent Changes
+
+- 02/12/2025: Sistema de autenticação implementado
+  - Tela de login profissional com Flask-Login
+  - Modelo de usuário com senha criptografada (werkzeug/scrypt)
+  - Usuário padrão: admin (senha configurável via ADMIN_PASSWORD env var)
+  - Sessões com timeout de 30 minutos
+  - Proteção de todas as rotas do dashboard
+  - Botão de logout no cabeçalho
+
+- 02/12/2025: Rebranding para Dashboard SISCAN
+  - Nome alterado de "Saúde Já" para "Dashboard SISCAN"
+  - Nova paleta de cores com maior visibilidade:
+    - Primary: Azul marinho (#005B96)
+    - Secondary: Teal (#00A6A6)
+    - Accent: Coral (#E76F51)
+  - Cabeçalho com ícone de coração e nome do usuário logado
+  - Título da página atualizado
 
 - 02/12/2025: Aba Indicadores implementada
   - Nova aba "Indicadores" com 10 indicadores clínicos organizados em 4 blocos

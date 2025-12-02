@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Date, Float, DateTime, Text, Big
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from flask_login import UserMixin
-from passlib.hash import bcrypt
+from werkzeug.security import generate_password_hash, check_password_hash
 from src.config import DATABASE_URL
 import hashlib
 from datetime import datetime
@@ -23,10 +23,10 @@ class User(Base, UserMixin):
     last_login = Column(DateTime)
     
     def set_password(self, password):
-        self.password_hash = bcrypt.hash(password)
+        self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        return bcrypt.verify(password, self.password_hash)
+        return check_password_hash(self.password_hash, password)
     
     def get_id(self):
         return str(self.id)

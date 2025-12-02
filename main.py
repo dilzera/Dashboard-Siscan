@@ -1,7 +1,7 @@
 import dash
 from dash import Dash, dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
-from flask import request, redirect, url_for, session, flash
+from flask import request, redirect, url_for, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import timedelta, datetime
 from src.data_layer import get_years, get_health_units, get_regions, get_sex_options, get_birads_options
@@ -42,22 +42,34 @@ def load_user(user_id):
         db_session.close()
 
 def init_users_table():
+    import os
+    import secrets
     engine = get_engine()
     Base.metadata.create_all(engine, tables=[User.__table__])
     
     db_session = get_session()
     try:
+        admin_password = os.environ.get('ADMIN_PASSWORD')
         admin = db_session.query(User).filter_by(username='admin').first()
+        
         if not admin:
+            if not admin_password:
+                admin_password = secrets.token_urlsafe(12)
+                print(f"AVISO: ADMIN_PASSWORD nao definida. Senha temporaria gerada: {admin_password}")
+                print("Defina ADMIN_PASSWORD no ambiente para uma senha persistente.")
             admin = User(
                 username='admin',
                 name='Administrador',
                 role='admin'
             )
-            admin.set_password('siscan2024')
+            admin.set_password(admin_password)
             db_session.add(admin)
             db_session.commit()
             print("Usuario admin criado com sucesso!")
+        elif admin_password:
+            admin.set_password(admin_password)
+            db_session.commit()
+            print("Senha do admin atualizada via ADMIN_PASSWORD.")
     finally:
         db_session.close()
 
@@ -238,7 +250,8 @@ def handle_login(n_clicks, username, password):
         if user and user.check_password(password):
             user.last_login = datetime.utcnow()
             db_session.commit()
-            login_user(user)
+            login_user(user, remember=False)
+            session.permanent = True
             return '/', '', {'display': 'none'}
         else:
             return dash.no_update, 'Usuário ou senha incorretos.', {'display': 'block', 'color': COLORS['danger'], 'marginTop': '10px', 'fontWeight': '500'}
