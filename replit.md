@@ -82,6 +82,27 @@ Este projeto é um MVP de dashboard interativo para visualização e análise de
 
 O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard".
 
+## Testing
+
+O projeto possui uma suíte de testes abrangente com 54 testes:
+
+```bash
+python tests/test_dashboard.py
+```
+
+**Categorias de teste:**
+- TestDatabaseConnection (3 testes): Conexão e existência de dados
+- TestFilterOptions (5 testes): Opções de filtros dinâmicos
+- TestKPIStats (8 testes): Métricas de KPIs principais
+- TestChartData (4 testes): Dados para gráficos
+- TestOutliers (3 testes): Detecção de outliers
+- TestPatientNavigation (2 testes): Navegação de pacientes
+- TestPatientData (4 testes): Listagem de dados
+- TestUnitAnalysis (13 testes): Análise por unidade de saúde
+- TestDataIntegrity (3 testes): Integridade dos dados
+- TestErrorHandling (4 testes): Tratamento de erros
+- TestExpectedValues (5 testes): Valores baseline esperados
+
 ## Outliers Summary
 
 - **Total de Outliers**: 142 registros
