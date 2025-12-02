@@ -92,8 +92,8 @@ def build_dashboard_content(year=None, health_unit=None, region=None, conformity
     outliers_table = create_outliers_table(outliers_df)
     outliers_summary = create_outliers_summary_cards(outliers_summary_df)
     
-    navigation_stats = get_patient_navigation_stats_sql()
-    navigation_list_df = get_patient_navigation_list_sql(min_exams=2, limit=50)
+    navigation_stats = get_patient_navigation_stats_sql(year, health_unit, region, conformity)
+    navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, conformity, min_exams=2, limit=50)
     navigation_stats_cards = create_patient_navigation_stats_cards(navigation_stats)
     navigation_table = create_patient_navigation_table(navigation_list_df)
     

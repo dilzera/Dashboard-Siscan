@@ -82,6 +82,13 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
 
 ## Recent Changes
 
+- 02/12/2025: Navegação da Paciente implementada
+  - Nova aba "Navegação da Paciente" para acompanhar pacientes com múltiplos atendimentos
+  - Estatísticas: total de pacientes com múltiplos exames, média de exames por paciente
+  - Lista expansível com histórico completo de cada paciente
+  - Exibe BI-RADS de cada exame, datas, unidade de saúde e tempo de espera
+  - Dados filtrados a partir de janeiro/2023
+
 - 02/12/2025: Vínculo Unidade de Saúde x Distrito Sanitário
   - Filtro "UF" alterado para "Distrito Sanitário"
   - Mapeamento CNES -> Distrito importado de planilha (109 unidades)

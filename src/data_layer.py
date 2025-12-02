@@ -486,16 +486,48 @@ def get_outliers_summary_sql():
     return df
 
 
-def get_patient_navigation_summary_sql():
+def _build_navigation_where_clause(year=None, health_unit=None, region=None, conformity=None, table_prefix=""):
+    """Build a safe parameterized WHERE clause for patient navigation queries"""
+    conditions = ["patient_unique_id IS NOT NULL", "unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
+    params = {}
+    
+    prefix = f"{table_prefix}." if table_prefix else ""
+    
+    if year:
+        conditions.append(f"EXTRACT(YEAR FROM {prefix}unidade_de_saude__data_da_solicitacao) = :nav_year")
+        params['nav_year'] = year
+    if health_unit:
+        conditions.append(f"{prefix}unidade_de_saude__nome = :nav_health_unit")
+        params['nav_health_unit'] = health_unit
+    if region:
+        conditions.append(f"{prefix}distrito_sanitario = :nav_region")
+        params['nav_region'] = region
+    if conformity:
+        conditions.append(f"{prefix}conformity_status = :nav_conformity")
+        params['nav_conformity'] = conformity
+    
+    if table_prefix:
+        conditions = [c.replace("patient_unique_id", f"{table_prefix}.patient_unique_id") 
+                     .replace("unidade_de_saude__data_da_solicitacao", f"{table_prefix}.unidade_de_saude__data_da_solicitacao")
+                     if "patient_unique_id" in c and table_prefix not in c else c 
+                     for c in conditions]
+        conditions[0] = f"{table_prefix}.patient_unique_id IS NOT NULL"
+        conditions[1] = f"{table_prefix}.unidade_de_saude__data_da_solicitacao >= '2023-01-01'"
+    
+    return " AND ".join(conditions), params
+
+
+def get_patient_navigation_summary_sql(year=None, health_unit=None, region=None, conformity=None):
     """Get summary of patients with multiple exams"""
-    query = """
+    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity)
+    
+    query = f"""
     WITH patient_exam_counts AS (
         SELECT 
             patient_unique_id,
             COUNT(*) as total_exames
         FROM exam_records
-        WHERE patient_unique_id IS NOT NULL
-        AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        WHERE {where_clause}
         GROUP BY patient_unique_id
         HAVING COUNT(*) > 1
     )
@@ -509,14 +541,20 @@ def get_patient_navigation_summary_sql():
     
     engine = get_engine()
     with engine.connect() as conn:
-        result = conn.execute(text(query))
+        result = conn.execute(text(query), params)
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     
     return df
 
 
-def get_patient_navigation_list_sql(min_exams=2, limit=100):
+def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, conformity=None, min_exams=2, limit=100):
     """Get list of patients with multiple exams and their exam history"""
+    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity)
+    where_clause_e, _ = _build_navigation_where_clause(year, health_unit, region, conformity, table_prefix="e")
+    
+    params['min_exams'] = min_exams
+    params['row_limit'] = limit * 10
+    
     query = f"""
     WITH patient_exam_counts AS (
         SELECT 
@@ -525,10 +563,9 @@ def get_patient_navigation_list_sql(min_exams=2, limit=100):
             MAX(paciente__nome) as nome_paciente,
             MAX(paciente__cartao_sus) as cartao_sus
         FROM exam_records
-        WHERE patient_unique_id IS NOT NULL
-        AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        WHERE {where_clause}
         GROUP BY patient_unique_id
-        HAVING COUNT(*) >= {min_exams}
+        HAVING COUNT(*) >= :min_exams
     ),
     patient_exams AS (
         SELECT 
@@ -548,7 +585,7 @@ def get_patient_navigation_list_sql(min_exams=2, limit=100):
             ROW_NUMBER() OVER (PARTITION BY e.patient_unique_id ORDER BY e.unidade_de_saude__data_da_solicitacao) as exam_order
         FROM exam_records e
         INNER JOIN patient_exam_counts p ON e.patient_unique_id = p.patient_unique_id
-        WHERE e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        WHERE {where_clause_e}
     )
     SELECT 
         patient_unique_id,
@@ -567,27 +604,28 @@ def get_patient_navigation_list_sql(min_exams=2, limit=100):
         conformity_status
     FROM patient_exams
     ORDER BY total_exames DESC, nome_paciente, exam_order
-    LIMIT {limit * 10}
+    LIMIT :row_limit
     """
     
     engine = get_engine()
     with engine.connect() as conn:
-        result = conn.execute(text(query))
+        result = conn.execute(text(query), params)
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     
     return df
 
 
-def get_patient_navigation_stats_sql():
+def get_patient_navigation_stats_sql(year=None, health_unit=None, region=None, conformity=None):
     """Get overall statistics for patient navigation"""
-    query = """
+    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity)
+    
+    query = f"""
     WITH patient_exam_counts AS (
         SELECT 
             patient_unique_id,
             COUNT(*) as total_exames
         FROM exam_records
-        WHERE patient_unique_id IS NOT NULL
-        AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        WHERE {where_clause}
         GROUP BY patient_unique_id
     )
     SELECT 
@@ -601,7 +639,7 @@ def get_patient_navigation_stats_sql():
     
     engine = get_engine()
     with engine.connect() as conn:
-        result = conn.execute(text(query))
+        result = conn.execute(text(query), params)
         row = result.fetchone()
     
     return {
