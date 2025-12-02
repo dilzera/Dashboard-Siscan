@@ -862,42 +862,52 @@ def get_unit_demographics_sql(health_unit, year=None, region=None):
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     
     query = f"""
-    SELECT 
-        CASE 
-            WHEN paciente__idade IS NULL THEN 'Não informado'
-            WHEN paciente__idade < 30 THEN '< 30 anos'
-            WHEN paciente__idade BETWEEN 30 AND 39 THEN '30-39 anos'
-            WHEN paciente__idade BETWEEN 40 AND 49 THEN '40-49 anos'
-            WHEN paciente__idade BETWEEN 50 AND 59 THEN '50-59 anos'
-            WHEN paciente__idade BETWEEN 60 AND 69 THEN '60-69 anos'
-            ELSE '70+ anos'
-        END as faixa_etaria,
-        birads_max,
-        COUNT(*) as total
-    FROM exam_records
-    WHERE {where_clause}
-    GROUP BY 
-        CASE 
-            WHEN paciente__idade IS NULL THEN 'Não informado'
-            WHEN paciente__idade < 30 THEN '< 30 anos'
-            WHEN paciente__idade BETWEEN 30 AND 39 THEN '30-39 anos'
-            WHEN paciente__idade BETWEEN 40 AND 49 THEN '40-49 anos'
-            WHEN paciente__idade BETWEEN 50 AND 59 THEN '50-59 anos'
-            WHEN paciente__idade BETWEEN 60 AND 69 THEN '60-69 anos'
-            ELSE '70+ anos'
-        END, 
-        birads_max
-    ORDER BY 
-        CASE 
-            WHEN paciente__idade IS NULL THEN 7
-            WHEN paciente__idade < 30 THEN 1
-            WHEN paciente__idade BETWEEN 30 AND 39 THEN 2
-            WHEN paciente__idade BETWEEN 40 AND 49 THEN 3
-            WHEN paciente__idade BETWEEN 50 AND 59 THEN 4
-            WHEN paciente__idade BETWEEN 60 AND 69 THEN 5
-            ELSE 6
-        END,
-        birads_max
+    SELECT faixa_etaria, birads_max, total FROM (
+        SELECT 
+            CASE 
+                WHEN paciente__idade IS NULL THEN 'Não informado'
+                WHEN paciente__idade < 30 THEN '< 30 anos'
+                WHEN paciente__idade BETWEEN 30 AND 39 THEN '30-39 anos'
+                WHEN paciente__idade BETWEEN 40 AND 49 THEN '40-49 anos'
+                WHEN paciente__idade BETWEEN 50 AND 59 THEN '50-59 anos'
+                WHEN paciente__idade BETWEEN 60 AND 69 THEN '60-69 anos'
+                ELSE '70+ anos'
+            END as faixa_etaria,
+            CASE 
+                WHEN paciente__idade IS NULL THEN 7
+                WHEN paciente__idade < 30 THEN 1
+                WHEN paciente__idade BETWEEN 30 AND 39 THEN 2
+                WHEN paciente__idade BETWEEN 40 AND 49 THEN 3
+                WHEN paciente__idade BETWEEN 50 AND 59 THEN 4
+                WHEN paciente__idade BETWEEN 60 AND 69 THEN 5
+                ELSE 6
+            END as ordem_faixa,
+            birads_max,
+            COUNT(*) as total
+        FROM exam_records
+        WHERE {where_clause}
+        GROUP BY 
+            CASE 
+                WHEN paciente__idade IS NULL THEN 'Não informado'
+                WHEN paciente__idade < 30 THEN '< 30 anos'
+                WHEN paciente__idade BETWEEN 30 AND 39 THEN '30-39 anos'
+                WHEN paciente__idade BETWEEN 40 AND 49 THEN '40-49 anos'
+                WHEN paciente__idade BETWEEN 50 AND 59 THEN '50-59 anos'
+                WHEN paciente__idade BETWEEN 60 AND 69 THEN '60-69 anos'
+                ELSE '70+ anos'
+            END,
+            CASE 
+                WHEN paciente__idade IS NULL THEN 7
+                WHEN paciente__idade < 30 THEN 1
+                WHEN paciente__idade BETWEEN 30 AND 39 THEN 2
+                WHEN paciente__idade BETWEEN 40 AND 49 THEN 3
+                WHEN paciente__idade BETWEEN 50 AND 59 THEN 4
+                WHEN paciente__idade BETWEEN 60 AND 69 THEN 5
+                ELSE 6
+            END,
+            birads_max
+    ) sub
+    ORDER BY ordem_faixa, birads_max
     """
     
     engine = get_engine()
@@ -916,37 +926,47 @@ def get_unit_agility_sql(health_unit, year=None, region=None):
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     
     query = f"""
-    SELECT 
-        CASE 
-            WHEN wait_days IS NULL THEN 'Não informado'
-            WHEN wait_days <= 7 THEN 'Até 7 dias'
-            WHEN wait_days <= 14 THEN '8-14 dias'
-            WHEN wait_days <= 30 THEN '15-30 dias'
-            WHEN wait_days <= 60 THEN '31-60 dias'
-            ELSE '> 60 dias'
-        END as faixa_espera,
-        COUNT(*) as total,
-        ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as percentual
-    FROM exam_records
-    WHERE {where_clause}
-    GROUP BY 
-        CASE 
-            WHEN wait_days IS NULL THEN 'Não informado'
-            WHEN wait_days <= 7 THEN 'Até 7 dias'
-            WHEN wait_days <= 14 THEN '8-14 dias'
-            WHEN wait_days <= 30 THEN '15-30 dias'
-            WHEN wait_days <= 60 THEN '31-60 dias'
-            ELSE '> 60 dias'
-        END
-    ORDER BY 
-        CASE 
-            WHEN wait_days IS NULL THEN 6
-            WHEN wait_days <= 7 THEN 1
-            WHEN wait_days <= 14 THEN 2
-            WHEN wait_days <= 30 THEN 3
-            WHEN wait_days <= 60 THEN 4
-            ELSE 5
-        END
+    SELECT faixa_espera, total, percentual FROM (
+        SELECT 
+            CASE 
+                WHEN wait_days IS NULL THEN 'Não informado'
+                WHEN wait_days <= 7 THEN 'Até 7 dias'
+                WHEN wait_days <= 14 THEN '8-14 dias'
+                WHEN wait_days <= 30 THEN '15-30 dias'
+                WHEN wait_days <= 60 THEN '31-60 dias'
+                ELSE '> 60 dias'
+            END as faixa_espera,
+            CASE 
+                WHEN wait_days IS NULL THEN 6
+                WHEN wait_days <= 7 THEN 1
+                WHEN wait_days <= 14 THEN 2
+                WHEN wait_days <= 30 THEN 3
+                WHEN wait_days <= 60 THEN 4
+                ELSE 5
+            END as ordem_faixa,
+            COUNT(*) as total,
+            ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as percentual
+        FROM exam_records
+        WHERE {where_clause}
+        GROUP BY 
+            CASE 
+                WHEN wait_days IS NULL THEN 'Não informado'
+                WHEN wait_days <= 7 THEN 'Até 7 dias'
+                WHEN wait_days <= 14 THEN '8-14 dias'
+                WHEN wait_days <= 30 THEN '15-30 dias'
+                WHEN wait_days <= 60 THEN '31-60 dias'
+                ELSE '> 60 dias'
+            END,
+            CASE 
+                WHEN wait_days IS NULL THEN 6
+                WHEN wait_days <= 7 THEN 1
+                WHEN wait_days <= 14 THEN 2
+                WHEN wait_days <= 30 THEN 3
+                WHEN wait_days <= 60 THEN 4
+                ELSE 5
+            END
+    ) sub
+    ORDER BY ordem_faixa
     """
     
     engine = get_engine()
