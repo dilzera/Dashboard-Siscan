@@ -50,10 +50,18 @@ Este projeto é um MVP de dashboard interativo para visualização e análise de
 
 ## Technologies
 
-- **Backend**: Python 3.11, Dash 3.3, Flask
-- **Frontend**: Dash Bootstrap Components, Plotly
+- **Backend**: Python 3.11, Dash 2.18.2, Flask
+- **Frontend**: Dash Bootstrap Components 1.7.1, Plotly
 - **Database**: PostgreSQL (via SQLAlchemy)
-- **Dependencies**: pandas, gunicorn
+- **Dependencies**: pandas, gunicorn, openpyxl
+
+## Data Statistics
+
+- **Total de Registros**: 103.166 exames
+- **Pacientes Únicos**: 88.448
+- **Média de Espera**: 16.0 dias
+- **Taxa de Conformidade**: 89.2%
+- **Casos Alto Risco (BI-RADS 4/5)**: 1.887
 
 ## Running the Project
 
@@ -61,6 +69,12 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
 
 ## Recent Changes
 
+- 02/12/2025: Importação de dados reais e correções
+  - Importados 103.166 registros do Excel
+  - Corrigido problema de callback com Dash 3.3.0 (downgrade para 2.18.2)
+  - Implementados filtros interativos funcionais
+  - Agregações SQL otimizadas para performance
+  
 - 02/12/2025: Criação inicial do MVP
   - Estrutura modular completa
   - KPIs de performance
