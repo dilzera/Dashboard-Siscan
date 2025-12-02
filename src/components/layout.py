@@ -129,23 +129,6 @@ def create_kpi_row(initial_content=None):
     ], className='mb-4')
 
 
-def create_tabs(initial_content=None):
-    return dbc.Tabs([
-        dbc.Tab(
-            create_performance_tab(initial_content),
-            label='Visão Geral de Performance',
-            tab_id='tab-performance',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_audit_tab(initial_content),
-            label='Auditoria de Risco',
-            tab_id='tab-audit',
-            className='p-3'
-        )
-    ], id='main-tabs', active_tab='tab-performance')
-
-
 def create_performance_tab(initial_content=None):
     if initial_content:
         return html.Div([
@@ -200,6 +183,57 @@ def create_audit_tab(initial_content=None):
             ], lg=12, className='mb-4')
         ])
     ])
+
+
+def create_outliers_tab(initial_content=None):
+    if initial_content and 'outliers_summary' in initial_content:
+        return html.Div([
+            html.Div([
+                html.H5('Resumo de Inconsistências', className='mb-3'),
+                html.P('Registros que violam regras de integridade lógica ou limites estatísticos.', 
+                       className='text-muted mb-4')
+            ]),
+            html.Div(initial_content.get('outliers_summary', ''), id='outliers-summary'),
+            html.Hr(className='my-4'),
+            dbc.Row([
+                dbc.Col(html.Div(initial_content.get('outliers_table', ''), id='outliers-table'), lg=12, className='mb-4')
+            ])
+        ])
+    return html.Div([
+        html.Div([
+            html.H5('Resumo de Inconsistências', className='mb-3'),
+            html.P('Registros que violam regras de integridade lógica ou limites estatísticos.', 
+                   className='text-muted mb-4')
+        ]),
+        html.Div(id='outliers-summary'),
+        html.Hr(className='my-4'),
+        dbc.Row([
+            dbc.Col(html.Div(id='outliers-table'), lg=12, className='mb-4')
+        ])
+    ])
+
+
+def create_tabs(initial_content=None):
+    return dbc.Tabs([
+        dbc.Tab(
+            create_performance_tab(initial_content),
+            label='Visão Geral de Performance',
+            tab_id='tab-performance',
+            className='p-3'
+        ),
+        dbc.Tab(
+            create_audit_tab(initial_content),
+            label='Auditoria de Risco',
+            tab_id='tab-audit',
+            className='p-3'
+        ),
+        dbc.Tab(
+            create_outliers_tab(initial_content),
+            label='Auditoria de Outliers',
+            tab_id='tab-outliers',
+            className='p-3'
+        )
+    ], id='main-tabs', active_tab='tab-performance')
 
 
 def create_footer():

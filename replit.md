@@ -11,10 +11,16 @@ Este projeto é um MVP de dashboard interativo para visualização e análise de
 - **KPIs em tempo real**: Média e mediana de espera, taxa de conformidade, casos de alto risco
 - **Filtros dinâmicos**: Ano, Unidade de Saúde, Região, Status de conformidade
 - **Visualizações interativas**: Gráficos de linha, barras, pizza e gauge com Plotly
-- **Duas seções principais**:
+- **Três seções principais**:
   - Visão Geral de Performance (volume mensal, conformidade por unidade)
   - Auditoria de Risco (distribuição BI-RADS, casos de alto risco)
-- **Atualização automática**: Refresh a cada 5 minutos ou manual via botão
+  - Auditoria de Outliers (detecção de inconsistências nos dados)
+- **Auditoria de Qualidade de Dados**:
+  - Categoria A: Datas absurdas (antes de 2020-01-01)
+  - Categoria B: Delta negativo (realização antes da solicitação)
+  - Categoria C: BI-RADS inválido
+  - Categoria D: Tempo de espera > 365 dias
+- **Atualização manual**: via botão "Atualizar Dados"
 - **Design responsivo**: Layout adaptável para desktop e mobile
 
 ## Project Architecture
@@ -67,7 +73,20 @@ Este projeto é um MVP de dashboard interativo para visualização e análise de
 
 O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard".
 
+## Outliers Summary
+
+- **Total de Outliers**: 142 registros
+  - Tipo A (Datas Absurdas): 20 registros
+  - Tipo B (Delta Negativo): 1 registro
+  - Tipo D (Espera > 365 dias): 121 registros
+
 ## Recent Changes
+
+- 02/12/2025: Auditoria de Outliers implementada
+  - Nova aba "Auditoria de Outliers" com detecção de inconsistências
+  - Cards de resumo com contagem por categoria
+  - Tabela detalhada com nome, cartão SUS, data e valor crítico
+  - SQL otimizado com CASE WHEN para classificação
 
 - 02/12/2025: Importação de dados reais e correções
   - Importados 103.166 registros do Excel

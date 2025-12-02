@@ -3,14 +3,15 @@ from datetime import datetime
 import pandas as pd
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
-    get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql
+    get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
+    get_outliers_audit_sql, get_outliers_summary_sql
 )
 from src.components.cards import create_kpi_card, create_chart_card
 from src.components.charts import (
     create_line_chart, create_birads_bar_chart,
     create_conformity_chart, create_gauge_chart, create_pie_chart
 )
-from src.components.tables import create_high_risk_table
+from src.components.tables import create_high_risk_table, create_outliers_table, create_outliers_summary_cards
 
 
 def build_dashboard_content(year=None, health_unit=None, region=None, conformity=None):
@@ -82,6 +83,11 @@ def build_dashboard_content(year=None, health_unit=None, region=None, conformity
     
     table_risk = create_high_risk_table(high_risk_df)
     
+    outliers_df = get_outliers_audit_sql()
+    outliers_summary_df = get_outliers_summary_sql()
+    outliers_table = create_outliers_table(outliers_df)
+    outliers_summary = create_outliers_summary_cards(outliers_summary_df)
+    
     last_update = f'Última atualização: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}'
     
     return {
@@ -95,6 +101,8 @@ def build_dashboard_content(year=None, health_unit=None, region=None, conformity
         'chart_birads': chart_birads,
         'chart_birads_pie': chart_birads_pie,
         'table_risk': table_risk,
+        'outliers_table': outliers_table,
+        'outliers_summary': outliers_summary,
         'last_update': last_update
     }
 
@@ -111,6 +119,8 @@ def register_callbacks(app):
         Output('chart-birads-dist', 'children'),
         Output('chart-birads-pie', 'children'),
         Output('table-high-risk', 'children'),
+        Output('outliers-summary', 'children'),
+        Output('outliers-table', 'children'),
         Output('last-update-display', 'children'),
         Input('refresh-btn', 'n_clicks'),
         State('year-filter', 'value'),
@@ -133,6 +143,8 @@ def register_callbacks(app):
                 content['chart_birads'],
                 content['chart_birads_pie'],
                 content['table_risk'],
+                content['outliers_summary'],
+                content['outliers_table'],
                 content['last_update']
             )
         except Exception as e:
@@ -144,5 +156,5 @@ def register_callbacks(app):
             return (
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_card, error_card,
-                error_card, error_card, error_message
+                error_card, error_card, error_card, error_card, error_message
             )

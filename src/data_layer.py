@@ -358,3 +358,114 @@ def get_high_risk_cases(df):
     })
     
     return result
+
+
+def get_outliers_audit_sql():
+    query = """
+    WITH outliers AS (
+        SELECT 
+            paciente__nome AS nome_paciente,
+            paciente__cartao_sus AS cartao_sus,
+            unidade_de_saude__data_da_solicitacao AS data_solicitacao,
+            prestador_de_servico__data_da_realizacao AS data_realizacao,
+            responsavel_pelo_resultado__data_da_liberacao AS data_liberacao,
+            birads_max,
+            wait_days,
+            CASE 
+                WHEN unidade_de_saude__data_da_solicitacao < '2020-01-01' THEN 'A'
+                WHEN prestador_de_servico__data_da_realizacao < unidade_de_saude__data_da_solicitacao THEN 'B'
+                WHEN responsavel_pelo_resultado__data_da_liberacao < unidade_de_saude__data_da_solicitacao THEN 'B'
+                WHEN birads_max IS NULL OR birads_max = '' OR birads_max !~ '^[0-9]+$' THEN 'C'
+                WHEN wait_days > 365 THEN 'D'
+                ELSE NULL
+            END AS motivo_outlier,
+            CASE 
+                WHEN unidade_de_saude__data_da_solicitacao < '2020-01-01' 
+                    THEN unidade_de_saude__data_da_solicitacao::TEXT
+                WHEN prestador_de_servico__data_da_realizacao < unidade_de_saude__data_da_solicitacao 
+                    THEN prestador_de_servico__data_da_realizacao::TEXT
+                WHEN responsavel_pelo_resultado__data_da_liberacao < unidade_de_saude__data_da_solicitacao 
+                    THEN responsavel_pelo_resultado__data_da_liberacao::TEXT
+                WHEN birads_max IS NULL OR birads_max = '' OR birads_max !~ '^[0-9]+$'
+                    THEN COALESCE(birads_max, 'NULL')
+                WHEN wait_days > 365 
+                    THEN unidade_de_saude__data_da_solicitacao::TEXT
+                ELSE NULL
+            END AS data_inconsistente,
+            CASE 
+                WHEN unidade_de_saude__data_da_solicitacao < '2020-01-01' 
+                    THEN (unidade_de_saude__data_da_solicitacao - '2020-01-01'::DATE) || ' dias antes de 2020'
+                WHEN prestador_de_servico__data_da_realizacao < unidade_de_saude__data_da_solicitacao 
+                    THEN (prestador_de_servico__data_da_realizacao - unidade_de_saude__data_da_solicitacao) || ' dias (delta negativo)'
+                WHEN responsavel_pelo_resultado__data_da_liberacao < unidade_de_saude__data_da_solicitacao 
+                    THEN (responsavel_pelo_resultado__data_da_liberacao - unidade_de_saude__data_da_solicitacao) || ' dias (delta negativo)'
+                WHEN birads_max IS NULL OR birads_max = '' OR birads_max !~ '^[0-9]+$'
+                    THEN 'BI-RADS inválido: ' || COALESCE(birads_max, 'VAZIO')
+                WHEN wait_days > 365 
+                    THEN wait_days || ' dias de espera'
+                ELSE NULL
+            END AS valor_critico
+        FROM exam_records
+    )
+    SELECT 
+        nome_paciente,
+        cartao_sus,
+        data_inconsistente,
+        valor_critico,
+        motivo_outlier AS motivo_do_outlier,
+        CASE motivo_outlier
+            WHEN 'A' THEN 'Data Absurda (antes de 2020)'
+            WHEN 'B' THEN 'Delta Negativo'
+            WHEN 'C' THEN 'BI-RADS Inválido'
+            WHEN 'D' THEN 'Espera > 365 dias'
+        END AS descricao_motivo
+    FROM outliers
+    WHERE motivo_outlier IS NOT NULL
+    ORDER BY motivo_outlier, data_solicitacao
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_outliers_summary_sql():
+    query = """
+    SELECT 
+        motivo_outlier,
+        descricao,
+        COUNT(*) as total_registros
+    FROM (
+        SELECT 
+            CASE 
+                WHEN unidade_de_saude__data_da_solicitacao < '2020-01-01' THEN 'A'
+                WHEN prestador_de_servico__data_da_realizacao < unidade_de_saude__data_da_solicitacao THEN 'B'
+                WHEN responsavel_pelo_resultado__data_da_liberacao < unidade_de_saude__data_da_solicitacao THEN 'B'
+                WHEN birads_max IS NULL OR birads_max = '' OR birads_max !~ '^[0-9]+$' THEN 'C'
+                WHEN wait_days > 365 THEN 'D'
+                ELSE NULL
+            END AS motivo_outlier,
+            CASE 
+                WHEN unidade_de_saude__data_da_solicitacao < '2020-01-01' THEN 'Data Absurda (antes de 2020)'
+                WHEN prestador_de_servico__data_da_realizacao < unidade_de_saude__data_da_solicitacao THEN 'Delta Negativo (realização antes da solicitação)'
+                WHEN responsavel_pelo_resultado__data_da_liberacao < unidade_de_saude__data_da_solicitacao THEN 'Delta Negativo (liberação antes da solicitação)'
+                WHEN birads_max IS NULL OR birads_max = '' OR birads_max !~ '^[0-9]+$' THEN 'BI-RADS Inválido'
+                WHEN wait_days > 365 THEN 'Espera > 365 dias'
+                ELSE 'OK'
+            END AS descricao
+        FROM exam_records
+    ) subquery
+    WHERE motivo_outlier IS NOT NULL
+    GROUP BY motivo_outlier, descricao
+    ORDER BY motivo_outlier
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
