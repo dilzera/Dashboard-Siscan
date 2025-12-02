@@ -8,13 +8,13 @@ def _get_outlier_exclusion_conditions():
     """
     Returns SQL conditions to exclude outliers from performance calculations.
     Outlier categories:
-    - A: Request dates before 2020-01-01
+    - A: Request dates before 2023-01-01 (only show data from Jan 2023 onwards)
     - B: Completion/release dates before request date (negative delta)
     - C: Invalid BI-RADS values (NULL, empty, or non-numeric)
     - D: Wait time > 365 days
     """
     return [
-        "unidade_de_saude__data_da_solicitacao >= '2020-01-01'",
+        "unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
         "(prestador_de_servico__data_da_realizacao IS NULL OR prestador_de_servico__data_da_realizacao >= unidade_de_saude__data_da_solicitacao)",
         "(responsavel_pelo_resultado__data_da_liberacao IS NULL OR responsavel_pelo_resultado__data_da_liberacao >= unidade_de_saude__data_da_solicitacao)",
         "(wait_days IS NULL OR wait_days <= 365)",
@@ -53,12 +53,7 @@ def _build_where_clause(year=None, health_unit=None, region=None, conformity_sta
 
 
 def get_years():
-    engine = get_engine()
-    query = "SELECT DISTINCT year FROM exam_records WHERE year IS NOT NULL ORDER BY year DESC"
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        df = pd.DataFrame(result.fetchall(), columns=result.keys())
-    return [int(y) for y in df['year'].dropna().tolist()]
+    return [2026, 2025, 2024, 2023]
 
 
 def get_health_units():
