@@ -4,9 +4,30 @@ from src.models import get_engine
 from datetime import datetime, timedelta
 
 
-def _build_where_clause(year=None, health_unit=None, region=None, conformity_status=None):
+def _get_outlier_exclusion_conditions():
+    """
+    Returns SQL conditions to exclude outliers from performance calculations.
+    Outlier categories:
+    - A: Request dates before 2020-01-01
+    - B: Completion/release dates before request date (negative delta)
+    - C: Invalid BI-RADS values (NULL, empty, or non-numeric)
+    - D: Wait time > 365 days
+    """
+    return [
+        "unidade_de_saude__data_da_solicitacao >= '2020-01-01'",
+        "(prestador_de_servico__data_da_realizacao IS NULL OR prestador_de_servico__data_da_realizacao >= unidade_de_saude__data_da_solicitacao)",
+        "(responsavel_pelo_resultado__data_da_liberacao IS NULL OR responsavel_pelo_resultado__data_da_liberacao >= unidade_de_saude__data_da_solicitacao)",
+        "(wait_days IS NULL OR wait_days <= 365)",
+        "(birads_max IS NOT NULL AND birads_max != '' AND birads_max ~ '^[0-9]+$')"
+    ]
+
+
+def _build_where_clause(year=None, health_unit=None, region=None, conformity_status=None, exclude_outliers=False):
     conditions = []
     params = {}
+    
+    if exclude_outliers:
+        conditions.extend(_get_outlier_exclusion_conditions())
     
     if year:
         conditions.append("year = :year")
@@ -59,7 +80,7 @@ def get_regions():
 
 
 def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True)
     
     query = f"""
     SELECT 
@@ -98,7 +119,7 @@ def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status
 
 
 def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_status=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True)
     
     query = f"""
     SELECT 
@@ -120,7 +141,7 @@ def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_
 
 
 def get_birads_distribution_sql(year=None, health_unit=None, region=None, conformity_status=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True)
     
     query = f"""
     SELECT 
@@ -128,7 +149,6 @@ def get_birads_distribution_sql(year=None, health_unit=None, region=None, confor
         COUNT(*) as count
     FROM exam_records
     {where_clause}
-    {"AND" if where_clause else "WHERE"} birads_max IS NOT NULL
     GROUP BY birads_max
     ORDER BY birads_max
     """
@@ -142,7 +162,7 @@ def get_birads_distribution_sql(year=None, health_unit=None, region=None, confor
 
 
 def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conformity_status=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True)
     
     query = f"""
     SELECT 
@@ -172,7 +192,7 @@ def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conform
 
 
 def get_high_risk_cases_sql(year=None, health_unit=None, region=None, conformity_status=None, limit=20):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status)
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True)
     
     query = f"""
     SELECT 

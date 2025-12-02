@@ -61,13 +61,13 @@ Este projeto é um MVP de dashboard interativo para visualização e análise de
 - **Database**: PostgreSQL (via SQLAlchemy)
 - **Dependencies**: pandas, gunicorn, openpyxl
 
-## Data Statistics
+## Data Statistics (sem outliers)
 
-- **Total de Registros**: 103.166 exames
-- **Pacientes Únicos**: 88.448
-- **Média de Espera**: 16.0 dias
-- **Taxa de Conformidade**: 89.2%
-- **Casos Alto Risco (BI-RADS 4/5)**: 1.887
+- **Total de Registros Válidos**: 103.024 exames (142 outliers excluídos)
+- **Pacientes Únicos**: 88.347
+- **Média de Espera**: 12.5 dias
+- **Taxa de Conformidade**: 89.3%
+- **Casos Alto Risco (BI-RADS 4/5)**: 1.884
 
 ## Running the Project
 
@@ -81,6 +81,12 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
   - Tipo D (Espera > 365 dias): 121 registros
 
 ## Recent Changes
+
+- 02/12/2025: Exclusão de outliers dos gráficos de performance
+  - Todas as métricas de KPI e gráficos agora excluem registros problemáticos
+  - Média de espera corrigida de 16.0 para 12.5 dias
+  - Filtros SQL aplicados: datas >= 2020, deltas não-negativos, BI-RADS válido, espera <= 365 dias
+  - Aba "Auditoria de Outliers" permanece com todos os 142 registros para revisão
 
 - 02/12/2025: Auditoria de Outliers implementada
   - Nova aba "Auditoria de Outliers" com detecção de inconsistências
