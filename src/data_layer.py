@@ -786,12 +786,12 @@ def get_birads_options():
 def _build_unit_where_clause(health_unit, year=None, region=None):
     """Build WHERE clause for health unit specific queries"""
     conditions = [
+        "unidade_de_saude__nome = :unit_name",
         "unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
-        "unidade_de_saude__nome = :unit_name"
+        "(prestador_de_servico__data_da_realizacao IS NULL OR prestador_de_servico__data_da_realizacao >= unidade_de_saude__data_da_solicitacao)",
+        "(wait_days IS NULL OR (wait_days >= 0 AND wait_days <= 365))"
     ]
     params = {'unit_name': health_unit}
-    
-    conditions.extend(_get_outlier_exclusion_conditions())
     
     if year:
         conditions.append("EXTRACT(YEAR FROM unidade_de_saude__data_da_solicitacao) = :unit_year")
@@ -805,6 +805,16 @@ def _build_unit_where_clause(health_unit, year=None, region=None):
 
 def get_unit_kpis_sql(health_unit, year=None, region=None):
     """Get KPIs for a specific health unit"""
+    if not health_unit:
+        return {
+            'total_exames': 0,
+            'total_pacientes': 0,
+            'media_espera': 0,
+            'mediana_espera': 0,
+            'taxa_conformidade': 0,
+            'casos_alto_risco': 0
+        }
+    
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     
     query = f"""
@@ -813,7 +823,7 @@ def get_unit_kpis_sql(health_unit, year=None, region=None):
         COUNT(DISTINCT patient_unique_id) as total_pacientes,
         COALESCE(AVG(wait_days), 0) as media_espera,
         COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY wait_days), 0) as mediana_espera,
-        COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as taxa_conformidade,
+        COALESCE(COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as taxa_conformidade,
         COUNT(CASE WHEN birads_max IN ('4', '5') THEN 1 END) as casos_alto_risco
     FROM exam_records
     WHERE {where_clause}
@@ -824,18 +834,31 @@ def get_unit_kpis_sql(health_unit, year=None, region=None):
         result = conn.execute(text(query), params)
         row = result.fetchone()
     
+    if not row:
+        return {
+            'total_exames': 0,
+            'total_pacientes': 0,
+            'media_espera': 0,
+            'mediana_espera': 0,
+            'taxa_conformidade': 0,
+            'casos_alto_risco': 0
+        }
+    
     return {
-        'total_exames': row[0] or 0,
-        'total_pacientes': row[1] or 0,
+        'total_exames': int(row[0]) if row[0] else 0,
+        'total_pacientes': int(row[1]) if row[1] else 0,
         'media_espera': round(float(row[2]) if row[2] else 0, 1),
         'mediana_espera': round(float(row[3]) if row[3] else 0, 1),
         'taxa_conformidade': round(float(row[4]) if row[4] else 0, 1),
-        'casos_alto_risco': row[5] or 0
+        'casos_alto_risco': int(row[5]) if row[5] else 0
     }
 
 
 def get_unit_demographics_sql(health_unit, year=None, region=None):
     """Get patient demographics by age group and BI-RADS for a health unit"""
+    if not health_unit:
+        return pd.DataFrame()
+    
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     
     query = f"""
@@ -877,6 +900,9 @@ def get_unit_demographics_sql(health_unit, year=None, region=None):
 
 def get_unit_agility_sql(health_unit, year=None, region=None):
     """Get service agility distribution (wait time buckets) for a health unit"""
+    if not health_unit:
+        return pd.DataFrame()
+    
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     
     query = f"""
@@ -915,6 +941,9 @@ def get_unit_agility_sql(health_unit, year=None, region=None):
 
 def get_unit_wait_time_trend_sql(health_unit, year=None, region=None):
     """Get monthly average wait time trend for a health unit"""
+    if not health_unit:
+        return pd.DataFrame()
+    
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     
     query = f"""
@@ -947,6 +976,9 @@ def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=10
     - BI-RADS 4/5: Suspicious/Malignant - 30 days (biopsy needed)
     - BI-RADS 1/2: Normal/Benign - 365 days (annual screening)
     """
+    if not health_unit:
+        return pd.DataFrame()
+    
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     params['follow_limit'] = limit
     
@@ -1025,6 +1057,9 @@ def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=10
 
 def get_unit_follow_up_count_sql(health_unit, year=None, region=None):
     """Get count of patients with overdue follow-up"""
+    if not health_unit:
+        return 0
+    
     where_clause, params = _build_unit_where_clause(health_unit, year, region)
     
     query = f"""
@@ -1064,4 +1099,6 @@ def get_unit_follow_up_count_sql(health_unit, year=None, region=None):
         result = conn.execute(text(query), params)
         row = result.fetchone()
     
-    return row[0] or 0
+    if not row:
+        return 0
+    return int(row[0]) if row[0] else 0
