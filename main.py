@@ -1,11 +1,9 @@
 import dash
 from dash import Dash
 import dash_bootstrap_components as dbc
-from src.data_layer import get_years, get_health_units, get_regions, populate_sample_data
+from src.data_layer import get_years, get_health_units, get_regions
 from src.components.layout import create_main_layout
 from src.callbacks import register_callbacks
-
-populate_sample_data()
 
 app = Dash(
     __name__,

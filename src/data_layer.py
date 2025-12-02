@@ -2,7 +2,6 @@ import pandas as pd
 from sqlalchemy import text
 from src.models import get_engine
 from datetime import datetime, timedelta
-import random
 
 
 def get_dataframe(query=None, params=None):
@@ -14,26 +13,33 @@ def get_dataframe(query=None, params=None):
 
 def get_years():
     engine = get_engine()
-    query = "SELECT DISTINCT year FROM exam_records ORDER BY year DESC"
+    query = "SELECT DISTINCT year FROM exam_records WHERE year IS NOT NULL ORDER BY year DESC"
     df = pd.read_sql(query, engine)
-    return df['year'].tolist()
+    return [int(y) for y in df['year'].dropna().tolist()]
 
 
 def get_health_units():
     engine = get_engine()
-    query = "SELECT DISTINCT health_unit FROM exam_records ORDER BY health_unit"
+    query = "SELECT DISTINCT unidade_de_saude__nome FROM exam_records WHERE unidade_de_saude__nome IS NOT NULL ORDER BY unidade_de_saude__nome"
     df = pd.read_sql(query, engine)
-    return df['health_unit'].tolist()
+    return df['unidade_de_saude__nome'].dropna().tolist()
 
 
 def get_regions():
     engine = get_engine()
-    query = "SELECT DISTINCT region FROM exam_records ORDER BY region"
+    query = "SELECT DISTINCT unidade_de_saude__uf FROM exam_records WHERE unidade_de_saude__uf IS NOT NULL ORDER BY unidade_de_saude__uf"
     df = pd.read_sql(query, engine)
-    return df['region'].tolist()
+    return df['unidade_de_saude__uf'].dropna().tolist()
 
 
-def get_filtered_data(year=None, health_unit=None, conformity_status=None, region=None):
+def get_municipalities():
+    engine = get_engine()
+    query = "SELECT DISTINCT unidade_de_saude__municipio FROM exam_records WHERE unidade_de_saude__municipio IS NOT NULL ORDER BY unidade_de_saude__municipio"
+    df = pd.read_sql(query, engine)
+    return df['unidade_de_saude__municipio'].dropna().tolist()
+
+
+def get_filtered_data(year=None, health_unit=None, conformity_status=None, region=None, municipality=None):
     conditions = []
     params = {}
     
@@ -42,7 +48,7 @@ def get_filtered_data(year=None, health_unit=None, conformity_status=None, regio
         params['year'] = year
     
     if health_unit:
-        conditions.append("health_unit = :health_unit")
+        conditions.append("unidade_de_saude__nome = :health_unit")
         params['health_unit'] = health_unit
     
     if conformity_status:
@@ -50,8 +56,12 @@ def get_filtered_data(year=None, health_unit=None, conformity_status=None, regio
         params['conformity_status'] = conformity_status
     
     if region:
-        conditions.append("region = :region")
+        conditions.append("unidade_de_saude__uf = :region")
         params['region'] = region
+    
+    if municipality:
+        conditions.append("unidade_de_saude__municipio = :municipality")
+        params['municipality'] = municipality
     
     query = "SELECT * FROM exam_records"
     if conditions:
@@ -67,21 +77,31 @@ def get_kpi_data(df):
             'median_wait': 0,
             'conformity_rate': 0,
             'total_exams': 0,
-            'high_risk_count': 0
+            'high_risk_count': 0,
+            'unique_patients': 0
         }
     
-    mean_wait = df['wait_days'].mean()
-    median_wait = df['wait_days'].median()
-    conformity_rate = (df['conformity_status'] == 'Dentro do Prazo').sum() / len(df) * 100
+    wait_df = df['wait_days'].dropna()
+    mean_wait = wait_df.mean() if len(wait_df) > 0 else 0
+    median_wait = wait_df.median() if len(wait_df) > 0 else 0
+    
+    conformity_df = df['conformity_status'].dropna()
+    if len(conformity_df) > 0:
+        conformity_rate = (conformity_df == 'Dentro do Prazo').sum() / len(conformity_df) * 100
+    else:
+        conformity_rate = 0
+    
     total_exams = len(df)
-    high_risk_count = df[df['birads_category'].isin(['4', '5'])].shape[0]
+    high_risk_count = df[df['birads_max'].isin(['4', '5'])].shape[0]
+    unique_patients = df['patient_unique_id'].nunique()
     
     return {
-        'mean_wait': round(mean_wait, 1),
-        'median_wait': round(median_wait, 1),
+        'mean_wait': round(mean_wait, 1) if pd.notna(mean_wait) else 0,
+        'median_wait': round(median_wait, 1) if pd.notna(median_wait) else 0,
         'conformity_rate': round(conformity_rate, 1),
         'total_exams': total_exams,
-        'high_risk_count': high_risk_count
+        'high_risk_count': high_risk_count,
+        'unique_patients': unique_patients
     }
 
 
@@ -89,8 +109,15 @@ def get_monthly_volume(df):
     if df.empty:
         return pd.DataFrame()
     
-    df['month_year'] = pd.to_datetime(df['request_date']).dt.to_period('M')
-    monthly = df.groupby('month_year').size().reset_index(name='count')
+    df_copy = df.copy()
+    df_copy['request_date'] = pd.to_datetime(df_copy['unidade_de_saude__data_da_solicitacao'])
+    df_copy = df_copy.dropna(subset=['request_date'])
+    
+    if df_copy.empty:
+        return pd.DataFrame()
+    
+    df_copy['month_year'] = df_copy['request_date'].dt.to_period('M')
+    monthly = df_copy.groupby('month_year').size().reset_index(name='count')
     monthly['month_year'] = monthly['month_year'].astype(str)
     return monthly
 
@@ -99,7 +126,14 @@ def get_birads_distribution(df):
     if df.empty:
         return pd.DataFrame()
     
-    dist = df.groupby('birads_category').size().reset_index(name='count')
+    df_copy = df.copy()
+    df_copy = df_copy[df_copy['birads_max'].notna()]
+    
+    if df_copy.empty:
+        return pd.DataFrame()
+    
+    dist = df_copy.groupby('birads_max').size().reset_index(name='count')
+    dist.columns = ['birads_category', 'count']
     dist = dist.sort_values('birads_category')
     return dist
 
@@ -108,16 +142,30 @@ def get_conformity_by_unit(df):
     if df.empty:
         return pd.DataFrame()
     
-    grouped = df.groupby(['health_unit', 'conformity_status']).size().unstack(fill_value=0)
+    df_copy = df.copy()
+    df_copy = df_copy[df_copy['unidade_de_saude__nome'].notna() & df_copy['conformity_status'].notna()]
+    
+    if df_copy.empty:
+        return pd.DataFrame()
+    
+    grouped = df_copy.groupby(['unidade_de_saude__nome', 'conformity_status']).size().unstack(fill_value=0)
     grouped = grouped.reset_index()
+    grouped.columns.name = None
     
     if 'Dentro do Prazo' in grouped.columns and 'Fora do Prazo' in grouped.columns:
         grouped['total'] = grouped['Dentro do Prazo'] + grouped['Fora do Prazo']
         grouped['conformity_rate'] = (grouped['Dentro do Prazo'] / grouped['total'] * 100).round(1)
+    elif 'Dentro do Prazo' in grouped.columns:
+        grouped['total'] = grouped['Dentro do Prazo']
+        grouped['conformity_rate'] = 100.0
+    elif 'Fora do Prazo' in grouped.columns:
+        grouped['total'] = grouped['Fora do Prazo']
+        grouped['conformity_rate'] = 0.0
     else:
         grouped['total'] = 0
-        grouped['conformity_rate'] = 0
+        grouped['conformity_rate'] = 0.0
     
+    grouped = grouped.rename(columns={'unidade_de_saude__nome': 'health_unit'})
     return grouped.sort_values('total', ascending=False).head(10)
 
 
@@ -125,74 +173,23 @@ def get_high_risk_cases(df):
     if df.empty:
         return pd.DataFrame()
     
-    high_risk = df[df['birads_category'].isin(['4', '5'])].copy()
-    high_risk = high_risk.sort_values('wait_days', ascending=False)
-    return high_risk.head(20)
-
-
-def populate_sample_data():
-    from src.models import ExamRecord, get_session, init_db
+    high_risk = df[df['birads_max'].isin(['4', '5'])].copy()
     
-    init_db()
-    session = get_session()
+    if high_risk.empty:
+        return pd.DataFrame()
     
-    existing = session.query(ExamRecord).count()
-    if existing > 0:
-        session.close()
-        return
+    high_risk = high_risk.sort_values('wait_days', ascending=False, na_position='last')
     
-    health_units = [
-        'UBS Central', 'Hospital Municipal', 'Clinica Santa Maria',
-        'Centro de Saude Norte', 'UBS Sul', 'Hospital Regional',
-        'Clinica Sao Jose', 'Centro Diagnostico', 'UBS Leste', 'Hospital Universitario'
-    ]
+    result = high_risk[['patient_unique_id', 'paciente__nome', 'unidade_de_saude__nome', 
+                        'birads_max', 'wait_days', 'conformity_status', 
+                        'unidade_de_saude__data_da_solicitacao']].head(20)
     
-    regions = ['Norte', 'Sul', 'Leste', 'Oeste', 'Centro']
+    result = result.rename(columns={
+        'patient_unique_id': 'patient_id',
+        'paciente__nome': 'patient_name',
+        'unidade_de_saude__nome': 'health_unit',
+        'birads_max': 'birads_category',
+        'unidade_de_saude__data_da_solicitacao': 'request_date'
+    })
     
-    municipalities = ['Sao Paulo', 'Campinas', 'Santos', 'Ribeirao Preto', 'Sorocaba']
-    
-    birads_weights = ['0', '1', '2', '3', '4', '5']
-    birads_probs = [0.1, 0.25, 0.30, 0.20, 0.10, 0.05]
-    
-    age_groups = ['40-49', '50-59', '60-69', '70+']
-    
-    records = []
-    start_date = datetime(2022, 1, 1)
-    end_date = datetime(2024, 11, 30)
-    
-    for i in range(2000):
-        request_date = start_date + timedelta(days=random.randint(0, (end_date - start_date).days))
-        wait_days = random.choices(
-            [random.randint(1, 20), random.randint(21, 35), random.randint(36, 90)],
-            weights=[0.6, 0.25, 0.15]
-        )[0]
-        completion_date = request_date + timedelta(days=wait_days)
-        
-        birads = random.choices(birads_weights, weights=birads_probs)[0]
-        
-        conformity_status = 'Dentro do Prazo' if wait_days <= 30 else 'Fora do Prazo'
-        
-        health_unit = random.choice(health_units)
-        region = random.choice(regions)
-        
-        record = ExamRecord(
-            patient_id=f'PAC{i+1:06d}',
-            health_unit=health_unit,
-            health_unit_code=f'US{health_units.index(health_unit)+1:03d}',
-            region=region,
-            municipality=random.choice(municipalities),
-            request_date=request_date.date(),
-            completion_date=completion_date.date(),
-            wait_days=wait_days,
-            birads_category=birads,
-            exam_type='Mamografia',
-            age_group=random.choice(age_groups),
-            conformity_status=conformity_status,
-            year=request_date.year,
-            month=request_date.month
-        )
-        records.append(record)
-    
-    session.bulk_save_objects(records)
-    session.commit()
-    session.close()
+    return result

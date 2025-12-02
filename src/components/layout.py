@@ -55,11 +55,11 @@ def create_filters(years, health_units, regions):
                 ], md=3, sm=6, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
-                    html.Label('Região', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    html.Label('UF', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
                     dcc.Dropdown(
                         id='region-filter',
                         options=[{'label': r, 'value': r} for r in regions],
-                        placeholder='Todas as regiões',
+                        placeholder='Todos os estados',
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
