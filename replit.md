@@ -12,9 +12,12 @@ Este projeto é um MVP de dashboard interativo para visualização e análise de
 
 O sistema possui autenticação obrigatória via Flask-Login:
 - **Usuário padrão**: admin (senha configurável via ADMIN_PASSWORD env var)
-- Sessões com timeout de 30 minutos (session.permanent = True)
+- **Sessões com timeout de 1 hora** (logout automático por segurança)
 - Senhas criptografadas com werkzeug (scrypt)
 - Proteção de todas as rotas do dashboard
+- **Redirecionamento automático**: usuários não autenticados são redirecionados para login
+- **Preservação de URL**: após login, usuário é redirecionado para a página que tentou acessar
+- **Mensagem de expiração**: tela de login informa quando a sessão expirou
 
 ## Design
 

@@ -26,11 +26,31 @@ app.title = 'Dashboard SISCAN - Monitoramento de Mamografia'
 
 server = app.server
 server.secret_key = SESSION_SECRET
-server.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+server.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
 
 login_manager = LoginManager()
 login_manager.init_app(server)
 login_manager.login_view = '/login'
+
+@server.before_request
+def check_session_timeout():
+    if current_user.is_authenticated:
+        login_time = session.get('login_time')
+        if login_time:
+            login_datetime = datetime.fromisoformat(login_time)
+            if datetime.utcnow() - login_datetime > timedelta(hours=1):
+                logout_user()
+                session.clear()
+                return redirect('/login?expired=1')
+    
+    excluded_paths = ['/login', '/logout', '/_dash-', '/_reload-hash', '/assets/', '/favicon']
+    if not any(request.path.startswith(p) for p in excluded_paths):
+        if not current_user.is_authenticated:
+            if request.path not in ['/', ''] and not request.path.endswith(('.ico', '.png', '.jpg', '.css', '.js', '.map')):
+                session['next_url'] = request.path
+            elif 'next_url' not in session:
+                session['next_url'] = '/'
+            return redirect('/login')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -201,11 +221,16 @@ app.layout = html.Div([
 
 @app.callback(
     Output('page-content', 'children'),
-    Input('url', 'pathname')
+    [Input('url', 'pathname'),
+     Input('url', 'search')]
 )
-def display_page(pathname):
+def display_page(pathname, search):
     if pathname == '/logout':
         return create_login_layout(COLORS)
+    
+    if pathname == '/login':
+        session_expired = search and 'expired=1' in search
+        return create_login_layout(COLORS, session_expired=session_expired)
     
     if not current_user.is_authenticated:
         return create_login_layout(COLORS)
@@ -252,7 +277,9 @@ def handle_login(n_clicks, username, password):
             db_session.commit()
             login_user(user, remember=False)
             session.permanent = True
-            return '/', '', {'display': 'none'}
+            session['login_time'] = datetime.utcnow().isoformat()
+            next_url = session.pop('next_url', '/')
+            return next_url, '', {'display': 'none'}
         else:
             return dash.no_update, 'Usuário ou senha incorretos.', {'display': 'block', 'color': COLORS['danger'], 'marginTop': '10px', 'fontWeight': '500'}
     finally:

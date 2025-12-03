@@ -3,7 +3,16 @@ from dash import html, dcc
 from src.config import COLORS
 
 
-def create_login_layout(colors):
+def create_login_layout(colors, session_expired=False):
+    expired_message = []
+    if session_expired:
+        expired_message = [
+            dbc.Alert([
+                html.I(className='fas fa-clock me-2'),
+                'Sua sessão expirou por segurança. Por favor, faça login novamente.'
+            ], color='warning', className='mb-3', style={'fontSize': '0.9rem'})
+        ]
+    
     return html.Div([
         html.Div([
             html.Div([
@@ -18,6 +27,8 @@ def create_login_layout(colors):
                 ], className='login-logo'),
                 
                 html.Hr(style={'margin': '20px 0'}),
+                
+                *expired_message,
                 
                 html.Div([
                     dbc.Label('Usuário', className='fw-bold'),
@@ -58,7 +69,7 @@ def create_login_layout(colors):
                 
                 html.Div([
                     html.I(className='fas fa-shield-alt me-2', style={'color': colors['secondary']}),
-                    html.Span('Acesso restrito a usuários autorizados', 
+                    html.Span('Sessão expira automaticamente após 1 hora', 
                              style={'color': colors['text_muted'], 'fontSize': '0.85rem'})
                 ], className='text-center mt-4')
             ], className='login-card')
