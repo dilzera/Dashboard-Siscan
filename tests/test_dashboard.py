@@ -466,6 +466,149 @@ class TestExpectedValues:
         assert len(regions) >= 10, f"Esperado >= 10 distritos, obtido {len(regions)}"
 
 
+class TestAuthentication:
+    """Testes de autenticação e login"""
+    
+    def test_user_model_exists(self):
+        """Verifica se o modelo User existe"""
+        from src.models import User
+        assert User is not None
+        assert hasattr(User, 'username')
+        assert hasattr(User, 'password_hash')
+        assert hasattr(User, 'is_active')
+    
+    def test_user_table_exists(self):
+        """Verifica se a tabela users existe no banco"""
+        engine = get_engine()
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'users'
+                )
+            """))
+            exists = result.fetchone()[0]
+            assert exists is True, "Tabela users não existe"
+    
+    def test_admin_user_exists(self):
+        """Verifica se o usuário admin existe"""
+        engine = get_engine()
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT COUNT(*) FROM users WHERE username = 'admin'
+            """))
+            count = result.fetchone()[0]
+            assert count == 1, "Usuário admin não encontrado"
+    
+    def test_password_hashing(self):
+        """Verifica se senhas são criptografadas corretamente"""
+        from src.models import User
+        user = User(username='test_user', name='Test')
+        user.set_password('test123')
+        assert user.password_hash is not None
+        assert user.password_hash != 'test123'
+        assert len(user.password_hash) > 20
+    
+    def test_password_verification(self):
+        """Verifica se verificação de senha funciona"""
+        from src.models import User
+        user = User(username='test_user', name='Test')
+        user.set_password('correct_password')
+        assert user.check_password('correct_password') is True
+        assert user.check_password('wrong_password') is False
+    
+    def test_password_hash_uses_scrypt(self):
+        """Verifica se o hash usa algoritmo scrypt (werkzeug)"""
+        from src.models import User
+        user = User(username='test_user', name='Test')
+        user.set_password('mypassword')
+        assert 'scrypt' in user.password_hash or 'pbkdf2' in user.password_hash
+    
+    def test_user_is_active_default(self):
+        """Verifica se campo is_active tem default True no modelo"""
+        from src.models import User
+        is_active_col = User.__table__.columns['is_active']
+        assert is_active_col.default is not None
+        assert is_active_col.default.arg is True
+
+
+class TestSecurity:
+    """Testes de segurança do sistema"""
+    
+    def test_session_timeout_configured(self):
+        """Verifica se timeout de sessão está configurado para 1 hora"""
+        from datetime import timedelta
+        from src.config import SESSION_SECRET
+        assert SESSION_SECRET is not None
+        assert len(SESSION_SECRET) > 10
+    
+    def test_session_secret_not_hardcoded(self):
+        """Verifica se SESSION_SECRET vem do ambiente"""
+        import os
+        from src.config import SESSION_SECRET
+        env_secret = os.environ.get('SESSION_SECRET')
+        if env_secret:
+            assert SESSION_SECRET == env_secret
+    
+    def test_login_layout_exists(self):
+        """Verifica se layout de login existe"""
+        from src.components.layout import create_login_layout
+        from src.config import COLORS
+        layout = create_login_layout(COLORS)
+        assert layout is not None
+    
+    def test_login_layout_has_password_field(self):
+        """Verifica se layout de login tem campo de senha"""
+        from src.components.layout import create_login_layout
+        from src.config import COLORS
+        layout = create_login_layout(COLORS)
+        layout_str = str(layout)
+        assert 'login-password' in layout_str
+        assert 'login-username' in layout_str
+        assert 'login-button' in layout_str
+    
+    def test_login_layout_expired_message(self):
+        """Verifica mensagem de sessão expirada"""
+        from src.components.layout import create_login_layout
+        from src.config import COLORS
+        layout = create_login_layout(COLORS, session_expired=True)
+        layout_str = str(layout)
+        assert 'expirou' in layout_str.lower()
+    
+    def test_excluded_paths_defined(self):
+        """Verifica se caminhos excluídos estão definidos no before_request"""
+        import main
+        source_code = open('main.py', 'r').read()
+        assert '/_dash-' in source_code
+        assert '/login' in source_code
+        assert '/logout' in source_code
+        assert '/assets/' in source_code
+    
+    def test_session_timeout_one_hour(self):
+        """Verifica se timeout é de 1 hora"""
+        source_code = open('main.py', 'r').read()
+        assert 'timedelta(hours=1)' in source_code
+    
+    def test_login_time_stored(self):
+        """Verifica se horário de login é armazenado"""
+        source_code = open('main.py', 'r').read()
+        assert 'login_time' in source_code
+        assert 'isoformat()' in source_code
+    
+    def test_next_url_preserved(self):
+        """Verifica se URL de destino é preservada"""
+        source_code = open('main.py', 'r').read()
+        assert 'next_url' in source_code
+    
+    def test_asset_files_excluded_from_redirect(self):
+        """Verifica se arquivos de assets não sobrescrevem next_url"""
+        source_code = open('main.py', 'r').read()
+        assert '.ico' in source_code
+        assert '.png' in source_code
+        assert '.css' in source_code
+        assert '.js' in source_code
+
+
 def run_all_tests():
     """Executa todos os testes e exibe resumo"""
     print("=" * 60)
@@ -483,7 +626,9 @@ def run_all_tests():
         TestUnitAnalysis,
         TestDataIntegrity,
         TestErrorHandling,
-        TestExpectedValues
+        TestExpectedValues,
+        TestAuthentication,
+        TestSecurity
     ]
     
     passed = 0

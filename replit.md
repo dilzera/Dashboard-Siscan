@@ -98,7 +98,7 @@ O dashboard roda automaticamente na porta 5000 com o workflow "SISCAN Dashboard"
 
 ## Testing
 
-O projeto possui uma suíte de testes abrangente com 54 testes:
+O projeto possui uma suíte de testes abrangente com 71 testes:
 
 ```bash
 python tests/test_dashboard.py
@@ -116,6 +116,8 @@ python tests/test_dashboard.py
 - TestDataIntegrity (3 testes): Integridade dos dados
 - TestErrorHandling (4 testes): Tratamento de erros
 - TestExpectedValues (5 testes): Valores baseline esperados
+- TestAuthentication (7 testes): Autenticação e modelo de usuário
+- TestSecurity (10 testes): Segurança e proteção de sessão
 
 ## Outliers Summary
 
