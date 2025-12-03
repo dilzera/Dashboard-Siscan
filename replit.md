@@ -22,7 +22,8 @@ O sistema possui autenticação obrigatória via Flask-Login:
 ## Design
 
 **Paleta de Cores (Dashboard SISCAN)**:
-- Primary/Header: Azul marinho (#005B96)
+- Primary: Azul marinho (#005B96)
+- Header: Ciano (#17a2b8)
 - Secondary: Teal (#00A6A6)
 - Accent: Coral (#E76F51)
 - Background: Cinza claro (#F5F5F5)
