@@ -32,6 +32,10 @@ login_manager = LoginManager()
 login_manager.init_app(server)
 login_manager.login_view = '/login'
 
+@server.route('/health')
+def health_check():
+    return 'OK', 200
+
 @server.before_request
 def check_session_timeout():
     if current_user.is_authenticated:
@@ -43,7 +47,7 @@ def check_session_timeout():
                 session.clear()
                 return redirect('/login?expired=1')
     
-    excluded_paths = ['/login', '/logout', '/_dash-', '/_reload-hash', '/assets/', '/favicon']
+    excluded_paths = ['/login', '/logout', '/_dash-', '/_reload-hash', '/assets/', '/favicon', '/health']
     if not any(request.path.startswith(p) for p in excluded_paths):
         if not current_user.is_authenticated:
             if request.path not in ['/', ''] and not request.path.endswith(('.ico', '.png', '.jpg', '.css', '.js', '.map')):
