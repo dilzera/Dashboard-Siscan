@@ -1784,15 +1784,7 @@ def get_unit_priority_summary_sql(health_unit, year=None, region=None):
     WHERE {where_clause}
     AND birads_max IS NOT NULL AND birads_max != ''
     GROUP BY 1
-    ORDER BY 
-        CASE 
-            WHEN birads_max IN ('4', '5') THEN 1
-            WHEN birads_max = '0' THEN 2
-            WHEN birads_max = '3' THEN 3
-            WHEN birads_max = '6' THEN 4
-            WHEN birads_max IN ('1', '2') THEN 5
-            ELSE 6
-        END
+    ORDER BY 1
     """
     
     engine = get_engine()
