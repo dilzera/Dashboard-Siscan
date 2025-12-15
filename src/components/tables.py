@@ -701,7 +701,15 @@ def create_unit_kpi_cards(kpis):
                     ], className='d-flex align-items-center mb-2'),
                     html.H3(f'{kpis["casos_alto_risco"]}', 
                            style={'color': COLORS['danger'], 'fontWeight': '600'}),
-                    html.Small('BI-RADS 4 e 5', className='text-muted')
+                    html.Small('BI-RADS 4 e 5', className='text-muted'),
+                    dbc.Button(
+                        [html.I(className='fas fa-file-export me-1'), 'Encaminhar para busca ativa'],
+                        id='download-busca-ativa-btn',
+                        color='warning',
+                        size='sm',
+                        className='mt-2 w-100',
+                        style={'fontSize': '0.7rem'}
+                    ) if kpis["casos_alto_risco"] > 0 else None
                 ])
             ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
         ], md=2, sm=4, className='mb-3'),

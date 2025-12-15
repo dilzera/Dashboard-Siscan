@@ -389,6 +389,7 @@ def create_health_unit_tab(health_units=None, initial_content=None):
         unit_selector,
         
         html.Div(id='unit-kpis', className='mb-4'),
+        dcc.Download(id='download-busca-ativa-csv'),
         
         dbc.Row([
             dbc.Col([
@@ -765,7 +766,6 @@ def create_main_layout(years, health_units, regions, initial_content=None,
     
     return html.Div([
         create_header(user_name=user_name),
-        dcc.Download(id='download-busca-ativa-csv'),
         
         dbc.Container([
             create_filters(years, health_units, regions, 
