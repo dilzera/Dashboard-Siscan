@@ -191,7 +191,7 @@ app.index_string = f'''
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: linear-gradient(135deg, {COLORS['primary']} 0%, {COLORS['sidebar_bg']} 100%);
+                background: {COLORS['primary']};
             }}
             .login-card {{
                 background: white;
