@@ -12,7 +12,8 @@ from src.data_layer import (
     get_unit_kpis_sql, get_unit_demographics_sql, get_unit_agility_sql,
     get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql,
     get_indicators_data_sql, get_unit_high_risk_patients_sql, get_all_high_risk_patients_sql,
-    get_termo_linkage_summary_sql, get_termo_linkage_data_sql, get_termo_linkage_count_sql
+    get_termo_linkage_summary_sql, get_termo_linkage_data_sql, get_termo_linkage_count_sql,
+    get_unit_prioritization_sql, get_unit_priority_summary_sql
 )
 from src.config import COLORS
 from src.components.cards import create_kpi_card, create_chart_card
@@ -25,7 +26,8 @@ from src.components.charts import (
 from src.components.tables import (
     create_high_risk_table, create_outliers_table, create_outliers_summary_cards,
     create_patient_navigation_stats_cards, create_patient_navigation_table,
-    create_patient_data_table, create_follow_up_overdue_table, create_unit_kpi_cards
+    create_patient_data_table, create_follow_up_overdue_table, create_unit_kpi_cards,
+    create_priority_summary_cards, create_priority_table
 )
 
 
@@ -325,6 +327,37 @@ def register_callbacks(app):
                 error_msg,
                 ""
             )
+    
+    @app.callback(
+        [Output('unit-priority-summary', 'children'),
+         Output('unit-priority-table', 'children')],
+        [Input('unit-analysis-btn', 'n_clicks')],
+        [State('unit-analysis-selector', 'value'),
+         State('year-filter', 'value'),
+         State('region-filter', 'value')],
+        prevent_initial_call=True
+    )
+    def update_unit_prioritization(n_clicks, selected_unit, year, region):
+        if not n_clicks or not selected_unit:
+            empty_msg = html.Div(
+                html.P('Selecione uma unidade para ver a priorização.', className='text-muted text-center py-3')
+            )
+            return empty_msg, empty_msg
+        
+        try:
+            summary = get_unit_priority_summary_sql(selected_unit, year, region)
+            summary_cards = create_priority_summary_cards(summary)
+            
+            priority_df = get_unit_prioritization_sql(selected_unit, year, region)
+            priority_table = create_priority_table(priority_df)
+            
+            return summary_cards, priority_table
+            
+        except Exception as e:
+            error_msg = html.Div([
+                html.P(f'Erro ao carregar priorização: {str(e)}', className='text-danger')
+            ])
+            return error_msg, error_msg
     
     import dash_bootstrap_components as dbc
     from src.components.layout import create_indicator_card, create_time_indicator_card

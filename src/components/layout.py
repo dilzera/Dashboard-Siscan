@@ -397,6 +397,31 @@ def create_health_unit_tab(health_units=None, initial_content=None):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
+                        html.H6([
+                            html.I(className='fas fa-sort-amount-up me-2'),
+                            'Priorização de Atendimento'
+                        ], className='mb-0')
+                    ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
+                    dbc.CardBody([
+                        html.Div(id='unit-priority-summary', className='mb-3'),
+                        html.Hr(className='my-3'),
+                        html.Div([
+                            html.H6([
+                                html.I(className='fas fa-list-ol me-2'),
+                                'Fila de Priorização'
+                            ], className='mb-2'),
+                            html.Small('Pacientes ordenados por nível de prioridade e ação recomendada.', className='text-muted mb-3 d-block'),
+                            html.Div(id='unit-priority-table')
+                        ])
+                    ])
+                ], className='shadow-sm mb-4', style={'borderRadius': '10px', 'border': 'none'})
+            ], lg=12)
+        ]),
+        
+        dbc.Row([
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardHeader([
                         html.H6('Pacientes por Faixa Etária e BI-RADS', className='mb-0')
                     ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
                     dbc.CardBody([

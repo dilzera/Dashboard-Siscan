@@ -717,3 +717,110 @@ def create_unit_kpi_cards(kpis):
     ]
     
     return dbc.Row(cards)
+
+
+def create_priority_summary_cards(summary):
+    """Create priority summary cards showing distribution by priority level"""
+    priority_config = [
+        {'key': 'CRÍTICA', 'label': 'Crítica', 'color': '#dc3545', 'icon': 'fa-exclamation-circle', 'desc': 'BI-RADS 4/5 - Fast-Track'},
+        {'key': 'ALTA', 'label': 'Alta', 'color': '#fd7e14', 'icon': 'fa-search', 'desc': 'BI-RADS 0 - Investigação'},
+        {'key': 'MÉDIA', 'label': 'Média', 'color': '#ffc107', 'icon': 'fa-clock', 'desc': 'BI-RADS 3 - Monitoramento'},
+        {'key': 'MONITORAMENTO', 'label': 'Monitoramento', 'color': '#6f42c1', 'icon': 'fa-heartbeat', 'desc': 'BI-RADS 6 - Oncológico'},
+        {'key': 'ROTINA', 'label': 'Rotina', 'color': '#28a745', 'icon': 'fa-check-circle', 'desc': 'BI-RADS 1/2 - Rastreamento'}
+    ]
+    
+    cards = []
+    for config in priority_config:
+        count = summary.get(config['key'], 0)
+        cards.append(
+            dbc.Col([
+                dbc.Card([
+                    dbc.CardBody([
+                        html.Div([
+                            html.I(className=f'fas {config["icon"]} fa-lg', 
+                                  style={'color': config['color']}),
+                            html.Span(f' {config["label"]}', className='ms-2 fw-bold', 
+                                     style={'fontSize': '0.85rem'})
+                        ], className='d-flex align-items-center mb-2'),
+                        html.H4(f'{count:,}'.replace(',', '.'), 
+                               style={'color': config['color'], 'fontWeight': '600', 'marginBottom': '0.25rem'}),
+                        html.Small(config['desc'], className='text-muted', style={'fontSize': '0.7rem'})
+                    ], className='py-2 px-3')
+                ], className='shadow-sm h-100', style={'borderRadius': '8px', 'border': 'none'})
+            ], className='mb-2', style={'flex': '1', 'minWidth': '140px'})
+        )
+    
+    return html.Div([
+        html.Div([
+            html.I(className='fas fa-layer-group me-2', style={'color': COLORS['primary']}),
+            html.Span('Distribuição por Prioridade', className='fw-bold')
+        ], className='mb-3'),
+        html.Div(cards, className='d-flex flex-wrap gap-2')
+    ])
+
+
+def create_priority_table(df):
+    """Create a table showing prioritized patients"""
+    if df.empty:
+        return html.Div(
+            html.P('Selecione uma unidade para visualizar a fila de priorização.', 
+                   className='text-muted text-center py-4'),
+            className='border rounded'
+        )
+    
+    header = html.Thead(
+        html.Tr([
+            html.Th('Prioridade', style={'fontSize': '0.8rem', 'width': '100px'}),
+            html.Th('Paciente', style={'fontSize': '0.8rem'}),
+            html.Th('BI-RADS', style={'fontSize': '0.8rem', 'width': '80px'}),
+            html.Th('Idade', style={'fontSize': '0.8rem', 'width': '60px'}),
+            html.Th('Ação Recomendada', style={'fontSize': '0.8rem'}),
+            html.Th('SLA', style={'fontSize': '0.8rem', 'width': '80px'})
+        ], style={'backgroundColor': COLORS['primary'], 'color': 'white'})
+    )
+    
+    rows = []
+    for idx, row in df.head(50).iterrows():
+        prioridade = row.get('prioridade', 'N/A')
+        cor = row.get('cor', '#6c757d')
+        
+        rows.append(
+            html.Tr([
+                html.Td(
+                    dbc.Badge(prioridade, style={'backgroundColor': cor, 'fontSize': '0.7rem'}),
+                    style={'verticalAlign': 'middle'}
+                ),
+                html.Td([
+                    html.Div(str(row.get('nome', 'N/A'))[:40], style={'fontSize': '0.8rem', 'fontWeight': '500'}),
+                    html.Small(f"CNS: {row.get('cartao_sus', 'N/A')}", className='text-muted')
+                ]),
+                html.Td(
+                    dbc.Badge(f"BI-RADS {row.get('birads_max', 'N/A')}", 
+                             color='secondary', className='fw-normal'),
+                    style={'verticalAlign': 'middle'}
+                ),
+                html.Td(str(row.get('idade', 'N/A')), style={'fontSize': '0.8rem', 'verticalAlign': 'middle'}),
+                html.Td(str(row.get('acao', 'N/A')), style={'fontSize': '0.75rem', 'verticalAlign': 'middle'}),
+                html.Td(str(row.get('sla_resolucao', 'N/A')), 
+                       style={'fontSize': '0.75rem', 'fontWeight': '500', 'verticalAlign': 'middle'})
+            ], style={'backgroundColor': '#fff' if idx % 2 == 0 else '#f8f9fa'})
+        )
+    
+    if len(df) > 50:
+        rows.append(
+            html.Tr([
+                html.Td(
+                    html.Small(f'Mostrando 50 de {len(df)} registros', className='text-muted'),
+                    colSpan=6, style={'textAlign': 'center', 'padding': '10px'}
+                )
+            ])
+        )
+    
+    return dbc.Table(
+        [header, html.Tbody(rows)],
+        bordered=True,
+        hover=True,
+        responsive=True,
+        size='sm',
+        className='mb-0'
+    )

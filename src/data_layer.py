@@ -1597,3 +1597,207 @@ def get_termo_linkage_count_sql(search_nome=None, search_cpf=None, search_cartao
         row = result.fetchone()
     
     return int(row[0]) if row and row[0] else 0
+
+
+def calculate_priority(birads, data_liberacao=None, tem_apac_cancer=False, idade=None):
+    """
+    Calcula a prioridade do paciente baseado no algoritmo de priorização.
+    
+    Níveis de Prioridade:
+    - CRÍTICA (1): BI-RADS 4 ou 5 - Fast-Track para Cancerologia
+    - ALTA (2): BI-RADS 0 - Investigação Diagnóstica
+    - MÉDIA (3): BI-RADS 3 - Monitoramento Semestral
+    - MONITORAMENTO (4): BI-RADS 6 - Seguimento Oncológico
+    - ROTINA (5): BI-RADS 1 ou 2 - Rastreamento em 2 anos
+    """
+    if birads in ['4', '5']:
+        return {
+            'nivel': 1,
+            'prioridade': 'CRÍTICA',
+            'cor': '#dc3545',
+            'acao': 'Fast-Track Cancerologia',
+            'sla_alerta': '24h',
+            'sla_resolucao': '3 dias',
+            'tipo_vaga': 'Vaga Protegida',
+            'icone': 'fa-exclamation-circle'
+        }
+    elif birads == '0':
+        return {
+            'nivel': 2,
+            'prioridade': 'ALTA',
+            'cor': '#fd7e14',
+            'acao': 'Investigação Diagnóstica',
+            'sla_alerta': '7 dias',
+            'sla_resolucao': '45 dias',
+            'tipo_vaga': 'Eco-mama/USG',
+            'icone': 'fa-search'
+        }
+    elif birads == '3':
+        risco = 'ALTO' if tem_apac_cancer else 'BAIXO'
+        return {
+            'nivel': 3,
+            'prioridade': 'MÉDIA',
+            'cor': '#ffc107',
+            'acao': f'Monitoramento Semestral ({risco} Risco)',
+            'sla_alerta': '150 dias',
+            'sla_resolucao': '6 meses',
+            'tipo_vaga': 'Acompanhamento',
+            'icone': 'fa-clock',
+            'risco': risco
+        }
+    elif birads == '6':
+        return {
+            'nivel': 4,
+            'prioridade': 'MONITORAMENTO',
+            'cor': '#6f42c1',
+            'acao': 'Seguimento Oncológico',
+            'sla_alerta': 'Conforme protocolo',
+            'sla_resolucao': 'Contínuo',
+            'tipo_vaga': 'Oncologia',
+            'icone': 'fa-heartbeat'
+        }
+    elif birads in ['1', '2']:
+        return {
+            'nivel': 5,
+            'prioridade': 'ROTINA',
+            'cor': '#28a745',
+            'acao': 'Rastreamento em 2 anos',
+            'sla_alerta': 'N/A',
+            'sla_resolucao': '24 meses',
+            'tipo_vaga': 'Rastreamento',
+            'icone': 'fa-check-circle'
+        }
+    else:
+        return {
+            'nivel': 99,
+            'prioridade': 'INDEFINIDO',
+            'cor': '#6c757d',
+            'acao': 'Verificar laudo',
+            'sla_alerta': 'N/A',
+            'sla_resolucao': 'N/A',
+            'tipo_vaga': 'N/A',
+            'icone': 'fa-question-circle'
+        }
+
+
+def get_unit_prioritization_sql(health_unit, year=None, region=None):
+    """Get prioritization data for patients in a specific health unit"""
+    if not health_unit:
+        return pd.DataFrame()
+    
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    
+    query = f"""
+    SELECT 
+        e.paciente__nome as nome,
+        e.paciente__cartao_sus as cartao_sus,
+        e.paciente__idade as idade,
+        e.birads_max,
+        e.responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
+        e.unidade_de_saude__data_da_solicitacao as data_solicitacao,
+        e.wait_days as dias_espera,
+        e.unidade_de_saude__nome as unidade_saude,
+        t.ultima_apac_cancer,
+        CASE 
+            WHEN t.ultima_apac_cancer IS NOT NULL THEN TRUE 
+            ELSE FALSE 
+        END as tem_historico_cancer
+    FROM exam_records e
+    LEFT JOIN termo_linkage t ON e.paciente__cartao_sus = t.cartao_sus
+    WHERE {where_clause}
+    AND e.birads_max IS NOT NULL 
+    AND e.birads_max != ''
+    ORDER BY 
+        CASE e.birads_max
+            WHEN '4' THEN 1
+            WHEN '5' THEN 1
+            WHEN '0' THEN 2
+            WHEN '3' THEN 3
+            WHEN '6' THEN 4
+            ELSE 5
+        END,
+        e.responsavel_pelo_resultado__data_da_liberacao DESC
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    if df.empty:
+        return df
+    
+    priorities = []
+    for _, row in df.iterrows():
+        tem_apac = row.get('tem_historico_cancer', False)
+        priority = calculate_priority(
+            str(row['birads_max']), 
+            row.get('data_liberacao'),
+            tem_apac,
+            row.get('idade')
+        )
+        priorities.append(priority)
+    
+    df['prioridade'] = [p['prioridade'] for p in priorities]
+    df['nivel'] = [p['nivel'] for p in priorities]
+    df['acao'] = [p['acao'] for p in priorities]
+    df['sla_resolucao'] = [p['sla_resolucao'] for p in priorities]
+    df['cor'] = [p['cor'] for p in priorities]
+    
+    return df
+
+
+def get_unit_priority_summary_sql(health_unit, year=None, region=None):
+    """Get summary of priorities for a specific health unit"""
+    if not health_unit:
+        return {}
+    
+    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    
+    query = f"""
+    SELECT 
+        CASE 
+            WHEN birads_max IN ('4', '5') THEN 'CRÍTICA'
+            WHEN birads_max = '0' THEN 'ALTA'
+            WHEN birads_max = '3' THEN 'MÉDIA'
+            WHEN birads_max = '6' THEN 'MONITORAMENTO'
+            WHEN birads_max IN ('1', '2') THEN 'ROTINA'
+            ELSE 'INDEFINIDO'
+        END as prioridade,
+        COUNT(*) as total
+    FROM exam_records
+    WHERE {where_clause}
+    AND birads_max IS NOT NULL AND birads_max != ''
+    GROUP BY prioridade
+    ORDER BY 
+        CASE prioridade
+            WHEN 'CRÍTICA' THEN 1
+            WHEN 'ALTA' THEN 2
+            WHEN 'MÉDIA' THEN 3
+            WHEN 'MONITORAMENTO' THEN 4
+            WHEN 'ROTINA' THEN 5
+            ELSE 6
+        END
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    summary = {
+        'CRÍTICA': 0,
+        'ALTA': 0,
+        'MÉDIA': 0,
+        'MONITORAMENTO': 0,
+        'ROTINA': 0,
+        'INDEFINIDO': 0
+    }
+    
+    for _, row in df.iterrows():
+        if row['prioridade'] in summary:
+            summary[row['prioridade']] = int(row['total'])
+    
+    summary['total'] = sum(summary.values())
+    
+    return summary
