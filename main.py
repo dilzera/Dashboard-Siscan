@@ -191,7 +191,7 @@ app.index_string = f'''
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background: {COLORS['primary']};
+                background: {COLORS['header_bg']};
             }}
             .login-card {{
                 background: white;
