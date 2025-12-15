@@ -390,6 +390,18 @@ def create_health_unit_tab(health_units=None, initial_content=None):
         
         html.Div(id='unit-kpis', className='mb-4'),
         
+        html.Div([
+            dbc.Button(
+                [html.I(className='fas fa-download me-2'), 'Baixar Pacientes Alto Risco (CSV)'],
+                id='download-high-risk-btn',
+                color='warning',
+                size='sm',
+                className='mb-3',
+                style={'display': 'none'}
+            ),
+            dcc.Download(id='download-high-risk-csv')
+        ], id='download-high-risk-container'),
+        
         dbc.Row([
             dbc.Col([
                 dbc.Card([

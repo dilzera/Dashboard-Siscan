@@ -129,6 +129,23 @@ python tests/test_dashboard.py
 
 ## Recent Changes
 
+- 15/12/2025: Botão de download CSV de pacientes alto risco
+  - Nova funcionalidade na aba "Unidade de Saúde"
+  - Botão aparece quando uma unidade é selecionada
+  - Exporta pacientes BI-RADS 4/5 com 17 campos clínicos
+  - Arquivo CSV com nome da unidade e data de exportação
+
+- 15/12/2025: Usuário Neusa.andrade criado
+  - Novo usuário admin com senha via NEUSA_PASSWORD env var
+  - Inicialização automática junto com usuário admin
+
+- 15/12/2025: Correções de deployment
+  - Endpoint /health adicionado para health checks
+  - Comando de execução corrigido (gunicorn ao invés de $file)
+  - Configuração autoscale atualizada
+
+
+
 - 02/12/2025: Sistema de autenticação implementado
   - Tela de login profissional com Flask-Login
   - Modelo de usuário com senha criptografada (werkzeug/scrypt)

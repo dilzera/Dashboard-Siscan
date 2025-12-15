@@ -11,7 +11,7 @@ from src.data_layer import (
     get_patient_data_list_sql, get_patient_data_count_sql,
     get_unit_kpis_sql, get_unit_demographics_sql, get_unit_agility_sql,
     get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql,
-    get_indicators_data_sql
+    get_indicators_data_sql, get_unit_high_risk_patients_sql
 )
 from src.config import COLORS
 from src.components.cards import create_kpi_card, create_chart_card
@@ -489,3 +489,40 @@ def register_callbacks(app):
                 html.P(f'Erro ao carregar indicadores: {str(e)}', className='text-danger')
             ])
             return (error_card,) * 10
+    
+    @app.callback(
+        Output('download-high-risk-btn', 'style'),
+        Input('unit-analysis-btn', 'n_clicks'),
+        State('unit-analysis-selector', 'value'),
+        prevent_initial_call=True
+    )
+    def toggle_download_button(n_clicks, selected_unit):
+        if selected_unit:
+            return {'display': 'inline-block'}
+        return {'display': 'none'}
+    
+    @app.callback(
+        Output('download-high-risk-csv', 'data'),
+        Input('download-high-risk-btn', 'n_clicks'),
+        State('unit-analysis-selector', 'value'),
+        State('year-filter', 'value'),
+        State('region-filter', 'value'),
+        prevent_initial_call=True
+    )
+    def download_high_risk_csv(n_clicks, selected_unit, year, region):
+        if not n_clicks or not selected_unit:
+            return no_update
+        
+        try:
+            df = get_unit_high_risk_patients_sql(selected_unit, year, region)
+            
+            if df.empty:
+                return no_update
+            
+            safe_unit_name = selected_unit.replace(' ', '_').replace('/', '_')[:30]
+            filename = f'pacientes_alto_risco_{safe_unit_name}_{datetime.now().strftime("%Y%m%d")}.csv'
+            
+            return dcc.send_data_frame(df.to_csv, filename, index=False, encoding='utf-8-sig')
+        except Exception as e:
+            print(f"Erro ao gerar CSV: {e}")
+            return no_update
