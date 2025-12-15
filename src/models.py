@@ -112,6 +112,21 @@ class ExamRecord(Base):
     resultado_exame__cirurgias_realizadas = Column(Text)
 
 
+class TermoLinkage(Base):
+    __tablename__ = 'termo_linkage'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cartao_sus = Column(BigInteger, index=True)
+    cpf = Column(String(14))
+    telefone = Column(String(50))
+    data_nascimento = Column(String(20))
+    data_solicitacao_esaude = Column(Date)
+    data_insercao_resultado_esaude = Column(Date)
+    ultima_apac_cancer = Column(Date)
+    nome_esaude = Column(String(300))
+    comparacao_nomes = Column(String(50))
+
+
 def generate_patient_id(cartao_sus, nome, mae):
     key_string = f"{cartao_sus or ''}|{nome or ''}|{mae or ''}".upper().strip()
     return hashlib.sha256(key_string.encode()).hexdigest()[:16]
