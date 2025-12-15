@@ -1685,7 +1685,22 @@ def get_unit_prioritization_sql(health_unit, year=None, region=None):
     if not health_unit:
         return pd.DataFrame()
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    conditions = [
+        "e.unidade_de_saude__nome = :unit_name",
+        "e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
+        "(e.prestador_de_servico__data_da_realizacao IS NULL OR e.prestador_de_servico__data_da_realizacao >= e.unidade_de_saude__data_da_solicitacao)",
+        "(e.wait_days IS NULL OR (e.wait_days >= 0 AND e.wait_days <= 365))"
+    ]
+    params = {'unit_name': health_unit}
+    
+    if year:
+        conditions.append("EXTRACT(YEAR FROM e.unidade_de_saude__data_da_solicitacao) = :unit_year")
+        params['unit_year'] = year
+    if region:
+        conditions.append("e.distrito_sanitario = :unit_region")
+        params['unit_region'] = region
+    
+    where_clause = " AND ".join(conditions)
     
     query = f"""
     SELECT 
