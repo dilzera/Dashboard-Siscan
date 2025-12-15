@@ -708,8 +708,9 @@ def create_unit_kpi_cards(kpis):
                         color='warning',
                         size='sm',
                         className='mt-2 w-100',
-                        style={'fontSize': '0.7rem'}
-                    ) if kpis["casos_alto_risco"] > 0 else None
+                        style={'fontSize': '0.7rem'},
+                        disabled=kpis["casos_alto_risco"] == 0
+                    )
                 ])
             ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
         ], md=2, sm=4, className='mb-3'),
