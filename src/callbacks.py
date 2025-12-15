@@ -11,7 +11,7 @@ from src.data_layer import (
     get_patient_data_list_sql, get_patient_data_count_sql,
     get_unit_kpis_sql, get_unit_demographics_sql, get_unit_agility_sql,
     get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql,
-    get_indicators_data_sql, get_unit_high_risk_patients_sql
+    get_indicators_data_sql, get_unit_high_risk_patients_sql, get_all_high_risk_patients_sql
 )
 from src.config import COLORS
 from src.components.cards import create_kpi_card, create_chart_card
@@ -59,10 +59,12 @@ def build_dashboard_content(year=None, health_unit=None, region=None, conformity
     
     risk_color = 'danger' if kpis['high_risk_count'] > 100 else 'warning' if kpis['high_risk_count'] > 50 else 'info'
     kpi_risk = create_kpi_card(
-        'Casos Alto Risco',
+        'Alto Risco',
         f'{kpis["high_risk_count"]:,}'.replace(',', '.'),
         'BI-RADS 4 e 5',
-        color=risk_color
+        color=risk_color,
+        button_id='download-busca-ativa-btn',
+        button_text='Encaminhar para busca ativa'
     )
     
     chart_volume = create_chart_card(
@@ -491,38 +493,36 @@ def register_callbacks(app):
             return (error_card,) * 10
     
     @app.callback(
-        Output('download-high-risk-btn', 'style'),
-        Input('unit-analysis-btn', 'n_clicks'),
-        State('unit-analysis-selector', 'value'),
-        prevent_initial_call=True
-    )
-    def toggle_download_button(n_clicks, selected_unit):
-        if selected_unit:
-            return {'display': 'inline-block'}
-        return {'display': 'none'}
-    
-    @app.callback(
-        Output('download-high-risk-csv', 'data'),
-        Input('download-high-risk-btn', 'n_clicks'),
-        State('unit-analysis-selector', 'value'),
+        Output('download-busca-ativa-csv', 'data'),
+        Input('download-busca-ativa-btn', 'n_clicks'),
         State('year-filter', 'value'),
+        State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
         prevent_initial_call=True
     )
-    def download_high_risk_csv(n_clicks, selected_unit, year, region):
-        if not n_clicks or not selected_unit:
+    def download_busca_ativa_csv(n_clicks, year, health_unit, region):
+        if not n_clicks:
             return no_update
         
         try:
-            df = get_unit_high_risk_patients_sql(selected_unit, year, region)
+            df = get_all_high_risk_patients_sql(year, health_unit, region)
             
             if df.empty:
                 return no_update
             
-            safe_unit_name = selected_unit.replace(' ', '_').replace('/', '_')[:30]
-            filename = f'pacientes_alto_risco_{safe_unit_name}_{datetime.now().strftime("%Y%m%d")}.csv'
+            filter_suffix = ''
+            if year:
+                filter_suffix += f'_{year}'
+            if region:
+                safe_region = region.replace(' ', '_').replace('/', '_')[:20]
+                filter_suffix += f'_{safe_region}'
+            if health_unit:
+                safe_unit = health_unit.replace(' ', '_').replace('/', '_')[:20]
+                filter_suffix += f'_{safe_unit}'
+            
+            filename = f'busca_ativa_alto_risco{filter_suffix}_{datetime.now().strftime("%Y%m%d")}.csv'
             
             return dcc.send_data_frame(df.to_csv, filename, index=False, encoding='utf-8-sig')
         except Exception as e:
-            print(f"Erro ao gerar CSV: {e}")
+            print(f"Erro ao gerar CSV busca ativa: {e}")
             return no_update

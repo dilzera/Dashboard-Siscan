@@ -843,6 +843,43 @@ def get_unit_high_risk_patients_sql(health_unit, year=None, region=None):
     return df
 
 
+def get_all_high_risk_patients_sql(year=None, health_unit=None, region=None):
+    """Get all high-risk patients (BI-RADS 4/5) for CSV export with global filters"""
+    where_clause, params = _build_where_clause(year, health_unit, region, exclude_outliers=True)
+    
+    query = f"""
+    SELECT 
+        paciente__nome as nome_paciente,
+        paciente__cartao_sus as cartao_sus,
+        paciente__idade as idade,
+        paciente__sexo as sexo,
+        unidade_de_saude__nome as unidade_saude,
+        distrito_sanitario,
+        birads_max,
+        birads_direita,
+        birads_esquerda,
+        unidade_de_saude__data_da_solicitacao as data_solicitacao,
+        prestador_de_servico__data_da_realizacao as data_realizacao,
+        responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
+        wait_days as dias_espera,
+        conformity_status as status_conformidade,
+        resultado_exame__indicacao__mamografia_de_rastreamento as tipo_mamografia,
+        prestador_de_servico__cnpj as cnpj_prestador,
+        prestador_de_servico__razao_social as prestador_servico
+    FROM exam_records
+    {where_clause}
+    {"AND" if where_clause else "WHERE"} birads_max IN ('4', '5')
+    ORDER BY unidade_de_saude__data_da_solicitacao DESC
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
 def get_unit_kpis_sql(health_unit, year=None, region=None):
     """Get KPIs for a specific health unit"""
     if not health_unit:

@@ -129,7 +129,14 @@ python tests/test_dashboard.py
 
 ## Recent Changes
 
-- 15/12/2025: Botão de download CSV de pacientes alto risco
+- 15/12/2025: Botão "Encaminhar para busca ativa" no card Alto Risco
+  - Botão movido para dentro do card KPI "Alto Risco" (com ícone de triângulo de alerta)
+  - Renomeado de "Baixar Pacientes Alto Risco" para "Encaminhar para busca ativa"
+  - Agora usa os filtros globais (ano, distrito, unidade) para gerar o CSV
+  - Arquivo CSV: busca_ativa_alto_risco_[filtros]_[data].csv
+  - Removido o antigo botão da aba "Unidade de Saúde"
+
+- 15/12/2025: Botão de download CSV de pacientes alto risco (versão anterior)
   - Nova funcionalidade na aba "Unidade de Saúde"
   - Botão aparece quando uma unidade é selecionada
   - Exporta pacientes BI-RADS 4/5 com 17 campos clínicos

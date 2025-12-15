@@ -3,7 +3,7 @@ from dash import html
 from src.config import COLORS
 
 
-def create_kpi_card(title, value, subtitle=None, icon=None, color='primary'):
+def create_kpi_card(title, value, subtitle=None, icon=None, color='primary', button_id=None, button_text=None):
     color_map = {
         'primary': COLORS['primary'],
         'success': COLORS['success'],
@@ -14,9 +14,17 @@ def create_kpi_card(title, value, subtitle=None, icon=None, color='primary'):
     
     card_color = color_map.get(color, COLORS['primary'])
     
+    header_icon = None
+    if color == 'danger':
+        header_icon = html.I(className='fas fa-exclamation-triangle', 
+                            style={'color': COLORS['accent'], 'fontSize': '1.2rem', 'marginRight': '8px'})
+    
     card_content = [
         html.Div([
-            html.H6(title, className='text-muted mb-2', style={'fontSize': '0.85rem'}),
+            html.Div([
+                header_icon if header_icon else None,
+                html.H6(title, className='text-muted mb-2 d-inline', style={'fontSize': '0.85rem'}),
+            ], style={'display': 'flex', 'alignItems': 'center'}),
             html.H3(value, className='mb-1', style={'color': card_color, 'fontWeight': '600'}),
         ])
     ]
@@ -24,6 +32,20 @@ def create_kpi_card(title, value, subtitle=None, icon=None, color='primary'):
     if subtitle:
         card_content.append(
             html.Small(subtitle, className='text-muted')
+        )
+    
+    if button_id and button_text:
+        card_content.append(
+            html.Div([
+                dbc.Button(
+                    [html.I(className='fas fa-file-export me-2'), button_text],
+                    id=button_id,
+                    color='warning',
+                    size='sm',
+                    className='mt-2',
+                    style={'fontSize': '0.75rem', 'width': '100%'}
+                )
+            ])
         )
     
     return dbc.Card(
