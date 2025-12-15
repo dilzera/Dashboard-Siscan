@@ -129,6 +129,15 @@ python tests/test_dashboard.py
 
 ## Recent Changes
 
+- 15/12/2025: Aba Termo Linkage implementada
+  - Nova aba "Termo Linkage" para cruzamento de dados SISCAN x eSaude
+  - Modelo SQLAlchemy TermoLinkage com CPF, telefone, nome_esaude, APAC cancer
+  - Importação de dados do Excel (103.166 registros)
+  - Cards de resumo: total registros, com CPF, com telefone, com nome eSaude, com APAC cancer, nomes conferem
+  - Pesquisa por nome, CPF ou Cartão SUS
+  - Tabela paginada com dados cruzados entre sistemas
+  - JOIN entre exam_records e termo_linkage via cartao_sus
+
 - 15/12/2025: Botão "Encaminhar para busca ativa" na aba Unidade de Saúde
   - Botão dentro do card "Alto Risco" na aba "Unidade de Saúde"
   - Aparece quando uma unidade é selecionada e há casos de alto risco
