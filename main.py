@@ -94,6 +94,25 @@ def init_users_table():
             admin.set_password(admin_password)
             db_session.commit()
             print("Senha do admin atualizada via ADMIN_PASSWORD.")
+        
+        neusa_password = os.environ.get('NEUSA_PASSWORD')
+        neusa = db_session.query(User).filter_by(username='Neusa.andrade').first()
+        
+        if not neusa:
+            if neusa_password:
+                neusa = User(
+                    username='Neusa.andrade',
+                    name='Neusa Andrade',
+                    role='admin'
+                )
+                neusa.set_password(neusa_password)
+                db_session.add(neusa)
+                db_session.commit()
+                print("Usuario Neusa.andrade criado com sucesso!")
+        elif neusa_password:
+            neusa.set_password(neusa_password)
+            db_session.commit()
+            print("Senha do Neusa.andrade atualizada via NEUSA_PASSWORD.")
     finally:
         db_session.close()
 
