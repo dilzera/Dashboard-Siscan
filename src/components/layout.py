@@ -695,6 +695,148 @@ def create_indicators_tab(initial_content=None):
     ])
 
 
+def create_linkage_tab(initial_content=None):
+    return html.Div([
+        html.Div([
+            html.H5([
+                html.I(className='fas fa-link me-2'),
+                'Cruzamento de Dados SISCAN x eSaude (Termo Linkage)'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            html.P('Visualize e compare dados de pacientes entre sistemas SISCAN e eSaude', 
+                   className='text-muted mb-4')
+        ]),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-chart-pie me-2'),
+                'Resumo de Qualidade dos Dados'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Total de Registros', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='linkage-total', children='...', style={'color': COLORS['primary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Com CPF', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='linkage-cpf', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Com Telefone', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='linkage-telefone', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Com Nome eSaude', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='linkage-nome-esaude', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Com APAC Cancer', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='linkage-apac', children='...', style={'color': COLORS['accent'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Nomes Conferem', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='linkage-nomes-conferem', children='...', style={'color': COLORS['success'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3')
+            ])
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-search me-2'),
+                'Pesquisa de Pacientes'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label('Buscar por Nome', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Input(
+                        id='linkage-search-nome',
+                        type='text',
+                        placeholder='Digite o nome...',
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=4, className='mb-2'),
+                dbc.Col([
+                    dbc.Label('Buscar por CPF', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Input(
+                        id='linkage-search-cpf',
+                        type='text',
+                        placeholder='Digite o CPF...',
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=3, className='mb-2'),
+                dbc.Col([
+                    dbc.Label('Buscar por Cartao SUS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Input(
+                        id='linkage-search-cartao',
+                        type='text',
+                        placeholder='Digite o Cartao SUS...',
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=3, className='mb-2'),
+                dbc.Col([
+                    dbc.Label('\u00a0', className='d-block mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Button(
+                        [html.I(className='fas fa-search me-2'), 'Pesquisar'],
+                        id='linkage-search-button',
+                        color='primary',
+                        className='w-100',
+                        style={'backgroundColor': COLORS['primary'], 'borderColor': COLORS['primary']}
+                    )
+                ], md=2, className='mb-2')
+            ])
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.Div([
+                html.H6([
+                    html.I(className='fas fa-table me-2'),
+                    'Dados de Cruzamento'
+                ], className='mb-0 d-inline', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+                html.Span(id='linkage-count-display', className='ms-3 text-muted', style={'fontSize': '0.85rem'})
+            ], className='mb-3'),
+            html.Div(id='linkage-table-container', children=[
+                html.P('Clique em Pesquisar para ver os dados', className='text-muted text-center p-4')
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Pagination(
+                        id='linkage-pagination',
+                        max_value=1,
+                        active_page=1,
+                        first_last=True,
+                        previous_next=True,
+                        fully_expanded=False,
+                        className='mt-3'
+                    )
+                ], className='d-flex justify-content-center')
+            ])
+        ], className='mb-4 p-3 bg-white rounded shadow-sm')
+    ])
+
+
 def create_tabs(initial_content=None, sex_options=None, birads_options=None, health_units=None):
     return dbc.Tabs([
         dbc.Tab(
@@ -737,6 +879,12 @@ def create_tabs(initial_content=None, sex_options=None, birads_options=None, hea
             create_health_unit_tab(health_units, initial_content),
             label='Unidade de Saúde',
             tab_id='tab-health-unit',
+            className='p-3'
+        ),
+        dbc.Tab(
+            create_linkage_tab(initial_content),
+            label='Termo Linkage',
+            tab_id='tab-linkage',
             className='p-3'
         )
     ], id='main-tabs', active_tab='tab-performance')

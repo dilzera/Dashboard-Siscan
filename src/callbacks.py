@@ -11,7 +11,8 @@ from src.data_layer import (
     get_patient_data_list_sql, get_patient_data_count_sql,
     get_unit_kpis_sql, get_unit_demographics_sql, get_unit_agility_sql,
     get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql,
-    get_indicators_data_sql, get_unit_high_risk_patients_sql, get_all_high_risk_patients_sql
+    get_indicators_data_sql, get_unit_high_risk_patients_sql, get_all_high_risk_patients_sql,
+    get_termo_linkage_summary_sql, get_termo_linkage_data_sql, get_termo_linkage_count_sql
 )
 from src.config import COLORS
 from src.components.cards import create_kpi_card, create_chart_card
@@ -522,3 +523,99 @@ def register_callbacks(app):
         except Exception as e:
             print(f"Erro ao gerar CSV busca ativa: {e}")
             return no_update
+    
+    @app.callback(
+        [Output('linkage-total', 'children'),
+         Output('linkage-cpf', 'children'),
+         Output('linkage-telefone', 'children'),
+         Output('linkage-nome-esaude', 'children'),
+         Output('linkage-apac', 'children'),
+         Output('linkage-nomes-conferem', 'children')],
+        [Input('main-tabs', 'active_tab')]
+    )
+    def update_linkage_summary(active_tab):
+        if active_tab != 'tab-linkage':
+            return no_update, no_update, no_update, no_update, no_update, no_update
+        
+        try:
+            summary = get_termo_linkage_summary_sql()
+            return (
+                f"{summary['total_registros']:,}".replace(',', '.'),
+                f"{summary['com_cpf']:,}".replace(',', '.'),
+                f"{summary['com_telefone']:,}".replace(',', '.'),
+                f"{summary['com_nome_esaude']:,}".replace(',', '.'),
+                f"{summary['com_apac_cancer']:,}".replace(',', '.'),
+                f"{summary['nomes_conferem']:,}".replace(',', '.')
+            )
+        except Exception as e:
+            print(f"Erro ao carregar resumo linkage: {e}")
+            return '0', '0', '0', '0', '0', '0'
+    
+    @app.callback(
+        [Output('linkage-table-container', 'children'),
+         Output('linkage-count-display', 'children'),
+         Output('linkage-pagination', 'max_value')],
+        [Input('linkage-search-button', 'n_clicks'),
+         Input('linkage-pagination', 'active_page')],
+        [State('linkage-search-nome', 'value'),
+         State('linkage-search-cpf', 'value'),
+         State('linkage-search-cartao', 'value')]
+    )
+    def update_linkage_table(n_clicks, page, search_nome, search_cpf, search_cartao):
+        if not n_clicks:
+            return html.P('Clique em Pesquisar para ver os dados', className='text-muted text-center p-4'), '', 1
+        
+        try:
+            page = page or 1
+            limit = 50
+            offset = (page - 1) * limit
+            
+            df = get_termo_linkage_data_sql(search_nome, search_cpf, search_cartao, limit, offset)
+            total = get_termo_linkage_count_sql(search_nome, search_cpf, search_cartao)
+            max_pages = max(1, (total + limit - 1) // limit)
+            
+            if df.empty:
+                return html.P('Nenhum registro encontrado', className='text-muted text-center p-4'), f'0 registros', 1
+            
+            import dash_bootstrap_components as dbc
+            
+            table = dbc.Table([
+                html.Thead([
+                    html.Tr([
+                        html.Th('Nome SISCAN', style={'fontSize': '0.8rem'}),
+                        html.Th('Nome eSaude', style={'fontSize': '0.8rem'}),
+                        html.Th('Nomes OK', style={'fontSize': '0.8rem'}),
+                        html.Th('Cartao SUS', style={'fontSize': '0.8rem'}),
+                        html.Th('CPF', style={'fontSize': '0.8rem'}),
+                        html.Th('Tel SISCAN', style={'fontSize': '0.8rem'}),
+                        html.Th('Tel eSaude', style={'fontSize': '0.8rem'}),
+                        html.Th('BI-RADS', style={'fontSize': '0.8rem'}),
+                        html.Th('Unidade', style={'fontSize': '0.8rem'}),
+                        html.Th('APAC Cancer', style={'fontSize': '0.8rem'})
+                    ])
+                ]),
+                html.Tbody([
+                    html.Tr([
+                        html.Td(row.get('nome_siscan', '')[:30] if row.get('nome_siscan') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(row.get('nome_esaude', '')[:30] if row.get('nome_esaude') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(
+                            html.I(className='fas fa-check text-success') if row.get('comparacao_nomes') in ['True', 'Sim'] else html.I(className='fas fa-times text-danger') if row.get('comparacao_nomes') else '-',
+                            style={'fontSize': '0.75rem', 'textAlign': 'center'}
+                        ),
+                        html.Td(str(row.get('cartao_sus', ''))[:20] if row.get('cartao_sus') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(row.get('cpf', '') if row.get('cpf') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(row.get('telefone_siscan', '')[:15] if row.get('telefone_siscan') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(row.get('telefone_esaude', '')[:15] if row.get('telefone_esaude') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(row.get('birads_max', '') if row.get('birads_max') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(row.get('unidade_saude', '')[:25] if row.get('unidade_saude') else '-', style={'fontSize': '0.75rem'}),
+                        html.Td(str(row.get('ultima_apac_cancer', ''))[:10] if row.get('ultima_apac_cancer') else '-', style={'fontSize': '0.75rem'})
+                    ]) for row in df.to_dict('records')
+                ])
+            ], bordered=True, hover=True, responsive=True, striped=True, size='sm')
+            
+            count_text = f'Mostrando {offset + 1}-{min(offset + limit, total)} de {total:,} registros'.replace(',', '.')
+            
+            return table, count_text, max_pages
+        except Exception as e:
+            print(f"Erro ao carregar tabela linkage: {e}")
+            return html.P(f'Erro ao carregar dados', className='text-danger text-center p-4'), '', 1
