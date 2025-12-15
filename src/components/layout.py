@@ -17,12 +17,14 @@ def create_login_layout(colors, session_expired=False):
         html.Div([
             html.Div([
                 html.Div([
-                    html.I(className='fas fa-heartbeat', style={'fontSize': '3rem', 'color': colors['primary']}),
+                    html.I(className='fas fa-ribbon', style={'fontSize': '3rem', 'color': '#ff69b4'}),
                     html.H1([
-                        html.Span('Dashboard ', style={'color': colors['primary']}),
-                        html.Span('SISCAN', style={'color': colors['accent']})
-                    ], style={'marginTop': '15px', 'marginBottom': '5px'}),
-                    html.P('Sistema de Monitoramento de Mamografia', 
+                        html.Span('Central Inteligente', style={'color': colors['primary'], 'fontSize': '1.6rem'}),
+                    ], style={'marginTop': '15px', 'marginBottom': '0px'}),
+                    html.H2([
+                        html.Span('de Câncer de Mama', style={'color': colors['text'], 'fontSize': '1.2rem', 'fontWeight': '400'}),
+                    ], style={'marginBottom': '5px'}),
+                    html.P('Secretaria Municipal de Saúde - Curitiba', 
                            style={'color': colors['text_muted'], 'fontSize': '0.95rem'})
                 ], className='login-logo'),
                 
@@ -101,18 +103,18 @@ def create_header(user_name=None):
             dbc.Row([
                 dbc.Col([
                     html.Div([
-                        html.I(className='fas fa-heartbeat me-2', style={'color': 'white', 'fontSize': '1.3rem'}),
+                        html.I(className='fas fa-ribbon me-2', style={'color': '#ff69b4', 'fontSize': '1.3rem'}),
                         html.Span(
-                            "Dashboard",
-                            style={'color': 'white', 'fontWeight': '700', 'fontSize': '1.5rem'}
+                            "Central Inteligente",
+                            style={'color': 'white', 'fontWeight': '700', 'fontSize': '1.4rem'}
                         ),
                         html.Span(
-                            " SISCAN",
-                            style={'color': COLORS['accent'], 'fontWeight': '700', 'fontSize': '1.5rem'}
+                            " de Câncer de Mama",
+                            style={'color': 'white', 'fontWeight': '400', 'fontSize': '1.3rem'}
                         ),
                         html.Span(
-                            " - Monitoramento de Mamografia",
-                            style={'color': 'rgba(255,255,255,0.8)', 'fontWeight': '400', 'fontSize': '1rem', 'marginLeft': '10px'}
+                            " - CURITIBA",
+                            style={'color': '#ff69b4', 'fontWeight': '700', 'fontSize': '1.3rem', 'marginLeft': '5px'}
                         ),
                     ], style={'display': 'flex', 'alignItems': 'center'})
                 ], width='auto'),
@@ -699,8 +701,8 @@ def create_linkage_tab(initial_content=None):
     return html.Div([
         html.Div([
             html.H5([
-                html.I(className='fas fa-link me-2'),
-                'Cruzamento de Dados SISCAN x eSaude (Termo Linkage)'
+                html.I(className='fas fa-exchange-alt me-2'),
+                'Dados de Interoperabilidade SISCAN x eSaude'
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
             html.P('Visualize e compare dados de pacientes entre sistemas SISCAN e eSaude', 
                    className='text-muted mb-4')
@@ -883,7 +885,7 @@ def create_tabs(initial_content=None, sex_options=None, birads_options=None, hea
         ),
         dbc.Tab(
             create_linkage_tab(initial_content),
-            label='Termo Linkage',
+            label='Dados Interoperabilidade',
             tab_id='tab-linkage',
             className='p-3'
         )
@@ -895,7 +897,7 @@ def create_footer():
         dbc.Container([
             html.Hr(),
             html.P(
-                'SISCAN Dashboard - Sistema de Informação do Câncer',
+                'Central Inteligente de Câncer de Mama - Secretaria Municipal de Saúde de Curitiba',
                 className='text-muted text-center mb-0',
                 style={'fontSize': '0.85rem'}
             )

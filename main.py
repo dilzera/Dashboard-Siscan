@@ -22,7 +22,7 @@ app = Dash(
     ]
 )
 
-app.title = 'Dashboard SISCAN - Monitoramento de Mamografia'
+app.title = 'Central Inteligente de Câncer de Mama - Curitiba'
 
 server = app.server
 server.secret_key = SESSION_SECRET

@@ -1,10 +1,10 @@
-# Dashboard SISCAN - Sistema de Monitoramento de Mamografia
+# Central Inteligente de Câncer de Mama - Curitiba
 
 Sistema de Dashboards Web Interativos para acompanhamento de mamografias em Curitiba, desenvolvido em Python com Dash.
 
 ## Overview
 
-Este projeto é um MVP de dashboard interativo para visualização e análise de dados de exames de mamografia do sistema SISCAN. O sistema consome dados de um banco PostgreSQL e apresenta visualizações interativas para análise de performance e auditoria de risco.
+Este projeto é um dashboard interativo para visualização e análise de dados de exames de mamografia do sistema SISCAN. O sistema consome dados de um banco PostgreSQL e apresenta visualizações interativas para análise de performance e auditoria de risco. Desenvolvido para a Secretaria Municipal de Saúde de Curitiba.
 
 **IMPORTANTE**: Este sistema lida com dados de pacientes reais e é protegido por autenticação.
 
@@ -21,14 +21,15 @@ O sistema possui autenticação obrigatória via Flask-Login:
 
 ## Design
 
-**Paleta de Cores (Dashboard SISCAN)**:
-- Primary: Azul marinho (#005B96)
+**Paleta de Cores (Central Inteligente)**:
+- Primary: Ciano (#17a2b8)
 - Header: Ciano (#17a2b8)
-- Secondary: Teal (#00A6A6)
-- Accent: Coral (#E76F51)
-- Background: Cinza claro (#F5F5F5)
+- Secondary: Azul claro (#5bc0de)
+- Accent: Rosa/Vermelho (#dc3545, #ff69b4)
+- Background: Cinza azulado (#f5f7fa)
 - Cards: Branco (#ffffff)
-- Text: Dark (#1F2933)
+- Text: Dark (#343a40)
+- Tabela alternada: Ciano claro (#e8f4f8)
 
 ## Features
 
@@ -129,7 +130,14 @@ python tests/test_dashboard.py
 
 ## Recent Changes
 
-- 15/12/2025: Aba Termo Linkage implementada
+- 15/12/2025: Rebranding para Central Inteligente de Câncer de Mama
+  - Nome do sistema alterado de "Dashboard SISCAN" para "Central Inteligente de Câncer de Mama - CURITIBA"
+  - Nova paleta de cores com ciano (#17a2b8), rosa (#ff69b4) e vermelho (#dc3545)
+  - Ícone alterado para fita rosa (símbolo do câncer de mama)
+  - Aba "Termo Linkage" renomeada para "Dados Interoperabilidade"
+  - Rodapé atualizado com novo nome e "Secretaria Municipal de Saúde de Curitiba"
+
+- 15/12/2025: Aba Dados Interoperabilidade implementada (anteriormente Termo Linkage)
   - Nova aba "Termo Linkage" para cruzamento de dados SISCAN x eSaude
   - Modelo SQLAlchemy TermoLinkage com CPF, telefone, nome_esaude, APAC cancer
   - Importação de dados do Excel (103.166 registros)
