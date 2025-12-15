@@ -1471,3 +1471,129 @@ def get_indicator_details_sql(indicator_type, year=None, region=None, health_uni
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     
     return df
+
+
+def get_termo_linkage_summary_sql():
+    query = """
+    SELECT 
+        COUNT(*) as total_registros,
+        COUNT(CASE WHEN cpf IS NOT NULL AND cpf != '' THEN 1 END) as com_cpf,
+        COUNT(CASE WHEN telefone IS NOT NULL AND telefone != '' THEN 1 END) as com_telefone,
+        COUNT(CASE WHEN nome_esaude IS NOT NULL AND nome_esaude != '' THEN 1 END) as com_nome_esaude,
+        COUNT(CASE WHEN ultima_apac_cancer IS NOT NULL THEN 1 END) as com_apac_cancer,
+        COUNT(CASE WHEN comparacao_nomes = 'True' OR comparacao_nomes = 'Sim' THEN 1 END) as nomes_conferem
+    FROM termo_linkage
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        row = result.fetchone()
+    
+    if row:
+        return {
+            'total_registros': int(row[0]) if row[0] else 0,
+            'com_cpf': int(row[1]) if row[1] else 0,
+            'com_telefone': int(row[2]) if row[2] else 0,
+            'com_nome_esaude': int(row[3]) if row[3] else 0,
+            'com_apac_cancer': int(row[4]) if row[4] else 0,
+            'nomes_conferem': int(row[5]) if row[5] else 0
+        }
+    return {
+        'total_registros': 0,
+        'com_cpf': 0,
+        'com_telefone': 0,
+        'com_nome_esaude': 0,
+        'com_apac_cancer': 0,
+        'nomes_conferem': 0
+    }
+
+
+def get_termo_linkage_data_sql(search_nome=None, search_cpf=None, search_cartao_sus=None, limit=50, offset=0):
+    conditions = []
+    params = {'lim': limit, 'off': offset}
+    
+    if search_nome:
+        conditions.append("(e.paciente__nome ILIKE :search_nome OR t.nome_esaude ILIKE :search_nome)")
+        params['search_nome'] = f'%{search_nome}%'
+    
+    if search_cpf:
+        conditions.append("t.cpf LIKE :search_cpf")
+        params['search_cpf'] = f'%{search_cpf}%'
+    
+    if search_cartao_sus:
+        conditions.append("CAST(e.paciente__cartao_sus AS TEXT) LIKE :search_cartao_sus")
+        params['search_cartao_sus'] = f'%{search_cartao_sus}%'
+    
+    where_clause = ""
+    if conditions:
+        where_clause = " AND " + " AND ".join(conditions)
+    
+    query = f"""
+    SELECT 
+        e.paciente__nome as nome_siscan,
+        t.nome_esaude,
+        t.comparacao_nomes,
+        e.paciente__cartao_sus as cartao_sus,
+        t.cpf,
+        e.paciente__telefone as telefone_siscan,
+        t.telefone as telefone_esaude,
+        e.paciente__data_do_nascimento as data_nasc_siscan,
+        t.data_nascimento as data_nasc_esaude,
+        e.unidade_de_saude__data_da_solicitacao as data_solicitacao_siscan,
+        t.data_solicitacao_esaude,
+        t.data_insercao_resultado_esaude,
+        t.ultima_apac_cancer,
+        e.birads_max,
+        e.unidade_de_saude__nome as unidade_saude,
+        e.distrito_sanitario
+    FROM exam_records e
+    LEFT JOIN termo_linkage t ON e.paciente__cartao_sus = t.cartao_sus
+    WHERE e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+    {where_clause}
+    ORDER BY e.unidade_de_saude__data_da_solicitacao DESC
+    LIMIT :lim OFFSET :off
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def get_termo_linkage_count_sql(search_nome=None, search_cpf=None, search_cartao_sus=None):
+    conditions = []
+    params = {}
+    
+    if search_nome:
+        conditions.append("(e.paciente__nome ILIKE :search_nome OR t.nome_esaude ILIKE :search_nome)")
+        params['search_nome'] = f'%{search_nome}%'
+    
+    if search_cpf:
+        conditions.append("t.cpf LIKE :search_cpf")
+        params['search_cpf'] = f'%{search_cpf}%'
+    
+    if search_cartao_sus:
+        conditions.append("CAST(e.paciente__cartao_sus AS TEXT) LIKE :search_cartao_sus")
+        params['search_cartao_sus'] = f'%{search_cartao_sus}%'
+    
+    where_clause = ""
+    if conditions:
+        where_clause = " AND " + " AND ".join(conditions)
+    
+    query = f"""
+    SELECT COUNT(*) as total
+    FROM exam_records e
+    LEFT JOIN termo_linkage t ON e.paciente__cartao_sus = t.cartao_sus
+    WHERE e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+    {where_clause}
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        row = result.fetchone()
+    
+    return int(row[0]) if row and row[0] else 0
