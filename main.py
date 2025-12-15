@@ -8,7 +8,7 @@ from src.data_layer import get_years, get_health_units, get_regions, get_sex_opt
 from src.components.layout import create_main_layout, create_login_layout
 from src.callbacks import build_dashboard_content
 from src.config import COLORS, SESSION_SECRET
-from src.models import User, get_session, get_engine, Base
+from src.models import User, TermoLinkage, get_session, get_engine, Base
 
 app = Dash(
     __name__,
@@ -116,7 +116,18 @@ def init_users_table():
     finally:
         db_session.close()
 
+def init_termo_linkage_table():
+    engine = get_engine()
+    Base.metadata.create_all(engine, tables=[TermoLinkage.__table__])
+    db_session = get_session()
+    try:
+        count = db_session.query(TermoLinkage).count()
+        print(f"Tabela termo_linkage: {count} registros.")
+    finally:
+        db_session.close()
+
 init_users_table()
+init_termo_linkage_table()
 
 app.index_string = f'''
 <!DOCTYPE html>
