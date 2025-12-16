@@ -391,6 +391,8 @@ def get_outliers_audit_sql():
         SELECT 
             paciente__nome AS nome_paciente,
             paciente__cartao_sus AS cartao_sus,
+            unidade_de_saude__nome AS unidade_saude,
+            distrito_sanitario AS distrito_saude,
             unidade_de_saude__data_da_solicitacao AS data_solicitacao,
             prestador_de_servico__data_da_realizacao AS data_realizacao,
             responsavel_pelo_resultado__data_da_liberacao AS data_liberacao,
@@ -435,6 +437,8 @@ def get_outliers_audit_sql():
     SELECT 
         nome_paciente,
         cartao_sus,
+        distrito_saude,
+        unidade_saude,
         data_inconsistente,
         valor_critico,
         motivo_outlier AS motivo_do_outlier,

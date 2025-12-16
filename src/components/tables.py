@@ -110,9 +110,11 @@ def create_outliers_table(df):
     
     header = html.Thead(
         html.Tr([
-            html.Th('Motivo', style={'fontSize': '0.85rem', 'width': '80px'}),
+            html.Th('Motivo', style={'fontSize': '0.85rem', 'width': '60px'}),
             html.Th('Nome do Paciente', style={'fontSize': '0.85rem'}),
             html.Th('Cartão SUS', style={'fontSize': '0.85rem'}),
+            html.Th('Distrito', style={'fontSize': '0.85rem'}),
+            html.Th('Unidade de Saúde', style={'fontSize': '0.85rem'}),
             html.Th('Data Inconsistente', style={'fontSize': '0.85rem'}),
             html.Th('Valor Crítico', style={'fontSize': '0.85rem'}),
             html.Th('Descrição', style={'fontSize': '0.85rem'})
@@ -124,16 +126,26 @@ def create_outliers_table(df):
         motivo = row.get('motivo_do_outlier', '')
         badge_color = motivo_colors.get(motivo, 'secondary')
         
-        nome = str(row.get('nome_paciente', ''))[:35]
-        if len(str(row.get('nome_paciente', ''))) > 35:
+        nome = str(row.get('nome_paciente', ''))[:30]
+        if len(str(row.get('nome_paciente', ''))) > 30:
             nome += '...'
         
         cartao = str(row.get('cartao_sus', ''))
+        
+        distrito = str(row.get('distrito_saude', '-'))[:20]
+        if len(str(row.get('distrito_saude', ''))) > 20:
+            distrito += '...'
+        
+        unidade = str(row.get('unidade_saude', '-'))[:25]
+        if len(str(row.get('unidade_saude', ''))) > 25:
+            unidade += '...'
         
         cells = [
             html.Td(dbc.Badge(motivo, color=badge_color, className='fw-bold')),
             html.Td(nome, style={'fontSize': '0.85rem'}),
             html.Td(cartao, style={'fontSize': '0.85rem', 'fontFamily': 'monospace'}),
+            html.Td(distrito, style={'fontSize': '0.85rem'}),
+            html.Td(unidade, style={'fontSize': '0.85rem'}),
             html.Td(str(row.get('data_inconsistente', '-')), style={'fontSize': '0.85rem'}),
             html.Td(
                 html.Span(str(row.get('valor_critico', '-')), 
