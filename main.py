@@ -228,6 +228,10 @@ app.index_string = f'''
                 border-radius: 20px;
                 font-size: 14px;
             }}
+            .navbar.bg-light,
+            .navbar.bg-primary-custom {{
+                background-color: {COLORS['primary']} !important;
+            }}
         </style>
     </head>
     <body>

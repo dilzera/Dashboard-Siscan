@@ -122,12 +122,11 @@ def create_header(user_name=None):
             ], align='center', justify='between', className='w-100')
         ], fluid=True),
         style={
-            'backgroundColor': '#17a2b8',
+            'backgroundColor': COLORS['primary'],
             'boxShadow': '0 2px 4px rgba(0,0,0,0.15)'
         },
-        color='info',
         dark=True,
-        className='mb-4'
+        className='mb-4 bg-primary-custom'
     )
 
 
