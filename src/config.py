@@ -18,7 +18,7 @@ COLORS = {
     'card_bg': '#ffffff',
     'text': '#343a40',
     'text_muted': '#6c757d',
-    'header_bg': '#138496',
+    'header_bg': '#17a2b8',
     'sidebar_bg': '#138496',
     'accent': '#dc3545',
     'table_header': '#17a2b8',
