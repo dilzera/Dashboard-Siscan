@@ -131,7 +131,7 @@ def create_header(user_name=None):
 
 
 def create_filters(years, health_units, regions, selected_year=None, selected_health_unit=None, 
-                   selected_region=None, selected_conformity=None):
+                   selected_region=None, selected_conformity=None, selected_age_range=None):
     return dbc.Card([
         dbc.CardBody([
             dbc.Row([
@@ -145,7 +145,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=3, sm=6, className='mb-2 mb-md-0'),
+                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
                 
                 dbc.Col([
                     html.Label('Unidade de Saúde', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -158,7 +158,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         searchable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=3, sm=6, className='mb-2 mb-md-0'),
+                ], lg=3, md=4, sm=6, className='mb-2 mb-lg-0'),
                 
                 dbc.Col([
                     html.Label('Distrito Sanitário', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -170,7 +170,24 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=3, sm=6, className='mb-2 mb-md-0'),
+                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
+                
+                dbc.Col([
+                    html.Label('Faixa Etária', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dcc.Dropdown(
+                        id='age-range-filter',
+                        options=[
+                            {'label': 'Menos de 40 anos', 'value': '0-39'},
+                            {'label': '40-49 anos', 'value': '40-49'},
+                            {'label': '50-69 anos (rastreamento)', 'value': '50-69'},
+                            {'label': '70 anos ou mais', 'value': '70+'}
+                        ],
+                        value=selected_age_range,
+                        placeholder='Todas as idades',
+                        clearable=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
                 
                 dbc.Col([
                     html.Label('Status', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -185,7 +202,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=3, sm=6)
+                ], lg=3, md=4, sm=6)
             ]),
             
             dbc.Row([

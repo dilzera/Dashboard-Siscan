@@ -31,12 +31,12 @@ from src.components.tables import (
 )
 
 
-def build_dashboard_content(year=None, health_unit=None, region=None, conformity=None):
-    kpis = get_kpi_data_sql(year, health_unit, region, conformity)
-    monthly_df = get_monthly_volume_sql(year, health_unit, region, conformity)
-    birads_df = get_birads_distribution_sql(year, health_unit, region, conformity)
-    conformity_df = get_conformity_by_unit_sql(year, health_unit, region, conformity)
-    high_risk_df = get_high_risk_cases_sql(year, health_unit, region, conformity)
+def build_dashboard_content(year=None, health_unit=None, region=None, conformity=None, age_range=None):
+    kpis = get_kpi_data_sql(year, health_unit, region, conformity, age_range)
+    monthly_df = get_monthly_volume_sql(year, health_unit, region, conformity, age_range)
+    birads_df = get_birads_distribution_sql(year, health_unit, region, conformity, age_range)
+    conformity_df = get_conformity_by_unit_sql(year, health_unit, region, conformity, age_range)
+    high_risk_df = get_high_risk_cases_sql(year, health_unit, region, conformity, age_range)
     
     kpi_mean = create_kpi_card(
         'Média de Espera',
@@ -153,11 +153,12 @@ def register_callbacks(app):
         State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
         State('conformity-filter', 'value'),
+        State('age-range-filter', 'value'),
         prevent_initial_call=True
     )
-    def update_dashboard(n_clicks, year, health_unit, region, conformity):
+    def update_dashboard(n_clicks, year, health_unit, region, conformity, age_range):
         try:
-            content = build_dashboard_content(year, health_unit, region, conformity)
+            content = build_dashboard_content(year, health_unit, region, conformity, age_range)
             return (
                 content['kpi_mean'],
                 content['kpi_median'],
