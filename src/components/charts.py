@@ -140,6 +140,9 @@ def create_conformity_chart(df):
     if df.empty:
         return create_empty_figure()
     
+    num_units = len(df)
+    chart_height = max(400, num_units * 25)
+    
     fig = go.Figure()
     
     fig.add_trace(go.Bar(
@@ -165,8 +168,8 @@ def create_conformity_chart(df):
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=150, r=20, t=30, b=40),
-        height=400,
+        margin=dict(l=200, r=30, t=30, b=40),
+        height=chart_height,
         xaxis=dict(
             title='Taxa de Conformidade (%)',
             range=[0, 100],
@@ -174,7 +177,8 @@ def create_conformity_chart(df):
         ),
         yaxis=dict(
             title='',
-            gridcolor='rgba(0,0,0,0.05)'
+            gridcolor='rgba(0,0,0,0.05)',
+            tickfont=dict(size=11)
         )
     )
     
