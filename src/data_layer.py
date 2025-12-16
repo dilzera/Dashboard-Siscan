@@ -174,13 +174,13 @@ def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conform
         unidade_de_saude__nome as health_unit,
         COUNT(*) as total,
         COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) as dentro_prazo,
-        COUNT(CASE WHEN conformity_status = 'Fora do Prazo' THEN 1 END) as fora_prazo
+        COUNT(CASE WHEN conformity_status = 'Fora do Prazo' THEN 1 END) as fora_prazo,
+        ROUND(COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 1) as conformity_rate
     FROM exam_records
     {where_clause}
     {"AND" if where_clause else "WHERE"} unidade_de_saude__nome IS NOT NULL
     GROUP BY unidade_de_saude__nome
-    ORDER BY total DESC
-    LIMIT 10
+    ORDER BY conformity_rate DESC NULLS LAST
     """
     
     engine = get_engine()
@@ -191,7 +191,6 @@ def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conform
     if not df.empty:
         df['Dentro do Prazo'] = df['dentro_prazo']
         df['Fora do Prazo'] = df['fora_prazo']
-        df['conformity_rate'] = (df['Dentro do Prazo'] / df['total'] * 100).round(1)
     
     return df
 
