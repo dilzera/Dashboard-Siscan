@@ -194,13 +194,13 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     dcc.Dropdown(
                         id='birads-filter',
                         options=[
-                            {'label': 'BI-RADS 0', 'value': '0'},
-                            {'label': 'BI-RADS 1', 'value': '1'},
-                            {'label': 'BI-RADS 2', 'value': '2'},
-                            {'label': 'BI-RADS 3', 'value': '3'},
-                            {'label': 'BI-RADS 4', 'value': '4'},
-                            {'label': 'BI-RADS 5', 'value': '5'},
-                            {'label': 'BI-RADS 6', 'value': '6'}
+                            {'label': html.Span(['● ', 'BI-RADS 0'], style={'color': '#fd7e14'}), 'value': '0'},
+                            {'label': html.Span(['● ', 'BI-RADS 1'], style={'color': '#17a2b8'}), 'value': '1'},
+                            {'label': html.Span(['● ', 'BI-RADS 2'], style={'color': '#17a2b8'}), 'value': '2'},
+                            {'label': html.Span(['● ', 'BI-RADS 3'], style={'color': '#ffc107'}), 'value': '3'},
+                            {'label': html.Span(['● ', 'BI-RADS 4'], style={'color': '#dc3545'}), 'value': '4'},
+                            {'label': html.Span(['● ', 'BI-RADS 5'], style={'color': '#dc3545'}), 'value': '5'},
+                            {'label': html.Span(['● ', 'BI-RADS 6'], style={'color': '#28a745'}), 'value': '6'}
                         ],
                         value=selected_birads,
                         placeholder='Todos',
@@ -214,11 +214,11 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     dcc.Dropdown(
                         id='priority-filter',
                         options=[
-                            {'label': 'CRÍTICA (BI-RADS 4/5)', 'value': 'CRITICA'},
-                            {'label': 'ALTA (BI-RADS 0)', 'value': 'ALTA'},
-                            {'label': 'MÉDIA (BI-RADS 3)', 'value': 'MEDIA'},
-                            {'label': 'MONITORAMENTO (BI-RADS 6)', 'value': 'MONITORAMENTO'},
-                            {'label': 'ROTINA (BI-RADS 1/2)', 'value': 'ROTINA'}
+                            {'label': html.Span(['● ', 'CRÍTICA (BI-RADS 4/5)'], style={'color': '#dc3545', 'fontWeight': 'bold'}), 'value': 'CRITICA'},
+                            {'label': html.Span(['● ', 'ALTA (BI-RADS 0)'], style={'color': '#fd7e14', 'fontWeight': 'bold'}), 'value': 'ALTA'},
+                            {'label': html.Span(['● ', 'MÉDIA (BI-RADS 3)'], style={'color': '#ffc107', 'fontWeight': 'bold'}), 'value': 'MEDIA'},
+                            {'label': html.Span(['● ', 'MONITORAMENTO (BI-RADS 6)'], style={'color': '#28a745', 'fontWeight': 'bold'}), 'value': 'MONITORAMENTO'},
+                            {'label': html.Span(['● ', 'ROTINA (BI-RADS 1/2)'], style={'color': '#17a2b8', 'fontWeight': 'bold'}), 'value': 'ROTINA'}
                         ],
                         value=selected_priority,
                         placeholder='Todas',
