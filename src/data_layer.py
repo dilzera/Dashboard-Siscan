@@ -47,13 +47,13 @@ def _build_where_clause(year=None, health_unit=None, region=None, conformity_sta
     
     if age_range:
         if age_range == '0-39':
-            conditions.append("idade < 40")
+            conditions.append("paciente__idade < 40")
         elif age_range == '40-49':
-            conditions.append("idade >= 40 AND idade < 50")
+            conditions.append("paciente__idade >= 40 AND paciente__idade < 50")
         elif age_range == '50-69':
-            conditions.append("idade >= 50 AND idade < 70")
+            conditions.append("paciente__idade >= 50 AND paciente__idade < 70")
         elif age_range == '70+':
-            conditions.append("idade >= 70")
+            conditions.append("paciente__idade >= 70")
     
     where_clause = ""
     if conditions:
