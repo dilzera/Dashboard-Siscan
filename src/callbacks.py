@@ -31,12 +31,12 @@ from src.components.tables import (
 )
 
 
-def build_dashboard_content(year=None, health_unit=None, region=None, conformity=None, age_range=None):
-    kpis = get_kpi_data_sql(year, health_unit, region, conformity, age_range)
-    monthly_df = get_monthly_volume_sql(year, health_unit, region, conformity, age_range)
-    birads_df = get_birads_distribution_sql(year, health_unit, region, conformity, age_range)
-    conformity_df = get_conformity_by_unit_sql(year, health_unit, region, conformity, age_range)
-    high_risk_df = get_high_risk_cases_sql(year, health_unit, region, conformity, age_range)
+def build_dashboard_content(year=None, health_unit=None, region=None, age_range=None, birads=None, priority=None):
+    kpis = get_kpi_data_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
+    monthly_df = get_monthly_volume_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
+    birads_df = get_birads_distribution_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
+    conformity_df = get_conformity_by_unit_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
+    high_risk_df = get_high_risk_cases_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
     
     kpi_mean = create_kpi_card(
         'Média de Espera',
@@ -105,8 +105,8 @@ def build_dashboard_content(year=None, health_unit=None, region=None, conformity
     outliers_table = create_outliers_table(outliers_df)
     outliers_summary = create_outliers_summary_cards(outliers_summary_df)
     
-    navigation_stats = get_patient_navigation_stats_sql(year, health_unit, region, conformity)
-    navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, conformity, min_exams=2, limit=50)
+    navigation_stats = get_patient_navigation_stats_sql(year, health_unit, region)
+    navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, min_exams=2, limit=50)
     navigation_stats_cards = create_patient_navigation_stats_cards(navigation_stats)
     navigation_table = create_patient_navigation_table(navigation_list_df)
     
@@ -152,13 +152,14 @@ def register_callbacks(app):
         State('year-filter', 'value'),
         State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
-        State('conformity-filter', 'value'),
         State('age-range-filter', 'value'),
+        State('birads-filter', 'value'),
+        State('priority-filter', 'value'),
         prevent_initial_call=True
     )
-    def update_dashboard(n_clicks, year, health_unit, region, conformity, age_range):
+    def update_dashboard(n_clicks, year, health_unit, region, age_range, birads, priority):
         try:
-            content = build_dashboard_content(year, health_unit, region, conformity, age_range)
+            content = build_dashboard_content(year, health_unit, region, age_range, birads, priority)
             return (
                 content['kpi_mean'],
                 content['kpi_median'],
@@ -203,7 +204,6 @@ def register_callbacks(app):
         State('year-filter', 'value'),
         State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
-        State('conformity-filter', 'value'),
         State('patient-data-name-filter', 'value'),
         State('patient-data-sex-filter', 'value'),
         State('patient-data-birads-filter', 'value'),
@@ -212,7 +212,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks,
-                            year, health_unit, region, conformity,
+                            year, health_unit, region,
                             patient_name, sex, birads, page_size, current_page):
         try:
             ctx = callback_context
@@ -231,7 +231,7 @@ def register_callbacks(app):
             page_size = page_size or 50
             
             total_count = get_patient_data_count_sql(
-                year, health_unit, region, conformity,
+                year, health_unit, region, None,
                 patient_name, sex, birads
             )
             
@@ -239,7 +239,7 @@ def register_callbacks(app):
             current_page = min(current_page, total_pages)
             
             df = get_patient_data_list_sql(
-                year, health_unit, region, conformity,
+                year, health_unit, region, None,
                 patient_name, sex, birads,
                 page=current_page, page_size=page_size
             )

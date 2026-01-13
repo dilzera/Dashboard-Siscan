@@ -22,7 +22,7 @@ def _get_outlier_exclusion_conditions():
     ]
 
 
-def _build_where_clause(year=None, health_unit=None, region=None, conformity_status=None, exclude_outliers=False, age_range=None):
+def _build_where_clause(year=None, health_unit=None, region=None, conformity_status=None, exclude_outliers=False, age_range=None, birads=None, priority=None):
     conditions = []
     params = {}
     
@@ -55,6 +55,22 @@ def _build_where_clause(year=None, health_unit=None, region=None, conformity_sta
         elif age_range == '70+':
             conditions.append("paciente__idade >= 70")
     
+    if birads:
+        conditions.append("birads_max = :birads")
+        params['birads'] = birads
+    
+    if priority:
+        if priority == 'CRITICA':
+            conditions.append("birads_max IN ('4', '5')")
+        elif priority == 'ALTA':
+            conditions.append("birads_max = '0'")
+        elif priority == 'MEDIA':
+            conditions.append("birads_max = '3'")
+        elif priority == 'MONITORAMENTO':
+            conditions.append("birads_max = '6'")
+        elif priority == 'ROTINA':
+            conditions.append("birads_max IN ('1', '2')")
+    
     where_clause = ""
     if conditions:
         where_clause = " WHERE " + " AND ".join(conditions)
@@ -84,8 +100,8 @@ def get_regions():
     return df['distrito_sanitario'].dropna().tolist()
 
 
-def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range)
+def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 
@@ -123,8 +139,8 @@ def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status
     }
 
 
-def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range)
+def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 
@@ -145,8 +161,8 @@ def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_
     return df
 
 
-def get_birads_distribution_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range)
+def get_birads_distribution_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 
@@ -166,8 +182,8 @@ def get_birads_distribution_sql(year=None, health_unit=None, region=None, confor
     return df
 
 
-def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range)
+def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 
@@ -195,8 +211,8 @@ def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conform
     return df
 
 
-def get_high_risk_cases_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, limit=20):
-    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range)
+def get_high_risk_cases_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None, limit=20):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 

@@ -131,7 +131,7 @@ def create_header(user_name=None):
 
 
 def create_filters(years, health_units, regions, selected_year=None, selected_health_unit=None, 
-                   selected_region=None, selected_conformity=None, selected_age_range=None):
+                   selected_region=None, selected_age_range=None, selected_birads=None, selected_priority=None):
     return dbc.Card([
         dbc.CardBody([
             dbc.Row([
@@ -158,7 +158,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         searchable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=3, md=4, sm=6, className='mb-2 mb-lg-0'),
+                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
                 
                 dbc.Col([
                     html.Label('Distrito Sanitário', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -190,19 +190,42 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                 ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
                 
                 dbc.Col([
-                    html.Label('Status', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    html.Label('BI-RADS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
                     dcc.Dropdown(
-                        id='conformity-filter',
+                        id='birads-filter',
                         options=[
-                            {'label': 'Dentro do Prazo', 'value': 'Dentro do Prazo'},
-                            {'label': 'Fora do Prazo', 'value': 'Fora do Prazo'}
+                            {'label': 'BI-RADS 0', 'value': '0'},
+                            {'label': 'BI-RADS 1', 'value': '1'},
+                            {'label': 'BI-RADS 2', 'value': '2'},
+                            {'label': 'BI-RADS 3', 'value': '3'},
+                            {'label': 'BI-RADS 4', 'value': '4'},
+                            {'label': 'BI-RADS 5', 'value': '5'},
+                            {'label': 'BI-RADS 6', 'value': '6'}
                         ],
-                        value=selected_conformity,
+                        value=selected_birads,
                         placeholder='Todos',
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=3, md=4, sm=6)
+                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
+                
+                dbc.Col([
+                    html.Label('Prioridade', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dcc.Dropdown(
+                        id='priority-filter',
+                        options=[
+                            {'label': 'CRÍTICA (BI-RADS 4/5)', 'value': 'CRITICA'},
+                            {'label': 'ALTA (BI-RADS 0)', 'value': 'ALTA'},
+                            {'label': 'MÉDIA (BI-RADS 3)', 'value': 'MEDIA'},
+                            {'label': 'MONITORAMENTO (BI-RADS 6)', 'value': 'MONITORAMENTO'},
+                            {'label': 'ROTINA (BI-RADS 1/2)', 'value': 'ROTINA'}
+                        ],
+                        value=selected_priority,
+                        placeholder='Todas',
+                        clearable=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], lg=2, md=4, sm=6)
             ]),
             
             dbc.Row([
