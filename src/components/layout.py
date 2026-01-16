@@ -84,6 +84,16 @@ def create_header(user_name=None):
     if user_name:
         user_section = [
             html.Div([
+                dbc.Button(
+                    [html.I(className='fas fa-eye-slash', id='mask-icon')],
+                    id='toggle-mask-btn',
+                    size='sm',
+                    outline=True,
+                    color='warning',
+                    className='me-3',
+                    style={'borderRadius': '20px'},
+                    title='Dados mascarados - Clique para desmascarar'
+                ),
                 html.I(className='fas fa-user-circle me-2', style={'fontSize': '1.2rem'}),
                 html.Span(user_name, className='user-badge'),
                 dbc.Button(
@@ -95,39 +105,63 @@ def create_header(user_name=None):
                     className='ms-3',
                     style={'borderRadius': '20px'}
                 )
-            ], className='user-info', style={'color': 'white'})
+            ], className='user-info', style={'color': 'white', 'display': 'flex', 'alignItems': 'center'})
         ]
     
-    return dbc.Navbar(
-        dbc.Container([
-            dbc.Row([
-                dbc.Col([
-                    html.Div([
-                        html.I(className='fas fa-ribbon me-2', style={'color': '#ff69b4', 'fontSize': '1.3rem'}),
-                        html.Span(
-                            "Central Inteligente",
-                            style={'color': 'white', 'fontWeight': '700', 'fontSize': '1.4rem'}
-                        ),
-                        html.Span(
-                            "de Câncer de Mama",
-                            style={'color': 'white', 'fontWeight': '400', 'fontSize': '1.3rem', 'marginLeft': '6px'}
-                        ),
-                        html.Span(
-                            " - CURITIBA",
-                            style={'color': '#ff69b4', 'fontWeight': '700', 'fontSize': '1.3rem', 'marginLeft': '5px'}
-                        ),
-                    ], style={'display': 'flex', 'alignItems': 'center'})
-                ], width='auto'),
-                dbc.Col(user_section, width='auto', className='ms-auto')
-            ], align='center', justify='between', className='w-100')
-        ], fluid=True),
-        style={
-            'backgroundColor': COLORS['primary'],
-            'boxShadow': '0 2px 4px rgba(0,0,0,0.15)'
-        },
-        dark=True,
-        className='mb-4 bg-primary-custom'
-    )
+    mask_modal = dbc.Modal([
+        dbc.ModalHeader(dbc.ModalTitle([
+            html.I(className='fas fa-lock me-2'),
+            'Desmascarar Dados'
+        ])),
+        dbc.ModalBody([
+            html.P('Para visualizar os dados sensíveis dos pacientes, insira a senha de administrador:', className='mb-3'),
+            dbc.Input(
+                id='unmask-password-input',
+                type='password',
+                placeholder='Senha de administrador...',
+                className='mb-2'
+            ),
+            html.Div(id='unmask-error-msg', className='text-danger small')
+        ]),
+        dbc.ModalFooter([
+            dbc.Button('Cancelar', id='unmask-cancel-btn', color='secondary', outline=True),
+            dbc.Button([html.I(className='fas fa-unlock me-2'), 'Desmascarar'], id='unmask-confirm-btn', color='primary')
+        ])
+    ], id='unmask-modal', is_open=False, centered=True)
+    
+    return html.Div([
+        dbc.Navbar(
+            dbc.Container([
+                dbc.Row([
+                    dbc.Col([
+                        html.Div([
+                            html.I(className='fas fa-ribbon me-2', style={'color': '#ff69b4', 'fontSize': '1.3rem'}),
+                            html.Span(
+                                "Central Inteligente",
+                                style={'color': 'white', 'fontWeight': '700', 'fontSize': '1.4rem'}
+                            ),
+                            html.Span(
+                                "de Câncer de Mama",
+                                style={'color': 'white', 'fontWeight': '400', 'fontSize': '1.3rem', 'marginLeft': '6px'}
+                            ),
+                            html.Span(
+                                " - CURITIBA",
+                                style={'color': '#ff69b4', 'fontWeight': '700', 'fontSize': '1.3rem', 'marginLeft': '5px'}
+                            ),
+                        ], style={'display': 'flex', 'alignItems': 'center'})
+                    ], width='auto'),
+                    dbc.Col(user_section, width='auto', className='ms-auto')
+                ], align='center', justify='between', className='w-100')
+            ], fluid=True),
+            style={
+                'backgroundColor': COLORS['primary'],
+                'boxShadow': '0 2px 4px rgba(0,0,0,0.15)'
+            },
+            dark=True,
+            className='mb-4 bg-primary-custom'
+        ),
+        mask_modal
+    ])
 
 
 def create_filters(years, health_units, regions, selected_year=None, selected_health_unit=None, 
