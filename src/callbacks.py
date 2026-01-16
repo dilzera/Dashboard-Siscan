@@ -271,12 +271,13 @@ def register_callbacks(app):
         Output('unit-follow-up-count', 'children'),
         Input('unit-analysis-btn', 'n_clicks'),
         Input('refresh-btn', 'n_clicks'),
+        Input('data-masked-store', 'data'),
         State('unit-analysis-selector', 'value'),
         State('year-filter', 'value'),
         State('region-filter', 'value'),
         prevent_initial_call=True
     )
-    def update_health_unit_analysis(btn_clicks, refresh_clicks, selected_unit, year, region):
+    def update_health_unit_analysis(btn_clicks, refresh_clicks, is_masked, selected_unit, year, region):
         try:
             if not selected_unit:
                 empty_msg = html.Div([
@@ -305,7 +306,7 @@ def register_callbacks(app):
             wait_time_chart = create_wait_time_trend_chart(wait_time_df)
             
             follow_up_df = get_unit_follow_up_overdue_sql(selected_unit, year, region, limit=100)
-            follow_up_table = create_follow_up_overdue_table(follow_up_df)
+            follow_up_table = create_follow_up_overdue_table(follow_up_df, is_masked)
             
             follow_up_count = get_unit_follow_up_count_sql(selected_unit, year, region)
             follow_up_badge = f'{follow_up_count} pacientes' if follow_up_count > 0 else ''
@@ -335,13 +336,14 @@ def register_callbacks(app):
     @app.callback(
         [Output('unit-priority-summary', 'children'),
          Output('unit-priority-table', 'children')],
-        [Input('unit-analysis-btn', 'n_clicks')],
+        [Input('unit-analysis-btn', 'n_clicks'),
+         Input('data-masked-store', 'data')],
         [State('unit-analysis-selector', 'value'),
          State('year-filter', 'value'),
          State('region-filter', 'value')],
         prevent_initial_call=True
     )
-    def update_unit_prioritization(n_clicks, selected_unit, year, region):
+    def update_unit_prioritization(n_clicks, is_masked, selected_unit, year, region):
         if not n_clicks or not selected_unit:
             empty_msg = html.Div(
                 html.P('Selecione uma unidade para ver a priorização.', className='text-muted text-center py-3')
@@ -353,7 +355,7 @@ def register_callbacks(app):
             summary_cards = create_priority_summary_cards(summary)
             
             priority_df = get_unit_prioritization_sql(selected_unit, year, region)
-            priority_table = create_priority_table(priority_df)
+            priority_table = create_priority_table(priority_df, is_masked)
             
             return summary_cards, priority_table
             

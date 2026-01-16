@@ -113,6 +113,42 @@ def init_users_table():
             neusa.set_password(neusa_password)
             db_session.commit()
             print("Senha do Neusa.andrade atualizada via NEUSA_PASSWORD.")
+        
+        secretaria_password = os.environ.get('SECRETARIA_PASSWORD')
+        secretaria = db_session.query(User).filter_by(username='SecretariaDeSaude').first()
+        if not secretaria:
+            if secretaria_password:
+                secretaria = User(
+                    username='SecretariaDeSaude',
+                    name='Secretaria de Saude',
+                    role='admin'
+                )
+                secretaria.set_password(secretaria_password)
+                db_session.add(secretaria)
+                db_session.commit()
+                print("Usuario SecretariaDeSaude criado com sucesso!")
+        elif secretaria_password:
+            secretaria.set_password(secretaria_password)
+            db_session.commit()
+            print("Senha do SecretariaDeSaude atualizada via SECRETARIA_PASSWORD.")
+        
+        roche_password = os.environ.get('ROCHE_PASSWORD')
+        roche = db_session.query(User).filter_by(username='Roche').first()
+        if not roche:
+            if roche_password:
+                roche = User(
+                    username='Roche',
+                    name='Roche Visualizador',
+                    role='viewer'
+                )
+                roche.set_password(roche_password)
+                db_session.add(roche)
+                db_session.commit()
+                print("Usuario Roche criado com sucesso!")
+        elif roche_password:
+            roche.set_password(roche_password)
+            db_session.commit()
+            print("Senha do Roche atualizada via ROCHE_PASSWORD.")
     finally:
         db_session.close()
 
@@ -389,11 +425,17 @@ def handle_unmask(confirm_clicks, toggle_clicks, password, is_masked):
         
         db_session = get_session()
         try:
-            admin = db_session.query(User).filter_by(username='admin').first()
-            if admin and admin.check_password(password):
+            admin_users = db_session.query(User).filter_by(role='admin').all()
+            password_valid = False
+            for user in admin_users:
+                if user.check_password(password):
+                    password_valid = True
+                    break
+            
+            if password_valid:
                 return False, '', 'success', 'Dados visíveis - Clique para mascarar', [html.I(className='fas fa-eye')]
             else:
-                return dash.no_update, 'Senha incorreta.', dash.no_update, dash.no_update, dash.no_update
+                return dash.no_update, 'Senha incorreta ou usuário sem permissão de administrador.', dash.no_update, dash.no_update, dash.no_update
         finally:
             db_session.close()
     

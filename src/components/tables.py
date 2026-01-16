@@ -594,7 +594,7 @@ def create_patient_data_table(df, is_masked=True):
     )
 
 
-def create_follow_up_overdue_table(df):
+def create_follow_up_overdue_table(df, is_masked=True):
     """Create table showing patients with overdue follow-up appointments"""
     if df.empty:
         return html.Div(
@@ -618,9 +618,7 @@ def create_follow_up_overdue_table(df):
     
     rows = []
     for _, row in df.iterrows():
-        nome = str(row.get('nome', ''))[:30]
-        if len(str(row.get('nome', ''))) > 30:
-            nome += '...'
+        nome = mask_name(row.get('nome', ''), is_masked)
         
         idade = row.get('idade', '-')
         if idade and idade != '-':
@@ -652,7 +650,7 @@ def create_follow_up_overdue_table(df):
             atraso_badge = 'warning'
         
         motivo = str(row.get('motivo_retorno', '-'))
-        cartao = str(row.get('cartao_sus', '-'))
+        cartao = mask_cns(row.get('cartao_sus', ''), is_masked)
         
         cells = [
             html.Td(nome, style={'fontSize': '0.8rem', 'fontWeight': '500'}),
@@ -821,7 +819,7 @@ def create_priority_summary_cards(summary):
     ])
 
 
-def create_priority_table(df):
+def create_priority_table(df, is_masked=True):
     """Create a table showing prioritized patients"""
     if df.empty:
         return html.Div(
@@ -846,6 +844,9 @@ def create_priority_table(df):
         prioridade = row.get('prioridade', 'N/A')
         cor = row.get('cor', '#6c757d')
         
+        nome_masked = mask_name(row.get('nome', 'N/A'), is_masked)
+        cns_masked = mask_cns(row.get('cartao_sus', ''), is_masked)
+        
         rows.append(
             html.Tr([
                 html.Td(
@@ -853,8 +854,8 @@ def create_priority_table(df):
                     style={'verticalAlign': 'middle'}
                 ),
                 html.Td([
-                    html.Div(str(row.get('nome', 'N/A'))[:40], style={'fontSize': '0.8rem', 'fontWeight': '500'}),
-                    html.Small(f"CNS: {row.get('cartao_sus', 'N/A')}", className='text-muted')
+                    html.Div(nome_masked, style={'fontSize': '0.8rem', 'fontWeight': '500'}),
+                    html.Small(f"CNS: {cns_masked}", className='text-muted')
                 ]),
                 html.Td(
                     dbc.Badge(f"BI-RADS {row.get('birads_max', 'N/A')}", 
