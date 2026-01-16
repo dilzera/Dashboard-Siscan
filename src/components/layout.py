@@ -109,8 +109,8 @@ def create_header(user_name=None):
                             style={'color': 'white', 'fontWeight': '700', 'fontSize': '1.4rem'}
                         ),
                         html.Span(
-                            " de Câncer de Mama",
-                            style={'color': 'white', 'fontWeight': '400', 'fontSize': '1.3rem'}
+                            "de Câncer de Mama",
+                            style={'color': 'white', 'fontWeight': '400', 'fontSize': '1.3rem', 'marginLeft': '6px'}
                         ),
                         html.Span(
                             " - CURITIBA",
