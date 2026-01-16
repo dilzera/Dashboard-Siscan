@@ -1,0 +1,317 @@
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column e.prestador_executante__nome does not exist
+LINE 25:             e.prestador_executante__nome as prestador_execut...
+                     ^
+
+[SQL: 
+    WITH patient_exam_counts AS (
+        SELECT 
+            patient_unique_id,
+            COUNT(*) as total_exames,
+            MAX(paciente__nome) as nome_paciente,
+            MAX(paciente__cartao_sus) as cartao_sus
+        FROM exam_records
+        WHERE patient_unique_id IS NOT NULL AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        GROUP BY patient_unique_id
+        HAVING COUNT(*) >= %(min_exams)s
+    ),
+    patient_exams AS (
+        SELECT 
+            e.patient_unique_id,
+            p.nome_paciente,
+            p.cartao_sus,
+            p.total_exames,
+            e.unidade_de_saude__data_da_solicitacao as data_solicitacao,
+            e.prestador_de_servico__data_da_realizacao as data_realizacao,
+            e.birads_max,
+            e.birads_direita,
+            e.birads_esquerda,
+            e.unidade_de_saude__nome as unidade_saude,
+            e.prestador_executante__nome as prestador_executante,
+            e.distrito_sanitario,
+            e.wait_days,
+            e.conformity_status,
+            ROW_NUMBER() OVER (PARTITION BY e.patient_unique_id ORDER BY e.unidade_de_saude__data_da_solicitacao) as exam_order
+        FROM exam_records e
+        INNER JOIN patient_exam_counts p ON e.patient_unique_id = p.patient_unique_id
+        WHERE e.patient_unique_id IS NOT NULL AND e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+    ),
+    patient_evolution AS (
+        SELECT 
+            patient_unique_id,
+            MAX(CASE WHEN exam_order = 1 THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as first_birads,
+            MAX(CASE WHEN exam_order = total_exames THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as last_birads
+        FROM patient_exams
+        WHERE birads_max ~ '^[0-9]+$'
+        GROUP BY patient_unique_id
+    )
+    SELECT 
+        pe.patient_unique_id,
+        pe.nome_paciente,
+        pe.cartao_sus,
+        pe.total_exames,
+        pe.exam_order,
+        pe.data_solicitacao,
+        pe.data_realizacao,
+        pe.birads_max,
+        pe.birads_direita,
+        pe.birads_esquerda,
+        pe.unidade_saude,
+        pe.prestador_executante,
+        pe.distrito_sanitario,
+        pe.wait_days,
+        pe.conformity_status,
+        COALESCE(ev.first_birads, 0) as first_birads,
+        COALESCE(ev.last_birads, 0) as last_birads,
+        CASE WHEN ev.first_birads > ev.last_birads THEN 1 ELSE 0 END as evolucao_positiva
+    FROM patient_exams pe
+    LEFT JOIN patient_evolution ev ON pe.patient_unique_id = ev.patient_unique_id
+    ORDER BY 
+        CASE WHEN ev.first_birads > ev.last_birads THEN 0 ELSE 1 END,
+        (ev.first_birads - ev.last_birads) DESC NULLS LAST,
+        pe.total_exames DESC, 
+        pe.nome_paciente, 
+        pe.exam_order
+    LIMIT %(row_limit)s
+    ]
+[parameters: {'min_exams': 2, 'row_limit': 500}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+Traceback (most recent call last)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+self.dialect.do_execute(
+^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+cursor.execute(statement, parameters)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The above exception was the direct cause of the following exception:
+File "/home/runner/workspace/main.py", line 281, in display_page
+initial_content = build_dashboard_content()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/src/callbacks.py", line 109, in build_dashboard_content
+navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, min_exams=2, limit=50)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/src/data_layer.py", line 701, in get_patient_navigation_list_sql
+result = conn.execute(text(query), params)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+return meth(
+       
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+return connection._execute_clauseelement(
+       
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+ret = self._execute_context(
+      
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+return self._exec_single_context(
+       
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+self._handle_dbapi_exception(
+^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+self.dialect.do_execute(
+^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+cursor.execute(statement, parameters)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column e.prestador_executante__nome does not exist
+LINE 25: e.prestador_executante__nome as prestador_execut...
+^
+
+[SQL:
+WITH patient_exam_counts AS (
+SELECT
+patient_unique_id,
+COUNT(*) as total_exames,
+MAX(paciente__nome) as nome_paciente,
+MAX(paciente__cartao_sus) as cartao_sus
+FROM exam_records
+WHERE patient_unique_id IS NOT NULL AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+GROUP BY patient_unique_id
+HAVING COUNT(*) >= %(min_exams)s
+),
+patient_exams AS (
+SELECT
+e.patient_unique_id,
+p.nome_paciente,
+p.cartao_sus,
+p.total_exames,
+e.unidade_de_saude__data_da_solicitacao as data_solicitacao,
+e.prestador_de_servico__data_da_realizacao as data_realizacao,
+e.birads_max,
+e.birads_direita,
+e.birads_esquerda,
+e.unidade_de_saude__nome as unidade_saude,
+e.prestador_executante__nome as prestador_executante,
+e.distrito_sanitario,
+e.wait_days,
+e.conformity_status,
+ROW_NUMBER() OVER (PARTITION BY e.patient_unique_id ORDER BY e.unidade_de_saude__data_da_solicitacao) as exam_order
+FROM exam_records e
+INNER JOIN patient_exam_counts p ON e.patient_unique_id = p.patient_unique_id
+WHERE e.patient_unique_id IS NOT NULL AND e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+),
+patient_evolution AS (
+SELECT
+patient_unique_id,
+MAX(CASE WHEN exam_order = 1 THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as first_birads,
+MAX(CASE WHEN exam_order = total_exames THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as last_birads
+FROM patient_exams
+WHERE birads_max ~ '^[0-9]+$'
+GROUP BY patient_unique_id
+)
+SELECT
+pe.patient_unique_id,
+pe.nome_paciente,
+pe.cartao_sus,
+pe.total_exames,
+pe.exam_order,
+pe.data_solicitacao,
+pe.data_realizacao,
+pe.birads_max,
+pe.birads_direita,
+pe.birads_esquerda,
+pe.unidade_saude,
+pe.prestador_executante,
+pe.distrito_sanitario,
+pe.wait_days,
+pe.conformity_status,
+COALESCE(ev.first_birads, 0) as first_birads,
+COALESCE(ev.last_birads, 0) as last_birads,
+CASE WHEN ev.first_birads > ev.last_birads THEN 1 ELSE 0 END as evolucao_positiva
+FROM patient_exams pe
+LEFT JOIN patient_evolution ev ON pe.patient_unique_id = ev.patient_unique_id
+ORDER BY
+CASE WHEN ev.first_birads > ev.last_birads THEN 0 ELSE 1 END,
+(ev.first_birads - ev.last_birads) DESC NULLS LAST,
+pe.total_exames DESC,
+pe.nome_paciente,
+pe.exam_order
+LIMIT %(row_limit)s
+]
+[parameters: {'min_exams': 2, 'row_limit': 500}]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+This is the Copy/Paste friendly version of the traceback.
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UndefinedColumn: column e.prestador_executante__nome does not exist
+LINE 25:             e.prestador_executante__nome as prestador_execut...
+                     ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/workspace/main.py", line 281, in display_page
+    initial_content = build_dashboard_content()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/src/callbacks.py", line 109, in build_dashboard_content
+    navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, min_exams=2, limit=50)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/src/data_layer.py", line 701, in get_patient_navigation_list_sql
+    result = conn.execute(text(query), params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column e.prestador_executante__nome does not exist
+LINE 25:             e.prestador_executante__nome as prestador_execut...
+                     ^
+
+[SQL: 
+    WITH patient_exam_counts AS (
+        SELECT 
+            patient_unique_id,
+            COUNT(*) as total_exames,
+            MAX(paciente__nome) as nome_paciente,
+            MAX(paciente__cartao_sus) as cartao_sus
+        FROM exam_records
+        WHERE patient_unique_id IS NOT NULL AND unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        GROUP BY patient_unique_id
+        HAVING COUNT(*) >= %(min_exams)s
+    ),
+    patient_exams AS (
+        SELECT 
+            e.patient_unique_id,
+            p.nome_paciente,
+            p.cartao_sus,
+            p.total_exames,
+            e.unidade_de_saude__data_da_solicitacao as data_solicitacao,
+            e.prestador_de_servico__data_da_realizacao as data_realizacao,
+            e.birads_max,
+            e.birads_direita,
+            e.birads_esquerda,
+            e.unidade_de_saude__nome as unidade_saude,
+            e.prestador_executante__nome as prestador_executante,
+            e.distrito_sanitario,
+            e.wait_days,
+            e.conformity_status,
+            ROW_NUMBER() OVER (PARTITION BY e.patient_unique_id ORDER BY e.unidade_de_saude__data_da_solicitacao) as exam_order
+        FROM exam_records e
+        INNER JOIN patient_exam_counts p ON e.patient_unique_id = p.patient_unique_id
+        WHERE e.patient_unique_id IS NOT NULL AND e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+    ),
+    patient_evolution AS (
+        SELECT 
+            patient_unique_id,
+            MAX(CASE WHEN exam_order = 1 THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as first_birads,
+            MAX(CASE WHEN exam_order = total_exames THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as last_birads
+        FROM patient_exams
+        WHERE birads_max ~ '^[0-9]+$'
+        GROUP BY patient_unique_id
+    )
+    SELECT 
+        pe.patient_unique_id,
+        pe.nome_paciente,
+        pe.cartao_sus,
+        pe.total_exames,
+        pe.exam_order,
+        pe.data_solicitacao,
+        pe.data_realizacao,
+        pe.birads_max,
+        pe.birads_direita,
+        pe.birads_esquerda,
+        pe.unidade_saude,
+        pe.prestador_executante,
+        pe.distrito_sanitario,
+        pe.wait_days,
+        pe.conformity_status,
+        COALESCE(ev.first_birads, 0) as first_birads,
+        COALESCE(ev.last_birads, 0) as last_birads,
+        CASE WHEN ev.first_birads > ev.last_birads THEN 1 ELSE 0 END as evolucao_positiva
+    FROM patient_exams pe
+    LEFT JOIN patient_evolution ev ON pe.patient_unique_id = ev.patient_unique_id
+    ORDER BY 
+        CASE WHEN ev.first_birads > ev.last_birads THEN 0 ELSE 1 END,
+        (ev.first_birads - ev.last_birads) DESC NULLS LAST,
+        pe.total_exames DESC, 
+        pe.nome_paciente, 
+        pe.exam_order
+    LIMIT %(row_limit)s
+    ]
+[parameters: {'min_exams': 2, 'row_limit': 500}]
+(Background on this error at: https://sqlalche.me/e/20/f405)

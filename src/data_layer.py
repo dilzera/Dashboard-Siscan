@@ -648,7 +648,7 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
             e.birads_direita,
             e.birads_esquerda,
             e.unidade_de_saude__nome as unidade_saude,
-            e.prestador_executante__nome as prestador_executante,
+            e.prestador_de_servico__nome as prestador_executante,
             e.distrito_sanitario,
             e.wait_days,
             e.conformity_status,
