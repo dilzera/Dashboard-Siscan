@@ -27,11 +27,12 @@ from src.components.tables import (
     create_high_risk_table, create_outliers_table, create_outliers_summary_cards,
     create_patient_navigation_stats_cards, create_patient_navigation_table,
     create_patient_data_table, create_follow_up_overdue_table, create_unit_kpi_cards,
-    create_priority_summary_cards, create_priority_table
+    create_priority_summary_cards, create_priority_table,
+    mask_name, mask_cns, mask_cpf, mask_phone
 )
 
 
-def build_dashboard_content(year=None, health_unit=None, region=None, age_range=None, birads=None, priority=None):
+def build_dashboard_content(year=None, health_unit=None, region=None, age_range=None, birads=None, priority=None, is_masked=True):
     kpis = get_kpi_data_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
     monthly_df = get_monthly_volume_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
     birads_df = get_birads_distribution_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
@@ -98,17 +99,17 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
         'Distribuição percentual'
     )
     
-    table_risk = create_high_risk_table(high_risk_df)
+    table_risk = create_high_risk_table(high_risk_df, is_masked)
     
     outliers_df = get_outliers_audit_sql(year, health_unit, region)
     outliers_summary_df = get_outliers_summary_sql(year, health_unit, region)
-    outliers_table = create_outliers_table(outliers_df)
+    outliers_table = create_outliers_table(outliers_df, is_masked)
     outliers_summary = create_outliers_summary_cards(outliers_summary_df)
     
     navigation_stats = get_patient_navigation_stats_sql(year, health_unit, region)
     navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, min_exams=2, limit=50)
     navigation_stats_cards = create_patient_navigation_stats_cards(navigation_stats)
-    navigation_table = create_patient_navigation_table(navigation_list_df)
+    navigation_table = create_patient_navigation_table(navigation_list_df, is_masked)
     
     last_update = f'Última atualização: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}'
     
@@ -149,6 +150,7 @@ def register_callbacks(app):
         Output('navigation-table', 'children'),
         Output('last-update-display', 'children'),
         Input('refresh-btn', 'n_clicks'),
+        Input('data-masked-store', 'data'),
         State('year-filter', 'value'),
         State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
@@ -157,9 +159,9 @@ def register_callbacks(app):
         State('priority-filter', 'value'),
         prevent_initial_call=True
     )
-    def update_dashboard(n_clicks, year, health_unit, region, age_range, birads, priority):
+    def update_dashboard(n_clicks, is_masked, year, health_unit, region, age_range, birads, priority):
         try:
-            content = build_dashboard_content(year, health_unit, region, age_range, birads, priority)
+            content = build_dashboard_content(year, health_unit, region, age_range, birads, priority, is_masked)
             return (
                 content['kpi_mean'],
                 content['kpi_median'],
@@ -201,6 +203,7 @@ def register_callbacks(app):
         Input('patient-data-prev-btn', 'n_clicks'),
         Input('patient-data-next-btn', 'n_clicks'),
         Input('refresh-btn', 'n_clicks'),
+        Input('data-masked-store', 'data'),
         State('year-filter', 'value'),
         State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
@@ -211,7 +214,7 @@ def register_callbacks(app):
         State('patient-data-current-page', 'data'),
         prevent_initial_call=True
     )
-    def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks,
+    def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks, is_masked,
                             year, health_unit, region,
                             patient_name, sex, birads, page_size, current_page):
         try:
@@ -244,7 +247,7 @@ def register_callbacks(app):
                 page=current_page, page_size=page_size
             )
             
-            table = create_patient_data_table(df)
+            table = create_patient_data_table(df, is_masked)
             count_text = f'Total de registros: {total_count:,}'.replace(',', '.')
             page_info = f'Página {current_page} de {total_pages}'
             
@@ -593,12 +596,13 @@ def register_callbacks(app):
          Output('linkage-count-display', 'children'),
          Output('linkage-pagination', 'max_value')],
         [Input('linkage-search-button', 'n_clicks'),
-         Input('linkage-pagination', 'active_page')],
+         Input('linkage-pagination', 'active_page'),
+         Input('data-masked-store', 'data')],
         [State('linkage-search-nome', 'value'),
          State('linkage-search-cpf', 'value'),
          State('linkage-search-cartao', 'value')]
     )
-    def update_linkage_table(n_clicks, page, search_nome, search_cpf, search_cartao):
+    def update_linkage_table(n_clicks, page, is_masked, search_nome, search_cpf, search_cartao):
         if not n_clicks:
             return html.P('Clique em Pesquisar para ver os dados', className='text-muted text-center p-4'), '', 1
         
@@ -622,22 +626,23 @@ def register_callbacks(app):
                 qtd_dup = row.get('qtd_registros_cns', 1)
                 row_style = {'backgroundColor': '#fff3cd'} if is_dup else {}
                 
+                cartao_masked = mask_cns(row.get('cartao_sus', ''), is_masked)
                 dup_badge = html.Span([
                     dbc.Badge(f'{qtd_dup}x', color='warning', className='me-1'),
-                    str(row.get('cartao_sus', ''))[:18]
-                ]) if is_dup else str(row.get('cartao_sus', ''))[:20] if row.get('cartao_sus') else '-'
+                    cartao_masked[:18]
+                ]) if is_dup else cartao_masked
                 
                 rows.append(html.Tr([
-                    html.Td(row.get('nome_siscan', '')[:30] if row.get('nome_siscan') else '-', style={'fontSize': '0.75rem'}),
-                    html.Td(row.get('nome_esaude', '')[:30] if row.get('nome_esaude') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(mask_name(row.get('nome_siscan', ''), is_masked), style={'fontSize': '0.75rem'}),
+                    html.Td(mask_name(row.get('nome_esaude', ''), is_masked), style={'fontSize': '0.75rem'}),
                     html.Td(
                         html.I(className='fas fa-check text-success') if row.get('comparacao_nomes') in ['True', 'Sim'] else html.I(className='fas fa-times text-danger') if row.get('comparacao_nomes') else '-',
                         style={'fontSize': '0.75rem', 'textAlign': 'center'}
                     ),
                     html.Td(dup_badge, style={'fontSize': '0.75rem'}),
-                    html.Td(row.get('cpf', '') if row.get('cpf') else '-', style={'fontSize': '0.75rem'}),
-                    html.Td(row.get('telefone_siscan', '')[:15] if row.get('telefone_siscan') else '-', style={'fontSize': '0.75rem'}),
-                    html.Td(row.get('telefone_esaude', '')[:15] if row.get('telefone_esaude') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(mask_cpf(row.get('cpf', ''), is_masked), style={'fontSize': '0.75rem'}),
+                    html.Td(mask_phone(row.get('telefone_siscan', ''), is_masked), style={'fontSize': '0.75rem'}),
+                    html.Td(mask_phone(row.get('telefone_esaude', ''), is_masked), style={'fontSize': '0.75rem'}),
                     html.Td(row.get('birads_max', '') if row.get('birads_max') else '-', style={'fontSize': '0.75rem'}),
                     html.Td(row.get('unidade_saude', '')[:25] if row.get('unidade_saude') else '-', style={'fontSize': '0.75rem'}),
                     html.Td(str(row.get('ultima_apac_cancer', ''))[:10] if row.get('ultima_apac_cancer') else '-', style={'fontSize': '0.75rem'})

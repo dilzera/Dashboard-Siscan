@@ -38,6 +38,10 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
 - **Responsive Design:** Adapts layout for desktop and mobile.
 - **Manual Data Update:** "Atualizar Dados" button for refreshing data.
 - **Data Filtering:** Restricted to 2023+ for performance metrics; outliers excluded from primary performance graphs but available for audit.
+- **Data Masking System:** Password-protected toggle for presentations. When enabled (default), masks patient names (first/last initials only), CNS (last 4 digits), CPF (last 2 digits), and phone numbers (last 4 digits). Requires admin password to unmask data. State persists across tab changes within session.
+- **Manchester Protocol Colors:** BI-RADS and Priority filters display visual color indicators following Manchester Protocol: Red (#dc3545) for critical, Orange (#fd7e14) for high, Yellow (#ffc107) for medium, Green (#28a745) for monitoring, Blue (#17a2b8) for routine.
+- **Duplicate Detection:** Interoperability data highlights patients with duplicate CNS entries using yellow background and badge showing count.
+- **Intelligent Sorting:** Patient navigation sorted by BI-RADS evolution (prioritizes patients showing improvement when no filters applied).
 
 **System Design Choices:**
 - **Modular Architecture:** Organized into `src/` directory with separate files for configuration, data models, data access, callbacks, and UI components (cards, charts, layout, tables).

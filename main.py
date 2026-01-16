@@ -254,6 +254,7 @@ def add_headers(response):
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=True),
+    dcc.Store(id='data-masked-store', data=True, storage_type='session'),
     html.Div(id='page-content')
 ])
 
@@ -333,6 +334,70 @@ def handle_logout(n_clicks):
         logout_user()
         return '/logout'
     return dash.no_update
+
+@app.callback(
+    Output('unmask-modal', 'is_open'),
+    [Input('toggle-mask-btn', 'n_clicks'),
+     Input('unmask-cancel-btn', 'n_clicks'),
+     Input('unmask-confirm-btn', 'n_clicks')],
+    [State('unmask-modal', 'is_open'),
+     State('data-masked-store', 'data')],
+    prevent_initial_call=True
+)
+def toggle_unmask_modal(toggle_clicks, cancel_clicks, confirm_clicks, is_open, is_masked):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return dash.no_update
+    
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if trigger_id == 'toggle-mask-btn':
+        if is_masked:
+            return True
+        else:
+            return False
+    elif trigger_id in ['unmask-cancel-btn', 'unmask-confirm-btn']:
+        return False
+    
+    return dash.no_update
+
+@app.callback(
+    [Output('data-masked-store', 'data'),
+     Output('unmask-error-msg', 'children'),
+     Output('toggle-mask-btn', 'color'),
+     Output('toggle-mask-btn', 'title'),
+     Output('toggle-mask-btn', 'children')],
+    [Input('unmask-confirm-btn', 'n_clicks'),
+     Input('toggle-mask-btn', 'n_clicks')],
+    [State('unmask-password-input', 'value'),
+     State('data-masked-store', 'data')],
+    prevent_initial_call=True
+)
+def handle_unmask(confirm_clicks, toggle_clicks, password, is_masked):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    if trigger_id == 'toggle-mask-btn' and not is_masked:
+        return True, '', 'warning', 'Dados mascarados - Clique para desmascarar', [html.I(className='fas fa-eye-slash')]
+    
+    if trigger_id == 'unmask-confirm-btn':
+        if not password:
+            return dash.no_update, 'Por favor, insira a senha.', dash.no_update, dash.no_update, dash.no_update
+        
+        db_session = get_session()
+        try:
+            admin = db_session.query(User).filter_by(username='admin').first()
+            if admin and admin.check_password(password):
+                return False, '', 'success', 'Dados visíveis - Clique para mascarar', [html.I(className='fas fa-eye')]
+            else:
+                return dash.no_update, 'Senha incorreta.', dash.no_update, dash.no_update, dash.no_update
+        finally:
+            db_session.close()
+    
+    return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
 from src.callbacks import register_callbacks
 register_callbacks(app)

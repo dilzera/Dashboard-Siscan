@@ -4,7 +4,50 @@ import pandas as pd
 from src.config import COLORS, BIRADS_COLORS
 
 
-def create_high_risk_table(df):
+def mask_name(name, is_masked=True):
+    """Mascara nome do paciente mantendo apenas iniciais"""
+    if not name or not is_masked:
+        return name if name else '-'
+    name_str = str(name)
+    if len(name_str) < 3:
+        return '***'
+    parts = name_str.split()
+    if len(parts) > 1:
+        return f"{parts[0][0]}****** {parts[-1][0]}******"
+    return f"{name_str[0]}******"
+
+
+def mask_cns(cns, is_masked=True):
+    """Mascara Cartão SUS mostrando apenas últimos 4 dígitos"""
+    if not cns or not is_masked:
+        return str(cns) if cns else '-'
+    cns_str = str(cns)
+    if len(cns_str) <= 4:
+        return '****'
+    return f"{'*' * (len(cns_str) - 4)}{cns_str[-4:]}"
+
+
+def mask_cpf(cpf, is_masked=True):
+    """Mascara CPF mostrando apenas últimos 2 dígitos"""
+    if not cpf or not is_masked:
+        return cpf if cpf else '-'
+    cpf_str = str(cpf)
+    if len(cpf_str) <= 2:
+        return '***'
+    return f"***.***.**{cpf_str[-2:]}"
+
+
+def mask_phone(phone, is_masked=True):
+    """Mascara telefone mostrando apenas últimos 4 dígitos"""
+    if not phone or not is_masked:
+        return phone if phone else '-'
+    phone_str = str(phone)
+    if len(phone_str) <= 4:
+        return '****'
+    return f"{'*' * (len(phone_str) - 4)}{phone_str[-4:]}"
+
+
+def create_high_risk_table(df, is_masked=True):
     if df.empty:
         return html.Div(
             html.P('Sem dados de alto risco disponíveis', className='text-muted text-center py-4'),
@@ -56,10 +99,10 @@ def create_high_risk_table(df):
             elif col == 'request_date':
                 cell = html.Td(str(value)[:10] if value else '-')
             elif col == 'patient_name':
-                name = str(value)[:30] + '...' if len(str(value)) > 30 else str(value)
+                name = mask_name(value, is_masked)
                 cell = html.Td(name)
             elif col == 'patient_id':
-                cell = html.Td(str(value)[:8] + '...')
+                cell = html.Td(mask_cns(value, is_masked))
             else:
                 cell = html.Td(str(value))
             
@@ -94,7 +137,7 @@ def create_high_risk_table(df):
     )
 
 
-def create_outliers_table(df):
+def create_outliers_table(df, is_masked=True):
     if df.empty:
         return html.Div(
             html.P('Nenhum outlier identificado', className='text-muted text-center py-4'),
@@ -126,11 +169,9 @@ def create_outliers_table(df):
         motivo = row.get('motivo_do_outlier', '')
         badge_color = motivo_colors.get(motivo, 'secondary')
         
-        nome = str(row.get('nome_paciente', ''))[:30]
-        if len(str(row.get('nome_paciente', ''))) > 30:
-            nome += '...'
+        nome = mask_name(row.get('nome_paciente', ''), is_masked)
         
-        cartao = str(row.get('cartao_sus', ''))
+        cartao = mask_cns(row.get('cartao_sus', ''), is_masked)
         
         distrito = str(row.get('distrito_saude', '-'))[:20]
         if len(str(row.get('distrito_saude', ''))) > 20:
@@ -306,7 +347,7 @@ def create_patient_navigation_stats_cards(stats):
     return dbc.Row(cards)
 
 
-def create_patient_navigation_table(df):
+def create_patient_navigation_table(df, is_masked=True):
     if df.empty:
         return html.Div(
             html.P('Nenhuma paciente com múltiplos atendimentos encontrada', className='text-muted text-center py-4'),
@@ -324,8 +365,8 @@ def create_patient_navigation_table(df):
         patient_count += 1
         
         first_row = group.iloc[0]
-        nome = str(first_row.get('nome_paciente', ''))[:40]
-        cartao_sus = str(first_row.get('cartao_sus', ''))
+        nome = mask_name(first_row.get('nome_paciente', ''), is_masked)
+        cartao_sus = mask_cns(first_row.get('cartao_sus', ''), is_masked)
         total_exames = first_row.get('total_exames', len(group))
         
         exams_rows = []
@@ -438,7 +479,7 @@ def create_patient_navigation_summary_chart(summary_df):
     )
 
 
-def create_patient_data_table(df):
+def create_patient_data_table(df, is_masked=True):
     if df.empty:
         return html.Div(
             html.P('Nenhum registro encontrado. Clique em "Buscar" para carregar os dados.', 
@@ -495,15 +536,9 @@ def create_patient_data_table(df):
             elif col in ['data_solicitacao', 'data_realizacao', 'data_liberacao', 'data_nascimento']:
                 cell_content = str(value)[:10] if value else '-'
             elif col == 'nome':
-                name = str(value)[:35]
-                if len(str(value)) > 35:
-                    name += '...'
-                cell_content = name
+                cell_content = mask_name(value, is_masked)
             elif col == 'nome_mae':
-                name = str(value)[:30]
-                if len(str(value)) > 30:
-                    name += '...'
-                cell_content = name
+                cell_content = mask_name(value, is_masked)
             elif col in ['birads_direita_class', 'birads_esquerda_class']:
                 cell_content = dbc.Badge(str(value), color='info', className='px-2')
             elif col == 'idade':
