@@ -826,6 +826,14 @@ def create_linkage_tab(initial_content=None):
                             html.H4(id='linkage-nomes-conferem', children='...', style={'color': COLORS['success'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('CNS Duplicados', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='linkage-duplicados', children='...', style={'color': COLORS['warning'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm', style={'borderLeft': f'3px solid {COLORS["warning"]}'})
                 ], lg=2, md=4, sm=6, className='mb-3')
             ])
         ], className='mb-4 p-3 bg-white rounded shadow-sm'),
@@ -944,7 +952,7 @@ def create_tabs(initial_content=None, sex_options=None, birads_options=None, hea
         ),
         dbc.Tab(
             create_health_unit_tab(health_units, initial_content),
-            label='Unidade de Saúde',
+            label='Unidade de Saúde e Prestador',
             tab_id='tab-health-unit',
             className='p-3'
         ),

@@ -400,8 +400,27 @@ def get_high_risk_cases(df):
     return result
 
 
-def get_outliers_audit_sql():
-    query = """
+def get_outliers_audit_sql(year=None, health_unit=None, region=None):
+    conditions = []
+    params = {}
+    
+    if year:
+        conditions.append("year = :year")
+        params['year'] = year
+    
+    if health_unit:
+        conditions.append("unidade_de_saude__nome = :health_unit")
+        params['health_unit'] = health_unit
+    
+    if region:
+        conditions.append("distrito_sanitario = :region")
+        params['region'] = region
+    
+    where_filter = ""
+    if conditions:
+        where_filter = " AND " + " AND ".join(conditions)
+    
+    query = f"""
     WITH outliers AS (
         SELECT 
             paciente__nome AS nome_paciente,
@@ -448,6 +467,7 @@ def get_outliers_audit_sql():
                 ELSE NULL
             END AS valor_critico
         FROM exam_records
+        WHERE 1=1 {where_filter}
     )
     SELECT 
         nome_paciente,
@@ -470,14 +490,33 @@ def get_outliers_audit_sql():
     
     engine = get_engine()
     with engine.connect() as conn:
-        result = conn.execute(text(query))
+        result = conn.execute(text(query), params)
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     
     return df
 
 
-def get_outliers_summary_sql():
-    query = """
+def get_outliers_summary_sql(year=None, health_unit=None, region=None):
+    conditions = []
+    params = {}
+    
+    if year:
+        conditions.append("year = :year")
+        params['year'] = year
+    
+    if health_unit:
+        conditions.append("unidade_de_saude__nome = :health_unit")
+        params['health_unit'] = health_unit
+    
+    if region:
+        conditions.append("distrito_sanitario = :region")
+        params['region'] = region
+    
+    where_filter = ""
+    if conditions:
+        where_filter = " WHERE " + " AND ".join(conditions)
+    
+    query = f"""
     SELECT 
         motivo_outlier,
         descricao,
@@ -501,6 +540,7 @@ def get_outliers_summary_sql():
                 ELSE 'OK'
             END AS descricao
         FROM exam_records
+        {where_filter}
     ) subquery
     WHERE motivo_outlier IS NOT NULL
     GROUP BY motivo_outlier, descricao
@@ -509,7 +549,7 @@ def get_outliers_summary_sql():
     
     engine = get_engine()
     with engine.connect() as conn:
-        result = conn.execute(text(query))
+        result = conn.execute(text(query), params)
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
     
     return df
@@ -608,6 +648,7 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
             e.birads_direita,
             e.birads_esquerda,
             e.unidade_de_saude__nome as unidade_saude,
+            e.prestador_executante__nome as prestador_executante,
             e.distrito_sanitario,
             e.wait_days,
             e.conformity_status,
@@ -615,24 +656,43 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
         FROM exam_records e
         INNER JOIN patient_exam_counts p ON e.patient_unique_id = p.patient_unique_id
         WHERE {where_clause_e}
+    ),
+    patient_evolution AS (
+        SELECT 
+            patient_unique_id,
+            MAX(CASE WHEN exam_order = 1 THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as first_birads,
+            MAX(CASE WHEN exam_order = total_exames THEN CAST(NULLIF(birads_max, '') AS INTEGER) END) as last_birads
+        FROM patient_exams
+        WHERE birads_max ~ '^[0-9]+$'
+        GROUP BY patient_unique_id
     )
     SELECT 
-        patient_unique_id,
-        nome_paciente,
-        cartao_sus,
-        total_exames,
-        exam_order,
-        data_solicitacao,
-        data_realizacao,
-        birads_max,
-        birads_direita,
-        birads_esquerda,
-        unidade_saude,
-        distrito_sanitario,
-        wait_days,
-        conformity_status
-    FROM patient_exams
-    ORDER BY total_exames DESC, nome_paciente, exam_order
+        pe.patient_unique_id,
+        pe.nome_paciente,
+        pe.cartao_sus,
+        pe.total_exames,
+        pe.exam_order,
+        pe.data_solicitacao,
+        pe.data_realizacao,
+        pe.birads_max,
+        pe.birads_direita,
+        pe.birads_esquerda,
+        pe.unidade_saude,
+        pe.prestador_executante,
+        pe.distrito_sanitario,
+        pe.wait_days,
+        pe.conformity_status,
+        COALESCE(ev.first_birads, 0) as first_birads,
+        COALESCE(ev.last_birads, 0) as last_birads,
+        CASE WHEN ev.first_birads > ev.last_birads THEN 1 ELSE 0 END as evolucao_positiva
+    FROM patient_exams pe
+    LEFT JOIN patient_evolution ev ON pe.patient_unique_id = ev.patient_unique_id
+    ORDER BY 
+        CASE WHEN ev.first_birads > ev.last_birads THEN 0 ELSE 1 END,
+        (ev.first_birads - ev.last_birads) DESC NULLS LAST,
+        pe.total_exames DESC, 
+        pe.nome_paciente, 
+        pe.exam_order
     LIMIT :row_limit
     """
     
@@ -1504,14 +1564,24 @@ def get_indicator_details_sql(indicator_type, year=None, region=None, health_uni
 
 def get_termo_linkage_summary_sql():
     query = """
+    WITH duplicatas AS (
+        SELECT 
+            paciente__cartao_sus,
+            COUNT(*) as total_registros
+        FROM exam_records
+        WHERE unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        GROUP BY paciente__cartao_sus
+        HAVING COUNT(*) > 1
+    )
     SELECT 
-        COUNT(*) as total_registros,
-        COUNT(CASE WHEN cpf IS NOT NULL AND cpf != '' THEN 1 END) as com_cpf,
-        COUNT(CASE WHEN telefone IS NOT NULL AND telefone != '' THEN 1 END) as com_telefone,
-        COUNT(CASE WHEN nome_esaude IS NOT NULL AND nome_esaude != '' THEN 1 END) as com_nome_esaude,
-        COUNT(CASE WHEN ultima_apac_cancer IS NOT NULL THEN 1 END) as com_apac_cancer,
-        COUNT(CASE WHEN comparacao_nomes = 'True' OR comparacao_nomes = 'Sim' THEN 1 END) as nomes_conferem
-    FROM termo_linkage
+        (SELECT COUNT(*) FROM termo_linkage) as total_registros,
+        (SELECT COUNT(CASE WHEN cpf IS NOT NULL AND cpf != '' THEN 1 END) FROM termo_linkage) as com_cpf,
+        (SELECT COUNT(CASE WHEN telefone IS NOT NULL AND telefone != '' THEN 1 END) FROM termo_linkage) as com_telefone,
+        (SELECT COUNT(CASE WHEN nome_esaude IS NOT NULL AND nome_esaude != '' THEN 1 END) FROM termo_linkage) as com_nome_esaude,
+        (SELECT COUNT(CASE WHEN ultima_apac_cancer IS NOT NULL THEN 1 END) FROM termo_linkage) as com_apac_cancer,
+        (SELECT COUNT(CASE WHEN comparacao_nomes = 'True' OR comparacao_nomes = 'Sim' THEN 1 END) FROM termo_linkage) as nomes_conferem,
+        (SELECT COUNT(DISTINCT paciente__cartao_sus) FROM duplicatas) as pacientes_duplicados,
+        (SELECT SUM(total_registros) FROM duplicatas) as registros_duplicados
     """
     
     engine = get_engine()
@@ -1526,7 +1596,9 @@ def get_termo_linkage_summary_sql():
             'com_telefone': int(row[2]) if row[2] else 0,
             'com_nome_esaude': int(row[3]) if row[3] else 0,
             'com_apac_cancer': int(row[4]) if row[4] else 0,
-            'nomes_conferem': int(row[5]) if row[5] else 0
+            'nomes_conferem': int(row[5]) if row[5] else 0,
+            'pacientes_duplicados': int(row[6]) if row[6] else 0,
+            'registros_duplicados': int(row[7]) if row[7] else 0
         }
     return {
         'total_registros': 0,
@@ -1534,7 +1606,9 @@ def get_termo_linkage_summary_sql():
         'com_telefone': 0,
         'com_nome_esaude': 0,
         'com_apac_cancer': 0,
-        'nomes_conferem': 0
+        'nomes_conferem': 0,
+        'pacientes_duplicados': 0,
+        'registros_duplicados': 0
     }
 
 
@@ -1559,6 +1633,15 @@ def get_termo_linkage_data_sql(search_nome=None, search_cpf=None, search_cartao_
         where_clause = " AND " + " AND ".join(conditions)
     
     query = f"""
+    WITH duplicatas AS (
+        SELECT 
+            paciente__cartao_sus,
+            COUNT(*) as total_registros
+        FROM exam_records
+        WHERE unidade_de_saude__data_da_solicitacao >= '2023-01-01'
+        GROUP BY paciente__cartao_sus
+        HAVING COUNT(*) > 1
+    )
     SELECT 
         e.paciente__nome as nome_siscan,
         t.nome_esaude,
@@ -1575,12 +1658,18 @@ def get_termo_linkage_data_sql(search_nome=None, search_cpf=None, search_cartao_
         t.ultima_apac_cancer,
         e.birads_max,
         e.unidade_de_saude__nome as unidade_saude,
-        e.distrito_sanitario
+        e.distrito_sanitario,
+        COALESCE(d.total_registros, 1) as qtd_registros_cns,
+        CASE WHEN d.total_registros > 1 THEN TRUE ELSE FALSE END as is_duplicado
     FROM exam_records e
     LEFT JOIN termo_linkage t ON e.paciente__cartao_sus = t.cartao_sus
+    LEFT JOIN duplicatas d ON e.paciente__cartao_sus = d.paciente__cartao_sus
     WHERE e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'
     {where_clause}
-    ORDER BY e.unidade_de_saude__data_da_solicitacao DESC
+    ORDER BY 
+        CASE WHEN d.total_registros > 1 THEN 0 ELSE 1 END,
+        d.total_registros DESC NULLS LAST,
+        e.unidade_de_saude__data_da_solicitacao DESC
     LIMIT :lim OFFSET :off
     """
     

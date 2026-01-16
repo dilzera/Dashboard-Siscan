@@ -81,9 +81,9 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
     )
     
     chart_conformity = create_chart_card(
-        'Conformidade por Unidade de Saúde',
+        'Conformidade',
         create_conformity_chart(conformity_df),
-        'Top 10 unidades por volume'
+        'Unidades ordenadas por taxa de conformidade'
     )
     
     chart_birads = create_chart_card(
@@ -100,8 +100,8 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
     
     table_risk = create_high_risk_table(high_risk_df)
     
-    outliers_df = get_outliers_audit_sql()
-    outliers_summary_df = get_outliers_summary_sql()
+    outliers_df = get_outliers_audit_sql(year, health_unit, region)
+    outliers_summary_df = get_outliers_summary_sql(year, health_unit, region)
     outliers_table = create_outliers_table(outliers_df)
     outliers_summary = create_outliers_summary_cards(outliers_summary_df)
     
@@ -564,26 +564,29 @@ def register_callbacks(app):
          Output('linkage-telefone', 'children'),
          Output('linkage-nome-esaude', 'children'),
          Output('linkage-apac', 'children'),
-         Output('linkage-nomes-conferem', 'children')],
+         Output('linkage-nomes-conferem', 'children'),
+         Output('linkage-duplicados', 'children')],
         [Input('main-tabs', 'active_tab')]
     )
     def update_linkage_summary(active_tab):
         if active_tab != 'tab-linkage':
-            return no_update, no_update, no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update
         
         try:
             summary = get_termo_linkage_summary_sql()
+            duplicados_text = f"{summary['pacientes_duplicados']:,}".replace(',', '.') + f" ({summary['registros_duplicados']:,} reg)".replace(',', '.')
             return (
                 f"{summary['total_registros']:,}".replace(',', '.'),
                 f"{summary['com_cpf']:,}".replace(',', '.'),
                 f"{summary['com_telefone']:,}".replace(',', '.'),
                 f"{summary['com_nome_esaude']:,}".replace(',', '.'),
                 f"{summary['com_apac_cancer']:,}".replace(',', '.'),
-                f"{summary['nomes_conferem']:,}".replace(',', '.')
+                f"{summary['nomes_conferem']:,}".replace(',', '.'),
+                duplicados_text
             )
         except Exception as e:
             print(f"Erro ao carregar resumo linkage: {e}")
-            return '0', '0', '0', '0', '0', '0'
+            return '0', '0', '0', '0', '0', '0', '0'
     
     @app.callback(
         [Output('linkage-table-container', 'children'),
@@ -613,6 +616,33 @@ def register_callbacks(app):
             
             import dash_bootstrap_components as dbc
             
+            rows = []
+            for row in df.to_dict('records'):
+                is_dup = row.get('is_duplicado', False)
+                qtd_dup = row.get('qtd_registros_cns', 1)
+                row_style = {'backgroundColor': '#fff3cd'} if is_dup else {}
+                
+                dup_badge = html.Span([
+                    dbc.Badge(f'{qtd_dup}x', color='warning', className='me-1'),
+                    str(row.get('cartao_sus', ''))[:18]
+                ]) if is_dup else str(row.get('cartao_sus', ''))[:20] if row.get('cartao_sus') else '-'
+                
+                rows.append(html.Tr([
+                    html.Td(row.get('nome_siscan', '')[:30] if row.get('nome_siscan') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(row.get('nome_esaude', '')[:30] if row.get('nome_esaude') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(
+                        html.I(className='fas fa-check text-success') if row.get('comparacao_nomes') in ['True', 'Sim'] else html.I(className='fas fa-times text-danger') if row.get('comparacao_nomes') else '-',
+                        style={'fontSize': '0.75rem', 'textAlign': 'center'}
+                    ),
+                    html.Td(dup_badge, style={'fontSize': '0.75rem'}),
+                    html.Td(row.get('cpf', '') if row.get('cpf') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(row.get('telefone_siscan', '')[:15] if row.get('telefone_siscan') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(row.get('telefone_esaude', '')[:15] if row.get('telefone_esaude') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(row.get('birads_max', '') if row.get('birads_max') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(row.get('unidade_saude', '')[:25] if row.get('unidade_saude') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(str(row.get('ultima_apac_cancer', ''))[:10] if row.get('ultima_apac_cancer') else '-', style={'fontSize': '0.75rem'})
+                ], style=row_style))
+            
             table = dbc.Table([
                 html.Thead([
                     html.Tr([
@@ -628,23 +658,7 @@ def register_callbacks(app):
                         html.Th('APAC Cancer', style={'fontSize': '0.8rem'})
                     ])
                 ]),
-                html.Tbody([
-                    html.Tr([
-                        html.Td(row.get('nome_siscan', '')[:30] if row.get('nome_siscan') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(row.get('nome_esaude', '')[:30] if row.get('nome_esaude') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(
-                            html.I(className='fas fa-check text-success') if row.get('comparacao_nomes') in ['True', 'Sim'] else html.I(className='fas fa-times text-danger') if row.get('comparacao_nomes') else '-',
-                            style={'fontSize': '0.75rem', 'textAlign': 'center'}
-                        ),
-                        html.Td(str(row.get('cartao_sus', ''))[:20] if row.get('cartao_sus') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(row.get('cpf', '') if row.get('cpf') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(row.get('telefone_siscan', '')[:15] if row.get('telefone_siscan') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(row.get('telefone_esaude', '')[:15] if row.get('telefone_esaude') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(row.get('birads_max', '') if row.get('birads_max') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(row.get('unidade_saude', '')[:25] if row.get('unidade_saude') else '-', style={'fontSize': '0.75rem'}),
-                        html.Td(str(row.get('ultima_apac_cancer', ''))[:10] if row.get('ultima_apac_cancer') else '-', style={'fontSize': '0.75rem'})
-                    ]) for row in df.to_dict('records')
-                ])
+                html.Tbody(rows)
             ], bordered=True, hover=True, responsive=True, striped=True, size='sm')
             
             count_text = f'Mostrando {offset + 1}-{min(offset + limit, total)} de {total:,} registros'.replace(',', '.')

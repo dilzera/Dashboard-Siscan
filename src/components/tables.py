@@ -329,6 +329,10 @@ def create_patient_navigation_table(df):
         total_exames = first_row.get('total_exames', len(group))
         
         exams_rows = []
+        first_birads = group.iloc[0].get('first_birads', 0)
+        last_birads = group.iloc[0].get('last_birads', 0)
+        evolucao_positiva = first_birads > last_birads if first_birads and last_birads else False
+        
         for _, exam in group.iterrows():
             birads = exam.get('birads_max', '-')
             birads_d = exam.get('birads_direita', '-')
@@ -338,7 +342,8 @@ def create_patient_navigation_table(df):
             
             data_sol = str(exam.get('data_solicitacao', ''))[:10]
             data_real = str(exam.get('data_realizacao', ''))[:10] if exam.get('data_realizacao') else '-'
-            unidade = str(exam.get('unidade_saude', '-'))[:30]
+            unidade = str(exam.get('unidade_saude', '-'))[:25]
+            prestador = str(exam.get('prestador_executante', '-'))[:25] if exam.get('prestador_executante') else '-'
             wait = exam.get('wait_days', '-')
             ordem = exam.get('exam_order', '-')
             
@@ -352,19 +357,25 @@ def create_patient_navigation_table(df):
                 ),
                 html.Td(f'D:{birads_d} E:{birads_e}', style={'fontSize': '0.8rem', 'color': '#666'}),
                 html.Td(unidade, style={'fontSize': '0.85rem'}),
+                html.Td(prestador, style={'fontSize': '0.85rem'}),
                 html.Td(f'{wait} dias' if wait and wait != '-' else '-', style={'fontSize': '0.85rem'})
             ]))
+        
+        evolucao_badge = None
+        if evolucao_positiva:
+            evolucao_badge = dbc.Badge(f'↓ BI-RADS {first_birads}→{last_birads}', color='success', className='ms-2')
         
         exam_table = dbc.Table(
             [
                 html.Thead(html.Tr([
                     html.Th('#', style={'width': '50px', 'textAlign': 'center'}),
-                    html.Th('Solicitação', style={'width': '100px'}),
-                    html.Th('Realização', style={'width': '100px'}),
-                    html.Th('BI-RADS', style={'width': '100px', 'textAlign': 'center'}),
-                    html.Th('Detalhe', style={'width': '100px'}),
+                    html.Th('Solicitação', style={'width': '90px'}),
+                    html.Th('Realização', style={'width': '90px'}),
+                    html.Th('BI-RADS', style={'width': '90px', 'textAlign': 'center'}),
+                    html.Th('Detalhe', style={'width': '90px'}),
                     html.Th('Unidade de Saúde'),
-                    html.Th('Espera', style={'width': '80px'})
+                    html.Th('Prestador Executante'),
+                    html.Th('Espera', style={'width': '70px'})
                 ])),
                 html.Tbody(exams_rows)
             ],
@@ -376,14 +387,18 @@ def create_patient_navigation_table(df):
             className='mb-0'
         )
         
+        title_elements = [
+            html.Span(nome, style={'fontWeight': '500'}),
+            html.Span(f' | CNS: {cartao_sus}', style={'color': '#666', 'fontSize': '0.9rem'}),
+            dbc.Badge(f'{total_exames} exames', color='primary', className='ms-2')
+        ]
+        if evolucao_badge:
+            title_elements.append(evolucao_badge)
+        
         accordion_items.append(
             dbc.AccordionItem(
                 exam_table,
-                title=html.Div([
-                    html.Span(nome, style={'fontWeight': '500'}),
-                    html.Span(f' | CNS: {cartao_sus}', style={'color': '#666', 'fontSize': '0.9rem'}),
-                    dbc.Badge(f'{total_exames} exames', color='primary', className='ms-2')
-                ]),
+                title=html.Div(title_elements),
                 item_id=str(patient_id)
             )
         )
