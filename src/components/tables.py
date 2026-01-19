@@ -533,8 +533,13 @@ def create_patient_data_table(df, is_masked=True):
             
             if pd.isna(value) or value is None or str(value).lower() == 'none':
                 cell_content = '-'
-            elif col in ['data_solicitacao', 'data_realizacao', 'data_liberacao', 'data_nascimento']:
+            elif col in ['data_solicitacao', 'data_realizacao', 'data_liberacao']:
                 cell_content = str(value)[:10] if value else '-'
+            elif col == 'data_nascimento':
+                if is_masked:
+                    cell_content = '**/**/****'
+                else:
+                    cell_content = str(value)[:10] if value else '-'
             elif col == 'nome':
                 cell_content = mask_name(value, is_masked)
             elif col == 'nome_mae':
