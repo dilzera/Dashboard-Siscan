@@ -518,7 +518,9 @@ def create_patient_data_table(df, is_masked=True):
                 'whiteSpace': 'nowrap',
                 'position': 'sticky',
                 'top': '0',
-                'backgroundColor': '#f8f9fa',
+                'backgroundColor': COLORS['primary'],
+                'color': 'white',
+                'fontWeight': '500',
                 'zIndex': '1'
             }) 
             for col, label, width in available_cols
@@ -587,7 +589,7 @@ def create_patient_data_table(df, is_masked=True):
                     className='mb-0',
                     style={'fontSize': '0.8rem'}
                 )
-            ], style={'maxHeight': '500px', 'overflowY': 'auto', 'overflowX': 'auto'})
+            ], style={'maxHeight': '500px', 'overflowY': 'scroll', 'overflowX': 'scroll'})
         ], className='p-2')
     ],
         className='shadow-sm',
