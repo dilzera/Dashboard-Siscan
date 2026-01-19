@@ -568,6 +568,15 @@ def create_patient_data_table(df, is_masked=True):
                 if len(str(value)) > 30:
                     text += '...'
                 cell_content = text
+            elif col == 'numero_exame':
+                if is_masked:
+                    val_str = str(value)
+                    if len(val_str) > 4:
+                        cell_content = '*' * (len(val_str) - 4) + val_str[-4:]
+                    else:
+                        cell_content = '****'
+                else:
+                    cell_content = str(value)
             else:
                 cell_content = str(value)
             
@@ -589,7 +598,13 @@ def create_patient_data_table(df, is_masked=True):
                     className='mb-0',
                     style={'fontSize': '0.8rem'}
                 )
-            ], style={'maxHeight': '500px', 'overflowY': 'scroll', 'overflowX': 'scroll'})
+            ], style={
+                'maxHeight': '500px', 
+                'overflowY': 'auto', 
+                'overflowX': 'auto',
+                'display': 'block',
+                'width': '100%'
+            })
         ], className='p-2')
     ],
         className='shadow-sm',
