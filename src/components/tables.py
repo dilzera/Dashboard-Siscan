@@ -54,15 +54,15 @@ def create_high_risk_table(df, is_masked=True):
             className='border rounded'
         )
     
-    columns = ['patient_id', 'patient_name', 'health_unit', 'birads_category', 'wait_days', 'conformity_status', 'request_date']
+    columns = ['patient_id', 'patient_name', 'health_unit', 'birads_category', 'request_date', 'wait_days', 'conformity_status']
     column_labels = {
         'patient_id': 'ID Paciente',
         'patient_name': 'Nome',
         'health_unit': 'Unidade de Saúde',
         'birads_category': 'BI-RADS',
+        'request_date': 'Data Solicitação',
         'wait_days': 'Dias de Espera',
-        'conformity_status': 'Status',
-        'request_date': 'Data Solicitação'
+        'conformity_status': 'Status'
     }
     
     available_columns = [col for col in columns if col in df.columns]

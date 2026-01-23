@@ -240,7 +240,16 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         placeholder='Todos',
                         clearable=True,
                         style={'fontSize': '0.9rem'}
-                    )
+                    ),
+                    html.Div([
+                        html.Small([
+                            html.Span('● ', style={'color': '#dc3545'}), 'Suspeito ',
+                            html.Span('● ', style={'color': '#fd7e14'}), 'Inconclusivo ',
+                            html.Span('● ', style={'color': '#ffc107'}), 'Acompanhar ',
+                            html.Span('● ', style={'color': '#28a745'}), 'Tratamento ',
+                            html.Span('● ', style={'color': '#17a2b8'}), 'Benigno'
+                        ], style={'fontSize': '0.7rem', 'color': '#666'})
+                    ], className='mt-1')
                 ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
                 
                 dbc.Col([
