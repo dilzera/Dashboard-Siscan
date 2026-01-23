@@ -789,7 +789,6 @@ def register_callbacks(app):
     
     @app.callback(
         Output('access-action-result', 'children'),
-        Output('access-requests-content', 'children', allow_duplicate=True),
         Input({'type': 'approve-btn', 'index': ALL}, 'n_clicks'),
         Input({'type': 'reject-btn', 'index': ALL}, 'n_clicks'),
         prevent_initial_call=True
@@ -799,13 +798,13 @@ def register_callbacks(app):
         ctx = callback_context
         
         if not ctx.triggered:
-            return no_update, no_update
+            return no_update
         
         triggered = ctx.triggered[0]
         prop_id = triggered['prop_id']
         
         if triggered['value'] is None:
-            return no_update, no_update
+            return no_update
         
         import json
         try:
@@ -813,13 +812,13 @@ def register_callbacks(app):
             action_type = button_id['type']
             request_id = button_id['index']
         except:
-            return no_update, no_update
+            return no_update
         
         if action_type == 'approve-btn':
             result = approve_access_request(request_id)
             if result['success']:
                 temp_password = result.get('temp_password', '')
-                message = dbc.Alert([
+                return dbc.Alert([
                     html.I(className='fas fa-check-circle me-2'),
                     html.Div([
                         html.Strong('Solicitação aprovada com sucesso!'),
@@ -827,11 +826,13 @@ def register_callbacks(app):
                             'Senha temporária: ',
                             html.Code(temp_password, style={'fontSize': '1.1rem', 'backgroundColor': '#f8f9fa', 'padding': '5px 10px', 'borderRadius': '4px'})
                         ], className='mb-0 mt-2'),
-                        html.Small('Forneça esta senha ao usuário. Ele deverá alterá-la no primeiro acesso.', className='text-muted')
+                        html.Small('Forneça esta senha ao usuário. Ele deverá alterá-la no primeiro acesso.', className='text-muted'),
+                        html.Hr(),
+                        html.Small('Atualize a página ou troque de aba para ver a lista atualizada.', className='text-info')
                     ])
                 ], color='success', dismissable=True)
             else:
-                message = dbc.Alert([
+                return dbc.Alert([
                     html.I(className='fas fa-exclamation-circle me-2'),
                     result.get('message', 'Erro ao aprovar solicitação')
                 ], color='danger', dismissable=True)
@@ -839,98 +840,14 @@ def register_callbacks(app):
         elif action_type == 'reject-btn':
             result = reject_access_request(request_id)
             if result['success']:
-                message = dbc.Alert([
+                return dbc.Alert([
                     html.I(className='fas fa-check-circle me-2'),
-                    'Solicitação rejeitada.'
+                    'Solicitação rejeitada. Atualize a página ou troque de aba para ver a lista atualizada.'
                 ], color='warning', dismissable=True)
             else:
-                message = dbc.Alert([
+                return dbc.Alert([
                     html.I(className='fas fa-exclamation-circle me-2'),
                     result.get('message', 'Erro ao rejeitar solicitação')
                 ], color='danger', dismissable=True)
-        else:
-            return no_update, no_update
         
-        from flask_login import current_user
-        user_access_level = getattr(current_user, 'access_level', 'secretaria')
-        user_district = getattr(current_user, 'district', None)
-        
-        try:
-            df = get_pending_access_requests(user_access_level, user_district)
-            
-            if df.empty:
-                updated_content = dbc.Alert([
-                    html.I(className='fas fa-info-circle me-2'),
-                    'Não há solicitações de acesso pendentes.'
-                ], color='info')
-            else:
-                access_labels = {
-                    'secretaria': 'Secretaria de Saúde',
-                    'distrito': 'Gestor de Distrito',
-                    'unidade': 'Unidade de Saúde'
-                }
-                
-                rows = []
-                for _, row in df.iterrows():
-                    location = '-'
-                    if row['access_level'] == 'distrito':
-                        location = row['district'] or '-'
-                    elif row['access_level'] == 'unidade':
-                        location = row['health_unit'] or '-'
-                    
-                    rows.append(
-                        html.Tr([
-                            html.Td(row['name'], style={'fontSize': '0.85rem'}),
-                            html.Td(row['email'], style={'fontSize': '0.85rem'}),
-                            html.Td(row['matricula'], style={'fontSize': '0.85rem'}),
-                            html.Td(row['username'], style={'fontSize': '0.85rem'}),
-                            html.Td(access_labels.get(row['access_level'], row['access_level']), style={'fontSize': '0.85rem'}),
-                            html.Td(location, style={'fontSize': '0.85rem'}),
-                            html.Td(str(row['created_at'])[:10] if row['created_at'] else '-', style={'fontSize': '0.85rem'}),
-                            html.Td([
-                                dbc.Button(
-                                    html.I(className='fas fa-check'),
-                                    id={'type': 'approve-btn', 'index': row['id']},
-                                    color='success',
-                                    size='sm',
-                                    className='me-1',
-                                    title='Aprovar'
-                                ),
-                                dbc.Button(
-                                    html.I(className='fas fa-times'),
-                                    id={'type': 'reject-btn', 'index': row['id']},
-                                    color='danger',
-                                    size='sm',
-                                    title='Rejeitar'
-                                )
-                            ])
-                        ])
-                    )
-                
-                table = dbc.Table([
-                    html.Thead([
-                        html.Tr([
-                            html.Th('Nome'),
-                            html.Th('E-mail'),
-                            html.Th('Matrícula'),
-                            html.Th('Usuário'),
-                            html.Th('Tipo Acesso'),
-                            html.Th('Localização'),
-                            html.Th('Data'),
-                            html.Th('Ações')
-                        ], style={'backgroundColor': COLORS['primary'], 'color': 'white'})
-                    ]),
-                    html.Tbody(rows)
-                ], bordered=True, hover=True, responsive=True, striped=True, size='sm')
-                
-                updated_content = dbc.Card([
-                    dbc.CardBody([
-                        html.H6(f'{len(df)} solicitação(ões) pendente(s)', className='mb-3'),
-                        table,
-                        html.Div(id='access-action-result', className='mt-3')
-                    ])
-                ])
-            
-            return message, updated_content
-        except Exception as e:
-            return message, no_update
+        return no_update

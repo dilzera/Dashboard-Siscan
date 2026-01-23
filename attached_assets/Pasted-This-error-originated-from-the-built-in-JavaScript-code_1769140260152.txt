@@ -1,0 +1,22 @@
+This error originated from the built-in JavaScript code that runs Dash apps. Click to see the full stack trace or open your browser's console.)
+ReferenceError: A nonexistent object was used in an `Output` of a Dash callback. The id of this object is `access-requests-content` and the property is `children@bc2e9a502ccbc2de81b91e2fef4848a0b0d2a85c05723e975b9df829f20fe5c0`. The string ids in the current layout are: [url, data-masked-store, page-content, toggle-mask-btn, mask-icon, logout-button, unmask-modal, unmask-password-input, unmask-error-msg, unmask-cancel-btn, unmask-confirm-btn, year-filter, health-unit-filter, region-filter, age-range-filter, birads-filter, priority-filter, refresh-btn, last-update, last-update-display, kpi-mean-wait, kpi-median-wait, kpi-conformity, kpi-high-risk, main-tabs, chart-monthly-volume, chart-conformity-gauge, chart-conformity-by-unit, chart-birads-dist, chart-birads-pie, table-high-risk, outliers-summary, outliers-sort-field, outliers-sort-order, outliers-sort-btn, outliers-table, indicator-1-card, indicator-2-charts, indicator-3-card, indicator-4-card, indicator-5-card, indicator-6-card, indicator-7-card, indicator-8-card, indicator-9-card, indicator-10-card, navigation-stats, navigation-table, patient-data-name-filter, patient-data-sex-filter, patient-data-birads-filter, patient-data-page-size, patient-data-search-btn, patient-data-count, patient-data-current-page, patient-data-table, patient-data-prev-btn, patient-data-page-info, patient-data-next-btn, unit-analysis-selector, unit-analysis-btn, unit-kpis, download-busca-ativa-csv, unit-priority-summary, unit-priority-table, unit-demographics-chart, unit-agility-chart, unit-wait-time-chart, unit-follow-up-count, unit-follow-up-table, linkage-total, linkage-cpf, linkage-telefone, linkage-nome-esaude, linkage-apac, linkage-nomes-conferem, linkage-duplicados, linkage-search-nome, linkage-search-cpf, linkage-search-cartao, linkage-search-button, linkage-count-display, linkage-table-container, linkage-pagination, refresh-access-requests-btn, access-requests-table, approve-modal, approve-temp-password, approve-cancel-btn, approve-confirm-btn, reject-modal, reject-reason, reject-cancel-btn, reject-confirm-btn, selected-request-id, user-access-level-store, user-district-store, user-health-unit-store, access-action-result]
+
+    at refErr (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:543:9)
+
+    at executeCallback (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:1013:9)
+
+    at https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:2546:91
+
+    at _map (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:50263:19)
+
+    at map (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:51499:74)
+
+    at https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:49562:15
+
+    at f2 (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:49387:14)
+
+    at _callee2$ (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:2545:320)
+
+    at tryCatch (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:2462:1062)
+
+    at Generator.<anonymous> (https://b522f723-9ff0-4be1-8aa8-ddf19925b628-00-2at0s291fbvcy.janeway.replit.dev/_dash-component-suites/dash/dash-renderer/build/dash_renderer.v2_18_2m1764702259.dev.js:2462:3006)
