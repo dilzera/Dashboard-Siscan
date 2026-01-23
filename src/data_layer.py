@@ -226,15 +226,61 @@ def get_high_risk_cases_sql(year=None, health_unit=None, region=None, conformity
     SELECT 
         patient_unique_id as patient_id,
         paciente__nome as patient_name,
+        paciente__cartao_sus as patient_cns,
+        paciente__telefone as patient_phone,
         unidade_de_saude__nome as health_unit,
         birads_max as birads_category,
         wait_days,
         conformity_status,
-        unidade_de_saude__data_da_solicitacao as request_date
+        unidade_de_saude__data_da_solicitacao as request_date,
+        prestador_de_servico__data_da_realizacao as completion_date
     FROM exam_records
     {where_clause}
     {"AND" if where_clause else "WHERE"} birads_max IN ('4', '5')
     ORDER BY wait_days DESC NULLS LAST
+    LIMIT :limit_val
+    """
+    params['limit_val'] = limit
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+@cached(ttl=120)
+def get_other_birads_cases_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads_filter=None, limit=50):
+    where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range)
+    
+    birads_condition = "birads_max IN ('0', '1', '2', '3')"
+    if birads_filter and birads_filter in ['0', '1', '2', '3']:
+        birads_condition = f"birads_max = '{birads_filter}'"
+    
+    query = f"""
+    SELECT 
+        patient_unique_id as patient_id,
+        paciente__nome as patient_name,
+        paciente__cartao_sus as patient_cns,
+        paciente__telefone as patient_phone,
+        unidade_de_saude__nome as health_unit,
+        birads_max as birads_category,
+        wait_days,
+        conformity_status,
+        unidade_de_saude__data_da_solicitacao as request_date,
+        prestador_de_servico__data_da_realizacao as completion_date
+    FROM exam_records
+    {where_clause}
+    {"AND" if where_clause else "WHERE"} {birads_condition}
+    ORDER BY 
+        CASE birads_max 
+            WHEN '0' THEN 1 
+            WHEN '3' THEN 2 
+            WHEN '2' THEN 3 
+            WHEN '1' THEN 4 
+        END,
+        wait_days DESC NULLS LAST
     LIMIT :limit_val
     """
     params['limit_val'] = limit

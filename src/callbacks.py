@@ -7,6 +7,7 @@ from src.cache import clear_cache
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
     get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
+    get_other_birads_cases_sql,
     get_outliers_audit_sql, get_outliers_summary_sql,
     get_patient_navigation_summary_sql, get_patient_navigation_list_sql, get_patient_navigation_stats_sql,
     get_patient_data_list_sql, get_patient_data_count_sql,
@@ -26,7 +27,7 @@ from src.components.charts import (
     create_empty_figure
 )
 from src.components.tables import (
-    create_high_risk_table, create_outliers_table, create_outliers_summary_cards,
+    create_high_risk_table, create_other_birads_table, create_outliers_table, create_outliers_summary_cards,
     create_patient_navigation_stats_cards, create_patient_navigation_table,
     create_patient_data_table, create_follow_up_overdue_table, create_unit_kpi_cards,
     create_priority_summary_cards, create_priority_table,
@@ -103,6 +104,9 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
     
     table_risk = create_high_risk_table(high_risk_df, is_masked)
     
+    other_birads_df = get_other_birads_cases_sql(year, health_unit, region, age_range=age_range)
+    table_other_birads = create_other_birads_table(other_birads_df, is_masked)
+    
     outliers_df = get_outliers_audit_sql(year, health_unit, region)
     outliers_summary_df = get_outliers_summary_sql(year, health_unit, region)
     outliers_table = create_outliers_table(outliers_df, is_masked)
@@ -126,6 +130,7 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
         'chart_birads': chart_birads,
         'chart_birads_pie': chart_birads_pie,
         'table_risk': table_risk,
+        'table_other_birads': table_other_birads,
         'outliers_table': outliers_table,
         'outliers_summary': outliers_summary,
         'navigation_stats': navigation_stats_cards,
@@ -146,6 +151,7 @@ def register_callbacks(app):
         Output('chart-birads-dist', 'children'),
         Output('chart-birads-pie', 'children'),
         Output('table-high-risk', 'children'),
+        Output('table-other-birads', 'children'),
         Output('outliers-summary', 'children'),
         Output('outliers-table', 'children'),
         Output('navigation-stats', 'children'),
@@ -179,6 +185,7 @@ def register_callbacks(app):
                 content['chart_birads'],
                 content['chart_birads_pie'],
                 content['table_risk'],
+                content['table_other_birads'],
                 content['outliers_summary'],
                 content['outliers_table'],
                 content['navigation_stats'],
@@ -195,7 +202,7 @@ def register_callbacks(app):
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_card, error_card,
-                error_card, error_card, error_message
+                error_card, error_card, error_card, error_message
             )
     
     @app.callback(

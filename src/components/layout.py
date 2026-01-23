@@ -660,7 +660,10 @@ def create_audit_tab(initial_content=None):
                 dbc.Col(html.Div(initial_content['chart_birads_pie'], id='chart-birads-pie'), lg=6, className='mb-4')
             ]),
             dbc.Row([
-                dbc.Col(html.Div(initial_content['table_risk'], id='table-high-risk'), lg=12, className='mb-4')
+                dbc.Col(html.Div(initial_content.get('table_risk', ''), id='table-high-risk'), lg=12, className='mb-4')
+            ]),
+            dbc.Row([
+                dbc.Col(html.Div(initial_content.get('table_other_birads', ''), id='table-other-birads'), lg=12, className='mb-4')
             ])
         ])
     return html.Div([
@@ -675,6 +678,11 @@ def create_audit_tab(initial_content=None):
         dbc.Row([
             dbc.Col([
                 html.Div(id='table-high-risk')
+            ], lg=12, className='mb-4')
+        ]),
+        dbc.Row([
+            dbc.Col([
+                html.Div(id='table-other-birads')
             ], lg=12, className='mb-4')
         ])
     ])
