@@ -141,6 +141,22 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
 
 def register_callbacks(app):
     @app.callback(
+        [Output('main-tabs', 'active_tab'),
+         Output('year-filter', 'value'),
+         Output('health-unit-filter', 'value'),
+         Output('region-filter', 'value'),
+         Output('age-range-filter', 'value'),
+         Output('birads-filter', 'value'),
+         Output('priority-filter', 'value')],
+        [Input('header-title-link', 'n_clicks')],
+        prevent_initial_call=True
+    )
+    def go_to_overview_on_title_click(n_clicks):
+        if n_clicks:
+            return 'tab-overview', None, None, None, None, None, None
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+    
+    @app.callback(
         Output('kpi-mean-wait', 'children'),
         Output('kpi-median-wait', 'children'),
         Output('kpi-conformity', 'children'),
@@ -604,6 +620,36 @@ def register_callbacks(app):
             )
         except Exception as e:
             print(f"Erro ao carregar resumo linkage: {e}")
+            return '0', '0', '0', '0', '0', '0', '0'
+    
+    @app.callback(
+        [Output('comparison-exam-records', 'children'),
+         Output('comparison-termo-linkage', 'children'),
+         Output('comparison-unique-exam', 'children'),
+         Output('comparison-unique-termo', 'children'),
+         Output('comparison-common-cns', 'children'),
+         Output('comparison-only-exam', 'children'),
+         Output('comparison-only-termo', 'children')],
+        [Input('main-tabs', 'active_tab')]
+    )
+    def update_database_comparison(active_tab):
+        if active_tab != 'tab-linkage':
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        
+        try:
+            from src.data_layer import get_database_comparison_sql
+            comparison = get_database_comparison_sql()
+            return (
+                f"{comparison['total_exam_records']:,}".replace(',', '.'),
+                f"{comparison['total_termo_linkage']:,}".replace(',', '.'),
+                f"{comparison['unique_cns_exam']:,}".replace(',', '.'),
+                f"{comparison['unique_cns_termo']:,}".replace(',', '.'),
+                f"{comparison['common_cns']:,}".replace(',', '.'),
+                f"{comparison['only_exam_cns']:,}".replace(',', '.'),
+                f"{comparison['only_termo_cns']:,}".replace(',', '.')
+            )
+        except Exception as e:
+            print(f"Erro ao carregar comparação: {e}")
             return '0', '0', '0', '0', '0', '0', '0'
     
     @app.callback(

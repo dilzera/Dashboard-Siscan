@@ -439,7 +439,7 @@ def create_header(user_name=None):
             dbc.Container([
                 dbc.Row([
                     dbc.Col([
-                        html.Div([
+                        html.A([
                             html.I(className='fas fa-ribbon me-2', style={'color': '#ff69b4', 'fontSize': '1.3rem'}),
                             html.Span(
                                 "Central Inteligente",
@@ -453,7 +453,7 @@ def create_header(user_name=None):
                                 " - CURITIBA",
                                 style={'color': '#ff69b4', 'fontWeight': '700', 'fontSize': '1.3rem', 'marginLeft': '5px'}
                             ),
-                        ], style={'display': 'flex', 'alignItems': 'center'})
+                        ], id='header-title-link', style={'display': 'flex', 'alignItems': 'center', 'cursor': 'pointer', 'textDecoration': 'none'})
                     ], width='auto'),
                     dbc.Col(user_section, width='auto', className='ms-auto')
                 ], align='center', justify='between', className='w-100')
@@ -1185,6 +1185,117 @@ def create_linkage_tab(initial_content=None):
         
         html.Div([
             html.H6([
+                html.I(className='fas fa-search me-2'),
+                'Pesquisa de Pacientes'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Label('Buscar por Nome', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Input(
+                        id='linkage-search-nome',
+                        type='text',
+                        placeholder='Digite o nome...',
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=4, className='mb-2'),
+                dbc.Col([
+                    dbc.Label('Buscar por CPF', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Input(
+                        id='linkage-search-cpf',
+                        type='text',
+                        placeholder='Digite o CPF...',
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=3, className='mb-2'),
+                dbc.Col([
+                    dbc.Label('Buscar por Cartao SUS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Input(
+                        id='linkage-search-cartao',
+                        type='text',
+                        placeholder='Digite o Cartao SUS...',
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=3, className='mb-2'),
+                dbc.Col([
+                    dbc.Label('\u00a0', className='d-block mb-1', style={'fontSize': '0.85rem'}),
+                    dbc.Button(
+                        [html.I(className='fas fa-search me-2'), 'Pesquisar'],
+                        id='linkage-search-button',
+                        color='primary',
+                        className='w-100',
+                        style={'backgroundColor': COLORS['primary'], 'borderColor': COLORS['primary']}
+                    )
+                ], md=2, className='mb-2')
+            ])
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-database me-2'),
+                'Comparação entre Bases de Dados'
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Registros exam_records', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='comparison-exam-records', children='...', style={'color': COLORS['primary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('Registros termo_linkage', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='comparison-termo-linkage', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('CNS únicos exam_records', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='comparison-unique-exam', children='...', style={'color': COLORS['primary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('CNS únicos termo_linkage', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='comparison-unique-termo', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('CNS em ambas tabelas', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='comparison-common-cns', children='...', style={'color': COLORS['success'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm', style={'borderLeft': f'3px solid {COLORS["success"]}'})
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('CNS só em exam_records', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='comparison-only-exam', children='...', style={'color': COLORS['warning'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3'),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.H6('CNS só em termo_linkage', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H4(id='comparison-only-termo', children='...', style={'color': COLORS['accent'], 'fontWeight': '700'})
+                        ], className='text-center p-3')
+                    ], className='border-0 shadow-sm')
+                ], lg=2, md=4, sm=6, className='mb-3')
+            ])
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.H6([
                 html.I(className='fas fa-chart-pie me-2'),
                 'Resumo de Qualidade dos Dados'
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
@@ -1245,52 +1356,6 @@ def create_linkage_tab(initial_content=None):
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm', style={'borderLeft': f'3px solid {COLORS["warning"]}'})
                 ], lg=2, md=4, sm=6, className='mb-3')
-            ])
-        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
-        
-        html.Div([
-            html.H6([
-                html.I(className='fas fa-search me-2'),
-                'Pesquisa de Pacientes'
-            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
-            dbc.Row([
-                dbc.Col([
-                    dbc.Label('Buscar por Nome', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
-                    dbc.Input(
-                        id='linkage-search-nome',
-                        type='text',
-                        placeholder='Digite o nome...',
-                        style={'fontSize': '0.9rem'}
-                    )
-                ], md=4, className='mb-2'),
-                dbc.Col([
-                    dbc.Label('Buscar por CPF', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
-                    dbc.Input(
-                        id='linkage-search-cpf',
-                        type='text',
-                        placeholder='Digite o CPF...',
-                        style={'fontSize': '0.9rem'}
-                    )
-                ], md=3, className='mb-2'),
-                dbc.Col([
-                    dbc.Label('Buscar por Cartao SUS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
-                    dbc.Input(
-                        id='linkage-search-cartao',
-                        type='text',
-                        placeholder='Digite o Cartao SUS...',
-                        style={'fontSize': '0.9rem'}
-                    )
-                ], md=3, className='mb-2'),
-                dbc.Col([
-                    dbc.Label('\u00a0', className='d-block mb-1', style={'fontSize': '0.85rem'}),
-                    dbc.Button(
-                        [html.I(className='fas fa-search me-2'), 'Pesquisar'],
-                        id='linkage-search-button',
-                        color='primary',
-                        className='w-100',
-                        style={'backgroundColor': COLORS['primary'], 'borderColor': COLORS['primary']}
-                    )
-                ], md=2, className='mb-2')
             ])
         ], className='mb-4 p-3 bg-white rounded shadow-sm'),
         

@@ -1666,6 +1666,55 @@ def get_termo_linkage_summary_sql():
     }
 
 
+def get_database_comparison_sql():
+    query = """
+    WITH 
+    exam_cns AS (
+        SELECT DISTINCT paciente__cartao_sus as cns 
+        FROM exam_records 
+        WHERE paciente__cartao_sus IS NOT NULL AND paciente__cartao_sus != ''
+    ),
+    termo_cns AS (
+        SELECT DISTINCT cartao_sus as cns 
+        FROM termo_linkage 
+        WHERE cartao_sus IS NOT NULL AND cartao_sus != ''
+    )
+    SELECT 
+        (SELECT COUNT(*) FROM exam_records) as total_exam_records,
+        (SELECT COUNT(*) FROM termo_linkage) as total_termo_linkage,
+        (SELECT COUNT(*) FROM exam_cns) as unique_cns_exam,
+        (SELECT COUNT(*) FROM termo_cns) as unique_cns_termo,
+        (SELECT COUNT(*) FROM exam_cns e INNER JOIN termo_cns t ON e.cns = t.cns) as common_cns,
+        (SELECT COUNT(*) FROM exam_cns e LEFT JOIN termo_cns t ON e.cns = t.cns WHERE t.cns IS NULL) as only_exam_cns,
+        (SELECT COUNT(*) FROM termo_cns t LEFT JOIN exam_cns e ON t.cns = e.cns WHERE e.cns IS NULL) as only_termo_cns
+    """
+    
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        row = result.fetchone()
+    
+    if row:
+        return {
+            'total_exam_records': int(row[0]) if row[0] else 0,
+            'total_termo_linkage': int(row[1]) if row[1] else 0,
+            'unique_cns_exam': int(row[2]) if row[2] else 0,
+            'unique_cns_termo': int(row[3]) if row[3] else 0,
+            'common_cns': int(row[4]) if row[4] else 0,
+            'only_exam_cns': int(row[5]) if row[5] else 0,
+            'only_termo_cns': int(row[6]) if row[6] else 0
+        }
+    return {
+        'total_exam_records': 0,
+        'total_termo_linkage': 0,
+        'unique_cns_exam': 0,
+        'unique_cns_termo': 0,
+        'common_cns': 0,
+        'only_exam_cns': 0,
+        'only_termo_cns': 0
+    }
+
+
 def get_termo_linkage_data_sql(search_nome=None, search_cpf=None, search_cartao_sus=None, limit=50, offset=0):
     conditions = []
     params = {'lim': limit, 'off': offset}
