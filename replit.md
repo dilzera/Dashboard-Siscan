@@ -36,15 +36,20 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
 - **Prioritization System:** Implemented within the Health Unit tab, categorizing cases into 5 levels based on BI-RADS (CRITICAL, HIGH, MEDIUM, MONITORING, ROUTINE) with associated SLAs. Includes summary cards and a prioritized patient queue.
 - **Data Export:** "Encaminhar para busca ativa" button for exporting high-risk patients (BI-RADS 4/5) to CSV.
 - **Responsive Design:** Adapts layout for desktop and mobile.
-- **Manual Data Update:** "Atualizar Dados" button for refreshing data.
+- **Manual Data Update:** "Atualizar Dados" button for refreshing data and clearing cache.
 - **Data Filtering:** Restricted to 2023+ for performance metrics; outliers excluded from primary performance graphs but available for audit.
 - **Data Masking System:** Password-protected toggle for presentations. When enabled (default), masks patient names (first/last initials only), CNS (last 4 digits), CPF (last 2 digits), and phone numbers (last 4 digits). Requires admin password to unmask data. State persists across tab changes within session.
 - **Manchester Protocol Colors:** BI-RADS and Priority filters display visual color indicators following Manchester Protocol: Red (#dc3545) for critical, Orange (#fd7e14) for high, Yellow (#ffc107) for medium, Green (#28a745) for monitoring, Blue (#17a2b8) for routine.
 - **Duplicate Detection:** Interoperability data highlights patients with duplicate CNS entries using yellow background and badge showing count.
 - **Intelligent Sorting:** Patient navigation sorted by BI-RADS evolution (prioritizes patients showing improvement when no filters applied).
 
+**Performance Optimizations:**
+- **In-Memory Cache:** TTL-based caching (2 minutes for queries, 10 minutes for static lists) via `src/cache.py` decorator.
+- **SQL Optimized Views:** Materialized views script in `scripts/create_optimized_views.sql` for pre-aggregated data.
+- **Cache Clear:** "Atualizar Dados" button clears cache to force fresh data load.
+
 **System Design Choices:**
-- **Modular Architecture:** Organized into `src/` directory with separate files for configuration, data models, data access, callbacks, and UI components (cards, charts, layout, tables).
+- **Modular Architecture:** Organized into `src/` directory with separate files for configuration, data models, data access, callbacks, cache, and UI components (cards, charts, layout, tables).
 - **Database Schema (`exam_records`):** Fields include `patient_id`, `health_unit`, `region`, `request_date`, `completion_date`, `wait_days`, `birads_category`, `conformity_status`, `year`, `month`.
 - **Testing:** Comprehensive test suite with 71 tests covering database connection, filters, KPIs, charts, outliers, navigation, data integrity, error handling, authentication, and security.
 
