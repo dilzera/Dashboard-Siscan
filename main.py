@@ -51,9 +51,10 @@ def check_session_timeout():
                 return redirect('/login?expired=1')
     
     excluded_paths = ['/login', '/logout', '/solicitar-acesso', '/recuperar-senha', '/redefinir-senha/', '/_dash-', '/_reload-hash', '/assets/', '/favicon', '/health']
+    public_paths = ['/solicitar-acesso', '/recuperar-senha', '/redefinir-senha/']
     if not any(request.path.startswith(p) for p in excluded_paths):
         if not current_user.is_authenticated:
-            if request.path not in ['/', ''] and not request.path.endswith(('.ico', '.png', '.jpg', '.css', '.js', '.map')):
+            if request.path not in ['/', ''] and not request.path.endswith(('.ico', '.png', '.jpg', '.css', '.js', '.map')) and not any(request.path.startswith(p) for p in public_paths):
                 session['next_url'] = request.path
             elif 'next_url' not in session:
                 session['next_url'] = '/'
@@ -393,6 +394,9 @@ def handle_login(n_clicks, username, password):
             session.permanent = True
             session['login_time'] = datetime.utcnow().isoformat()
             next_url = session.pop('next_url', '/')
+            public_paths = ['/solicitar-acesso', '/recuperar-senha', '/redefinir-senha/', '/login', '/logout']
+            if any(next_url.startswith(p) for p in public_paths):
+                next_url = '/'
             return next_url, '', {'display': 'none'}
         else:
             return dash.no_update, 'Usuário ou senha incorretos.', {'display': 'block', 'color': COLORS['danger'], 'marginTop': '10px', 'fontWeight': '500'}
