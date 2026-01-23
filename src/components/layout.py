@@ -320,7 +320,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
+                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     html.Label('Unidade de Saúde', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -333,7 +333,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         searchable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
+                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     html.Label('Distrito Sanitário', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -345,7 +345,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
+                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     html.Label('Faixa Etária', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -362,7 +362,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
+                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     html.Label('BI-RADS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -391,7 +391,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                             html.Span('● ', style={'color': '#17a2b8'}), 'Benigno'
                         ], style={'fontSize': '0.7rem', 'color': '#666'})
                     ], className='mt-1')
-                ], lg=2, md=4, sm=6, className='mb-2 mb-lg-0'),
+                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     html.Label('Prioridade', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -409,8 +409,8 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6)
-            ]),
+                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0')
+            ], className='g-3'),
             
             dbc.Row([
                 dbc.Col([
