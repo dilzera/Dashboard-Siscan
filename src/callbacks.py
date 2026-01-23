@@ -814,8 +814,11 @@ def register_callbacks(app):
         except:
             return no_update
         
+        from flask_login import current_user
+        reviewed_by = getattr(current_user, 'username', 'admin')
+        
         if action_type == 'approve-btn':
-            result = approve_access_request(request_id)
+            result = approve_access_request(request_id, reviewed_by)
             if result['success']:
                 temp_password = result.get('temp_password', '')
                 return dbc.Alert([
