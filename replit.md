@@ -20,6 +20,12 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
 
 **Technical Implementations & Features:**
 - **Authentication:** Mandatory via Flask-Login with configurable admin user (`admin`), 1-hour session timeout, encrypted passwords (werkzeug/scrypt), automatic redirection to login, and URL preservation post-login.
+- **Hierarchical Access Control:** Three-level access system:
+    - **Secretaria de Saúde:** Full access to all data, districts, and units. Can approve/reject access requests for all levels.
+    - **Gestor de Distrito:** Access restricted to their assigned district. Can approve/reject access requests for their district.
+    - **Unidade de Saúde/Prestador:** Access restricted to their assigned health unit only.
+- **Self-Service Access Request:** Users can request access via the login page. Requests are stored with status (pending/approved/rejected) and processed by Secretaria or Distrito managers.
+- **Access Management Tab:** Available only for Secretaria and Distrito managers, displaying pending access requests with approve/reject functionality.
 - **KPIs:** Real-time display of average/median wait times, conformity rates, and high-risk cases.
 - **Dynamic Filters:** Year, Health Unit, Sanitary District, Conformity Status.
 - **Interactive Visualizations:** Line, bar, pie, and gauge charts using Plotly.
