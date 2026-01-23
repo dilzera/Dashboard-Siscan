@@ -495,6 +495,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         placeholder='Todas as unidades',
                         clearable=True,
                         searchable=True,
+                        optionHeight=45,
                         style={'fontSize': '0.9rem'}
                     )
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
