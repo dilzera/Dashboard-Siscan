@@ -28,6 +28,9 @@ class User(Base, UserMixin):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime)
+    must_change_password = Column(Boolean, default=False)
+    password_reset_token = Column(String(100), nullable=True)
+    password_reset_expires = Column(DateTime, nullable=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

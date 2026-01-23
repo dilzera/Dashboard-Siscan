@@ -202,6 +202,15 @@ def create_login_layout(colors, session_expired=False):
                              style={'color': colors['text_muted'], 'fontSize': '0.85rem'})
                 ], className='text-center mt-4'),
                 
+                html.Div([
+                    html.A(
+                        'Esqueci minha senha',
+                        id='forgot-password-link',
+                        href='/recuperar-senha',
+                        style={'color': colors['primary'], 'fontSize': '0.85rem', 'textDecoration': 'none', 'cursor': 'pointer'}
+                    )
+                ], className='text-center mt-2'),
+                
                 html.Hr(style={'margin': '20px 0'}),
                 
                 html.Div([
@@ -215,6 +224,161 @@ def create_login_layout(colors, session_expired=False):
                         style={'borderRadius': '5px'}
                     )
                 ], className='text-center')
+            ], className='login-card')
+        ], className='login-container')
+    ])
+
+
+def create_change_password_layout(colors, user_id=None, username=None):
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.I(className='fas fa-key', style={'fontSize': '2.5rem', 'color': colors['primary']}),
+                    html.H2('Alterar Senha', style={'color': colors['primary'], 'marginTop': '15px'}),
+                    html.P('Sua senha é temporária. Por favor, defina uma nova senha para continuar.', 
+                           style={'color': colors['text_muted'], 'fontSize': '0.9rem'})
+                ], className='text-center mb-4'),
+                
+                html.Div(id='change-password-message'),
+                
+                dcc.Store(id='change-password-user-id', data=user_id),
+                
+                dbc.Label('Nova Senha *', className='fw-bold'),
+                dbc.Input(id='new-password', type='password', placeholder='Digite a nova senha', className='mb-3'),
+                
+                dbc.Label('Confirmar Nova Senha *', className='fw-bold'),
+                dbc.Input(id='confirm-new-password', type='password', placeholder='Confirme a nova senha', className='mb-3'),
+                
+                html.Small([
+                    html.I(className='fas fa-info-circle me-1'),
+                    'A senha deve ter pelo menos 8 caracteres'
+                ], style={'color': colors['text_muted'], 'fontSize': '0.8rem'}),
+                
+                dbc.Button(
+                    [html.I(className='fas fa-save me-2'), 'Salvar Nova Senha'],
+                    id='save-new-password-btn',
+                    color='primary',
+                    className='w-100 mt-4',
+                    style={
+                        'backgroundColor': colors['primary'],
+                        'borderColor': colors['primary'],
+                        'padding': '12px',
+                        'fontSize': '1rem',
+                        'fontWeight': '600',
+                        'borderRadius': '5px'
+                    }
+                )
+            ], className='login-card')
+        ], className='login-container')
+    ])
+
+
+def create_forgot_password_layout(colors):
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.I(className='fas fa-unlock-alt', style={'fontSize': '2.5rem', 'color': colors['primary']}),
+                    html.H2('Recuperar Senha', style={'color': colors['primary'], 'marginTop': '15px'}),
+                    html.P('Informe seu e-mail cadastrado para receber as instruções de recuperação.', 
+                           style={'color': colors['text_muted'], 'fontSize': '0.9rem'})
+                ], className='text-center mb-4'),
+                
+                html.Div(id='forgot-password-message'),
+                
+                dbc.Label('E-mail Cadastrado *', className='fw-bold'),
+                dbc.Input(id='forgot-email', type='email', placeholder='seu.email@curitiba.pr.gov.br', className='mb-3'),
+                
+                dbc.Button(
+                    [html.I(className='fas fa-paper-plane me-2'), 'Enviar'],
+                    id='send-reset-email-btn',
+                    color='primary',
+                    className='w-100 mt-3',
+                    style={
+                        'backgroundColor': colors['primary'],
+                        'borderColor': colors['primary'],
+                        'padding': '12px',
+                        'fontSize': '1rem',
+                        'fontWeight': '600',
+                        'borderRadius': '5px'
+                    }
+                ),
+                
+                html.Hr(style={'margin': '20px 0'}),
+                
+                dbc.Button(
+                    [html.I(className='fas fa-arrow-left me-2'), 'Voltar ao Login'],
+                    id='back-to-login-from-forgot-btn',
+                    color='secondary',
+                    outline=True,
+                    className='w-100',
+                    href='/login',
+                    style={'borderRadius': '5px'}
+                )
+            ], className='login-card')
+        ], className='login-container')
+    ])
+
+
+def create_reset_password_layout(colors, token=None, valid=False, username=None):
+    if not valid:
+        return html.Div([
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.I(className='fas fa-exclamation-triangle', style={'fontSize': '2.5rem', 'color': '#dc3545'}),
+                        html.H2('Link Inválido', style={'color': '#dc3545', 'marginTop': '15px'}),
+                        html.P('Este link de recuperação de senha é inválido ou expirou.', 
+                               style={'color': colors['text_muted'], 'fontSize': '0.9rem'})
+                    ], className='text-center mb-4'),
+                    
+                    dbc.Button(
+                        [html.I(className='fas fa-arrow-left me-2'), 'Voltar ao Login'],
+                        color='secondary',
+                        outline=True,
+                        className='w-100',
+                        href='/login',
+                        style={'borderRadius': '5px'}
+                    )
+                ], className='login-card')
+            ], className='login-container')
+        ])
+    
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.I(className='fas fa-key', style={'fontSize': '2.5rem', 'color': colors['primary']}),
+                    html.H2('Nova Senha', style={'color': colors['primary'], 'marginTop': '15px'}),
+                    html.P(f'Defina uma nova senha para {username}', 
+                           style={'color': colors['text_muted'], 'fontSize': '0.9rem'})
+                ], className='text-center mb-4'),
+                
+                html.Div(id='reset-password-message'),
+                
+                dcc.Store(id='reset-token-store', data=token),
+                
+                dbc.Label('Nova Senha *', className='fw-bold'),
+                dbc.Input(id='reset-new-password', type='password', placeholder='Digite a nova senha', className='mb-3'),
+                
+                dbc.Label('Confirmar Nova Senha *', className='fw-bold'),
+                dbc.Input(id='reset-confirm-password', type='password', placeholder='Confirme a nova senha', className='mb-3'),
+                
+                dbc.Button(
+                    [html.I(className='fas fa-save me-2'), 'Salvar Nova Senha'],
+                    id='save-reset-password-btn',
+                    color='primary',
+                    className='w-100 mt-3',
+                    style={
+                        'backgroundColor': colors['primary'],
+                        'borderColor': colors['primary'],
+                        'padding': '12px',
+                        'fontSize': '1rem',
+                        'fontWeight': '600',
+                        'borderRadius': '5px'
+                    }
+                )
             ], className='login-card')
         ], className='login-container')
     ])

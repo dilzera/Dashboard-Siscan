@@ -1941,21 +1941,33 @@ def create_access_request(name, email, phone, cpf, matricula, username, access_l
     
     session = get_session()
     try:
-        existing = session.execute(
-            text("SELECT id FROM access_requests WHERE username = :username AND status = 'pending'"),
-            {'username': username}
-        ).fetchone()
+        duplicates = []
         
-        if existing:
-            return {'success': False, 'message': 'Já existe uma solicitação pendente para este usuário.'}
+        if session.execute(text("SELECT id FROM access_requests WHERE username = :val AND status = 'pending'"), {'val': username}).fetchone():
+            duplicates.append('Nome de usuário (solicitação pendente)')
+        if session.execute(text("SELECT id FROM users WHERE username = :val AND is_active = true"), {'val': username}).fetchone():
+            duplicates.append('Nome de usuário (usuário ativo)')
         
-        existing_user = session.execute(
-            text("SELECT id FROM users WHERE username = :username"),
-            {'username': username}
-        ).fetchone()
+        if cpf:
+            if session.execute(text("SELECT id FROM access_requests WHERE cpf = :val AND status = 'pending'"), {'val': cpf}).fetchone():
+                duplicates.append('CPF (solicitação pendente)')
+            if session.execute(text("SELECT id FROM users WHERE cpf = :val AND is_active = true"), {'val': cpf}).fetchone():
+                duplicates.append('CPF (usuário ativo)')
         
-        if existing_user:
-            return {'success': False, 'message': 'Este nome de usuário já está em uso.'}
+        if email:
+            if session.execute(text("SELECT id FROM access_requests WHERE email = :val AND status = 'pending'"), {'val': email}).fetchone():
+                duplicates.append('E-mail (solicitação pendente)')
+            if session.execute(text("SELECT id FROM users WHERE email = :val AND is_active = true"), {'val': email}).fetchone():
+                duplicates.append('E-mail (usuário ativo)')
+        
+        if matricula:
+            if session.execute(text("SELECT id FROM access_requests WHERE matricula = :val AND status = 'pending'"), {'val': matricula}).fetchone():
+                duplicates.append('Matrícula (solicitação pendente)')
+            if session.execute(text("SELECT id FROM users WHERE matricula = :val AND is_active = true"), {'val': matricula}).fetchone():
+                duplicates.append('Matrícula (usuário ativo)')
+        
+        if duplicates:
+            return {'success': False, 'message': f'Dados duplicados encontrados: {", ".join(duplicates)}'}
         
         session.execute(
             text("""
@@ -2009,8 +2021,14 @@ def get_pending_access_requests(user_access_level=None, user_district=None):
     return df
 
 
-def approve_access_request(request_id, reviewed_by, temp_password):
+def approve_access_request(request_id, reviewed_by, temp_password=None):
     from werkzeug.security import generate_password_hash
+    import secrets
+    import string
+    
+    if not temp_password:
+        chars = string.ascii_letters + string.digits
+        temp_password = ''.join(secrets.choice(chars) for _ in range(12))
     
     engine = get_engine()
     
@@ -2028,8 +2046,8 @@ def approve_access_request(request_id, reviewed_by, temp_password):
             
             conn.execute(
                 text("""
-                    INSERT INTO users (username, password_hash, name, role, access_level, district, health_unit, email, phone, cpf, matricula, is_active, created_at)
-                    VALUES (:username, :password_hash, :name, 'viewer', :access_level, :district, :health_unit, :email, :phone, :cpf, :matricula, true, NOW())
+                    INSERT INTO users (username, password_hash, name, role, access_level, district, health_unit, email, phone, cpf, matricula, is_active, created_at, must_change_password)
+                    VALUES (:username, :password_hash, :name, 'viewer', :access_level, :district, :health_unit, :email, :phone, :cpf, :matricula, true, NOW(), true)
                 """),
                 {
                     'username': request.username,
@@ -2055,7 +2073,13 @@ def approve_access_request(request_id, reviewed_by, temp_password):
             )
             
             conn.commit()
-            return {'success': True, 'message': f'Acesso aprovado! Usuário: {request.username}'}
+            return {
+                'success': True, 
+                'message': f'Acesso aprovado! Usuário: {request.username}',
+                'temp_password': temp_password,
+                'username': request.username,
+                'email': request.email
+            }
         except Exception as e:
             conn.rollback()
             return {'success': False, 'message': f'Erro ao aprovar: {str(e)}'}
@@ -2107,3 +2131,126 @@ def get_district_for_unit(health_unit):
         result = conn.execute(text(query), {'health_unit': health_unit})
         row = result.fetchone()
     return row[0] if row else None
+
+
+def create_password_reset_token(email):
+    import secrets
+    from datetime import datetime, timedelta
+    
+    engine = get_engine()
+    
+    with engine.connect() as conn:
+        user = conn.execute(
+            text("SELECT id, username, email FROM users WHERE email = :email AND is_active = true"),
+            {'email': email}
+        ).fetchone()
+        
+        if not user:
+            return {'success': False, 'message': 'E-mail não encontrado.'}
+        
+        token = secrets.token_urlsafe(32)
+        expires = datetime.utcnow() + timedelta(hours=2)
+        
+        try:
+            conn.execute(
+                text("""
+                    UPDATE users 
+                    SET password_reset_token = :token, password_reset_expires = :expires
+                    WHERE id = :id
+                """),
+                {'id': user.id, 'token': token, 'expires': expires}
+            )
+            conn.commit()
+            return {
+                'success': True,
+                'token': token,
+                'username': user.username,
+                'email': user.email
+            }
+        except Exception as e:
+            conn.rollback()
+            return {'success': False, 'message': f'Erro ao gerar token: {str(e)}'}
+
+
+def validate_reset_token(token):
+    from datetime import datetime
+    
+    engine = get_engine()
+    
+    with engine.connect() as conn:
+        user = conn.execute(
+            text("""
+                SELECT id, username FROM users 
+                WHERE password_reset_token = :token 
+                AND password_reset_expires > :now 
+                AND is_active = true
+            """),
+            {'token': token, 'now': datetime.utcnow()}
+        ).fetchone()
+        
+        if user:
+            return {'valid': True, 'user_id': user.id, 'username': user.username}
+        return {'valid': False}
+
+
+def reset_password_with_token(token, new_password):
+    from werkzeug.security import generate_password_hash
+    from datetime import datetime
+    
+    engine = get_engine()
+    
+    with engine.connect() as conn:
+        user = conn.execute(
+            text("""
+                SELECT id FROM users 
+                WHERE password_reset_token = :token 
+                AND password_reset_expires > :now 
+                AND is_active = true
+            """),
+            {'token': token, 'now': datetime.utcnow()}
+        ).fetchone()
+        
+        if not user:
+            return {'success': False, 'message': 'Token inválido ou expirado.'}
+        
+        try:
+            password_hash = generate_password_hash(new_password)
+            conn.execute(
+                text("""
+                    UPDATE users 
+                    SET password_hash = :password_hash, 
+                        password_reset_token = NULL, 
+                        password_reset_expires = NULL,
+                        must_change_password = false
+                    WHERE id = :id
+                """),
+                {'id': user.id, 'password_hash': password_hash}
+            )
+            conn.commit()
+            return {'success': True, 'message': 'Senha alterada com sucesso!'}
+        except Exception as e:
+            conn.rollback()
+            return {'success': False, 'message': f'Erro ao alterar senha: {str(e)}'}
+
+
+def change_password_first_access(user_id, new_password):
+    from werkzeug.security import generate_password_hash
+    
+    engine = get_engine()
+    
+    with engine.connect() as conn:
+        try:
+            password_hash = generate_password_hash(new_password)
+            conn.execute(
+                text("""
+                    UPDATE users 
+                    SET password_hash = :password_hash, must_change_password = false
+                    WHERE id = :id
+                """),
+                {'id': user_id, 'password_hash': password_hash}
+            )
+            conn.commit()
+            return {'success': True, 'message': 'Senha alterada com sucesso!'}
+        except Exception as e:
+            conn.rollback()
+            return {'success': False, 'message': f'Erro ao alterar senha: {str(e)}'}

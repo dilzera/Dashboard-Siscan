@@ -5,7 +5,10 @@ from flask import request, redirect, url_for, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import timedelta, datetime
 from src.data_layer import get_years, get_health_units, get_regions, get_sex_options, get_birads_options, create_access_request, get_pending_access_requests, approve_access_request, reject_access_request
-from src.components.layout import create_main_layout, create_login_layout, create_access_request_layout
+from src.components.layout import (
+    create_main_layout, create_login_layout, create_access_request_layout,
+    create_change_password_layout, create_forgot_password_layout, create_reset_password_layout
+)
 from src.callbacks import build_dashboard_content
 from src.config import COLORS, SESSION_SECRET
 from src.models import User, TermoLinkage, get_session, get_engine, Base
@@ -310,8 +313,20 @@ def display_page(pathname, search):
     if pathname == '/solicitar-acesso':
         return create_access_request_layout(COLORS)
     
+    if pathname == '/recuperar-senha':
+        return create_forgot_password_layout(COLORS)
+    
+    if pathname and pathname.startswith('/redefinir-senha/'):
+        from src.data_layer import validate_reset_token
+        token = pathname.replace('/redefinir-senha/', '')
+        validation = validate_reset_token(token)
+        return create_reset_password_layout(COLORS, token=token, valid=validation.get('valid', False), username=validation.get('username'))
+    
     if not current_user.is_authenticated:
         return create_login_layout(COLORS)
+    
+    if getattr(current_user, 'must_change_password', False):
+        return create_change_password_layout(COLORS, user_id=current_user.id, username=current_user.username)
     
     years = get_years()
     health_units = get_health_units()
@@ -555,6 +570,107 @@ def submit_access_request(n_clicks, name, email, phone, cpf, matricula, username
             html.I(className='fas fa-exclamation-circle me-2'),
             result['message']
         ], color='danger')
+
+
+@app.callback(
+    [Output('change-password-message', 'children'),
+     Output('url', 'pathname', allow_duplicate=True)],
+    Input('save-new-password-btn', 'n_clicks'),
+    [State('new-password', 'value'),
+     State('confirm-new-password', 'value'),
+     State('change-password-user-id', 'data')],
+    prevent_initial_call=True
+)
+def save_new_password(n_clicks, new_password, confirm_password, user_id):
+    if not n_clicks:
+        return dash.no_update, dash.no_update
+    
+    if not new_password or not confirm_password:
+        return dbc.Alert('Por favor, preencha todos os campos.', color='danger'), dash.no_update
+    
+    if len(new_password) < 8:
+        return dbc.Alert('A senha deve ter pelo menos 8 caracteres.', color='danger'), dash.no_update
+    
+    if new_password != confirm_password:
+        return dbc.Alert('As senhas não conferem.', color='danger'), dash.no_update
+    
+    from src.data_layer import change_password_first_access
+    result = change_password_first_access(user_id, new_password)
+    
+    if result['success']:
+        return dbc.Alert([html.I(className='fas fa-check-circle me-2'), 'Senha alterada! Redirecionando...'], color='success'), '/'
+    else:
+        return dbc.Alert(result['message'], color='danger'), dash.no_update
+
+
+@app.callback(
+    Output('forgot-password-message', 'children'),
+    Input('send-reset-email-btn', 'n_clicks'),
+    State('forgot-email', 'value'),
+    prevent_initial_call=True
+)
+def send_password_reset(n_clicks, email):
+    if not n_clicks:
+        return dash.no_update
+    
+    if not email:
+        return dbc.Alert('Por favor, informe seu e-mail.', color='danger')
+    
+    from src.data_layer import create_password_reset_token
+    import os
+    
+    result = create_password_reset_token(email)
+    
+    if result['success']:
+        reset_url = f"https://{os.environ.get('REPLIT_DEV_DOMAIN', 'localhost:5000')}/redefinir-senha/{result['token']}"
+        
+        return dbc.Alert([
+            html.I(className='fas fa-check-circle me-2'),
+            html.Div([
+                html.P('Link de recuperação gerado com sucesso!', className='mb-2'),
+                html.P([
+                    html.Strong('Link: '),
+                    html.A(reset_url, href=reset_url, target='_blank', style={'wordBreak': 'break-all'})
+                ], style={'fontSize': '0.85rem'}),
+                html.Small('Copie este link e envie para o usuário. O link expira em 2 horas.', className='text-muted')
+            ])
+        ], color='success')
+    else:
+        return dbc.Alert([
+            html.I(className='fas fa-exclamation-circle me-2'),
+            result['message']
+        ], color='danger')
+
+
+@app.callback(
+    [Output('reset-password-message', 'children'),
+     Output('url', 'pathname', allow_duplicate=True)],
+    Input('save-reset-password-btn', 'n_clicks'),
+    [State('reset-new-password', 'value'),
+     State('reset-confirm-password', 'value'),
+     State('reset-token-store', 'data')],
+    prevent_initial_call=True
+)
+def save_reset_password(n_clicks, new_password, confirm_password, token):
+    if not n_clicks:
+        return dash.no_update, dash.no_update
+    
+    if not new_password or not confirm_password:
+        return dbc.Alert('Por favor, preencha todos os campos.', color='danger'), dash.no_update
+    
+    if len(new_password) < 8:
+        return dbc.Alert('A senha deve ter pelo menos 8 caracteres.', color='danger'), dash.no_update
+    
+    if new_password != confirm_password:
+        return dbc.Alert('As senhas não conferem.', color='danger'), dash.no_update
+    
+    from src.data_layer import reset_password_with_token
+    result = reset_password_with_token(token, new_password)
+    
+    if result['success']:
+        return dbc.Alert([html.I(className='fas fa-check-circle me-2'), 'Senha alterada! Redirecionando...'], color='success'), '/login'
+    else:
+        return dbc.Alert(result['message'], color='danger'), dash.no_update
 
 
 from src.callbacks import register_callbacks
