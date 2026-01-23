@@ -203,7 +203,7 @@ def create_login_layout(colors, session_expired=False):
                 ], className='text-center mt-4'),
                 
                 html.Div([
-                    html.A(
+                    dcc.Link(
                         'Esqueci minha senha',
                         id='forgot-password-link',
                         href='/recuperar-senha',

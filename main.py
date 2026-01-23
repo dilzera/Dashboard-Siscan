@@ -50,7 +50,7 @@ def check_session_timeout():
                 session.clear()
                 return redirect('/login?expired=1')
     
-    excluded_paths = ['/login', '/logout', '/_dash-', '/_reload-hash', '/assets/', '/favicon', '/health']
+    excluded_paths = ['/login', '/logout', '/solicitar-acesso', '/recuperar-senha', '/redefinir-senha/', '/_dash-', '/_reload-hash', '/assets/', '/favicon', '/health']
     if not any(request.path.startswith(p) for p in excluded_paths):
         if not current_user.is_authenticated:
             if request.path not in ['/', ''] and not request.path.endswith(('.ico', '.png', '.jpg', '.css', '.js', '.map')):

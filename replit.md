@@ -24,8 +24,12 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
     - **Secretaria de Saúde:** Full access to all data, districts, and units. Can approve/reject access requests for all levels.
     - **Gestor de Distrito:** Access restricted to their assigned district. Can approve/reject access requests for their district.
     - **Unidade de Saúde/Prestador:** Access restricted to their assigned health unit only.
-- **Self-Service Access Request:** Users can request access via the login page. Requests are stored with status (pending/approved/rejected) and processed by Secretaria or Distrito managers.
-- **Access Management Tab:** Available only for Secretaria and Distrito managers, displaying pending access requests with approve/reject functionality.
+- **Self-Service Access Request:** Users can request access via the login page. Requests are stored with status (pending/approved/rejected) and processed by Secretaria or Distrito managers. Duplicate validation checks CPF, email, matricula, and username against both pending requests and active users.
+- **Access Management Tab:** Available only for Secretaria and Distrito managers, displaying pending access requests with approve/reject functionality. Upon approval, a temporary password is generated and displayed to the approver for secure communication to the new user.
+- **Password Management System:**
+    - **Mandatory Password Change:** New users must change their temporary password on first login before accessing the dashboard.
+    - **Password Reset:** Secure token-based password reset with 2-hour expiration. Reset links are generated via the "Esqueci minha senha" option on the login page.
+    - **Database Fields:** `must_change_password` (boolean), `password_reset_token` (varchar), `password_reset_expires` (datetime).
 - **KPIs:** Real-time display of average/median wait times, conformity rates, and high-risk cases.
 - **Dynamic Filters:** Year, Health Unit, Sanitary District, Conformity Status.
 - **Interactive Visualizations:** Line, bar, pie, and gauge charts using Plotly.
