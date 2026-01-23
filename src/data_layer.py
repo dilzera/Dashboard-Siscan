@@ -741,21 +741,23 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
         pe.conformity_status,
         COALESCE(ev.first_birads, 0) as first_birads,
         COALESCE(ev.last_birads, 0) as last_birads,
-        CASE WHEN ev.first_birads > ev.last_birads THEN 1 ELSE 0 END as evolucao_positiva,
-        CASE WHEN ev.first_birads < ev.last_birads THEN 1 ELSE 0 END as evolucao_negativa
+        CASE WHEN ev.first_birads IN (3,4,5) AND ev.last_birads NOT IN (3,4,5) THEN 1 ELSE 0 END as evolucao_positiva,
+        CASE WHEN ev.first_birads IN (0,1,2,6) AND ev.last_birads IN (3,4,5) THEN 1 ELSE 0 END as evolucao_negativa,
+        CASE WHEN ev.first_birads IN (0,1,2) AND ev.last_birads IN (0,1,2) THEN 1 ELSE 0 END as evolucao_normal
     FROM patient_exams pe
     LEFT JOIN patient_evolution ev ON pe.patient_unique_id = ev.patient_unique_id
     """
     
     if evolution_filter == 'positive':
-        query += " WHERE ev.first_birads > ev.last_birads "
+        query += " WHERE ev.first_birads IN (3,4,5) AND ev.last_birads NOT IN (3,4,5) "
     elif evolution_filter == 'negative':
-        query += " WHERE ev.first_birads < ev.last_birads "
+        query += " WHERE ev.first_birads IN (0,1,2,6) AND ev.last_birads IN (3,4,5) "
+    elif evolution_filter == 'normal':
+        query += " WHERE ev.first_birads IN (0,1,2) AND ev.last_birads IN (0,1,2) "
     
     query += """
     ORDER BY 
-        CASE WHEN ev.first_birads > ev.last_birads THEN 0 ELSE 1 END,
-        (ev.first_birads - ev.last_birads) DESC NULLS LAST,
+        CASE WHEN ev.first_birads IN (3,4,5) AND ev.last_birads NOT IN (3,4,5) THEN 0 ELSE 1 END,
         pe.total_exames DESC, 
         pe.nome_paciente, 
         pe.exam_order

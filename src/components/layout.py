@@ -779,8 +779,9 @@ def create_patient_navigation_tab(initial_content=None):
                     dcc.Dropdown(
                         id='navigation-evolution-filter',
                         options=[
-                            {'label': html.Span([html.I(className='fas fa-arrow-down me-2', style={'color': '#28a745'}), 'Evolução Positiva (BI-RADS diminuiu)'], style={'fontSize': '0.9rem'}), 'value': 'positive'},
-                            {'label': html.Span([html.I(className='fas fa-arrow-up me-2', style={'color': '#dc3545'}), 'Evolução Negativa (BI-RADS aumentou)'], style={'fontSize': '0.9rem'}), 'value': 'negative'},
+                            {'label': html.Span([html.I(className='fas fa-arrow-down me-2', style={'color': '#28a745'}), 'Evolução Positiva (de 3,4,5 para outros)'], style={'fontSize': '0.9rem'}), 'value': 'positive'},
+                            {'label': html.Span([html.I(className='fas fa-arrow-up me-2', style={'color': '#dc3545'}), 'Evolução Negativa (de 0,1,2,6 para 3,4,5)'], style={'fontSize': '0.9rem'}), 'value': 'negative'},
+                            {'label': html.Span([html.I(className='fas fa-check-circle me-2', style={'color': '#17a2b8'}), 'Normal (permaneceu entre 0,1,2)'], style={'fontSize': '0.9rem'}), 'value': 'normal'},
                         ],
                         placeholder='Todos os pacientes',
                         clearable=True,
