@@ -1670,9 +1670,9 @@ def get_database_comparison_sql():
     query = """
     WITH 
     exam_cns AS (
-        SELECT DISTINCT paciente__cartao_sus as cns 
+        SELECT DISTINCT paciente__cartao_sus::text as cns 
         FROM exam_records 
-        WHERE paciente__cartao_sus IS NOT NULL AND paciente__cartao_sus != ''
+        WHERE paciente__cartao_sus IS NOT NULL
     ),
     termo_cns AS (
         SELECT DISTINCT cartao_sus as cns 
