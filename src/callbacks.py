@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from src.cache import clear_cache
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
     get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
@@ -161,6 +162,10 @@ def register_callbacks(app):
     )
     def update_dashboard(n_clicks, is_masked, year, health_unit, region, age_range, birads, priority):
         try:
+            ctx = callback_context
+            if ctx.triggered and ctx.triggered[0]['prop_id'].split('.')[0] == 'refresh-btn':
+                clear_cache()
+            
             content = build_dashboard_content(year, health_unit, region, age_range, birads, priority, is_masked)
             return (
                 content['kpi_mean'],

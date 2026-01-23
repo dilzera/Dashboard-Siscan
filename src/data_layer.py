@@ -2,6 +2,7 @@ import pandas as pd
 from sqlalchemy import text
 from src.models import get_engine
 from datetime import datetime, timedelta
+from src.cache import cached
 
 
 def _get_outlier_exclusion_conditions():
@@ -82,6 +83,7 @@ def get_years():
     return [2026, 2025, 2024, 2023]
 
 
+@cached(ttl=600)
 def get_health_units():
     engine = get_engine()
     query = "SELECT DISTINCT unidade_de_saude__nome FROM exam_records WHERE unidade_de_saude__nome IS NOT NULL ORDER BY unidade_de_saude__nome LIMIT 500"
@@ -91,6 +93,7 @@ def get_health_units():
     return df['unidade_de_saude__nome'].dropna().tolist()
 
 
+@cached(ttl=600)
 def get_regions():
     engine = get_engine()
     query = "SELECT DISTINCT distrito_sanitario FROM exam_records WHERE distrito_sanitario IS NOT NULL ORDER BY distrito_sanitario"
@@ -100,6 +103,7 @@ def get_regions():
     return df['distrito_sanitario'].dropna().tolist()
 
 
+@cached(ttl=120)
 def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
     where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
@@ -139,6 +143,7 @@ def get_kpi_data_sql(year=None, health_unit=None, region=None, conformity_status
     }
 
 
+@cached(ttl=120)
 def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
     where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
@@ -161,6 +166,7 @@ def get_monthly_volume_sql(year=None, health_unit=None, region=None, conformity_
     return df
 
 
+@cached(ttl=120)
 def get_birads_distribution_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
     where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
@@ -182,6 +188,7 @@ def get_birads_distribution_sql(year=None, health_unit=None, region=None, confor
     return df
 
 
+@cached(ttl=120)
 def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None):
     where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
@@ -211,6 +218,7 @@ def get_conformity_by_unit_sql(year=None, health_unit=None, region=None, conform
     return df
 
 
+@cached(ttl=120)
 def get_high_risk_cases_sql(year=None, health_unit=None, region=None, conformity_status=None, age_range=None, birads=None, priority=None, limit=20):
     where_clause, params = _build_where_clause(year, health_unit, region, conformity_status, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
