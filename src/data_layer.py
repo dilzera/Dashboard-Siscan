@@ -2044,15 +2044,18 @@ def approve_access_request(request_id, reviewed_by, temp_password=None):
         try:
             password_hash = generate_password_hash(temp_password)
             
+            user_role = 'admin' if request.access_level in ('secretaria', 'distrito') else 'viewer'
+            
             conn.execute(
                 text("""
                     INSERT INTO users (username, password_hash, name, role, access_level, district, health_unit, email, phone, cpf, matricula, is_active, created_at, must_change_password)
-                    VALUES (:username, :password_hash, :name, 'viewer', :access_level, :district, :health_unit, :email, :phone, :cpf, :matricula, true, NOW(), true)
+                    VALUES (:username, :password_hash, :name, :role, :access_level, :district, :health_unit, :email, :phone, :cpf, :matricula, true, NOW(), true)
                 """),
                 {
                     'username': request.username,
                     'password_hash': password_hash,
                     'name': request.name,
+                    'role': user_role,
                     'access_level': request.access_level,
                     'district': request.district,
                     'health_unit': request.health_unit,
