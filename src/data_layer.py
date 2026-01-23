@@ -1934,3 +1934,176 @@ def get_unit_priority_summary_sql(health_unit, year=None, region=None):
     summary['total'] = sum(summary.values())
     
     return summary
+
+
+def create_access_request(name, email, phone, cpf, matricula, username, access_level, district, health_unit, justification):
+    from src.models import AccessRequest, get_session
+    
+    session = get_session()
+    try:
+        existing = session.execute(
+            text("SELECT id FROM access_requests WHERE username = :username AND status = 'pending'"),
+            {'username': username}
+        ).fetchone()
+        
+        if existing:
+            return {'success': False, 'message': 'Já existe uma solicitação pendente para este usuário.'}
+        
+        existing_user = session.execute(
+            text("SELECT id FROM users WHERE username = :username"),
+            {'username': username}
+        ).fetchone()
+        
+        if existing_user:
+            return {'success': False, 'message': 'Este nome de usuário já está em uso.'}
+        
+        session.execute(
+            text("""
+                INSERT INTO access_requests (name, email, phone, cpf, matricula, username, access_level, district, health_unit, justification, status, created_at)
+                VALUES (:name, :email, :phone, :cpf, :matricula, :username, :access_level, :district, :health_unit, :justification, 'pending', NOW())
+            """),
+            {
+                'name': name, 'email': email, 'phone': phone, 'cpf': cpf,
+                'matricula': matricula, 'username': username, 'access_level': access_level,
+                'district': district, 'health_unit': health_unit, 'justification': justification
+            }
+        )
+        session.commit()
+        return {'success': True, 'message': 'Solicitação enviada com sucesso! Aguarde a aprovação.'}
+    except Exception as e:
+        session.rollback()
+        return {'success': False, 'message': f'Erro ao enviar solicitação: {str(e)}'}
+    finally:
+        session.close()
+
+
+def get_pending_access_requests(user_access_level=None, user_district=None):
+    engine = get_engine()
+    
+    if user_access_level == 'secretaria':
+        query = """
+            SELECT id, name, email, phone, cpf, matricula, username, access_level, district, health_unit, justification, created_at
+            FROM access_requests 
+            WHERE status = 'pending'
+            ORDER BY created_at DESC
+        """
+        params = {}
+    elif user_access_level == 'distrito' and user_district:
+        query = """
+            SELECT id, name, email, phone, cpf, matricula, username, access_level, district, health_unit, justification, created_at
+            FROM access_requests 
+            WHERE status = 'pending' 
+            AND (district = :district OR health_unit IN (
+                SELECT DISTINCT unidade_de_saude__nome FROM exam_records WHERE distrito_sanitario = :district
+            ))
+            ORDER BY created_at DESC
+        """
+        params = {'district': user_district}
+    else:
+        return pd.DataFrame()
+    
+    with engine.connect() as conn:
+        result = conn.execute(text(query), params)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    
+    return df
+
+
+def approve_access_request(request_id, reviewed_by, temp_password):
+    from werkzeug.security import generate_password_hash
+    
+    engine = get_engine()
+    
+    with engine.connect() as conn:
+        request = conn.execute(
+            text("SELECT * FROM access_requests WHERE id = :id AND status = 'pending'"),
+            {'id': request_id}
+        ).fetchone()
+        
+        if not request:
+            return {'success': False, 'message': 'Solicitação não encontrada ou já processada.'}
+        
+        try:
+            password_hash = generate_password_hash(temp_password)
+            
+            conn.execute(
+                text("""
+                    INSERT INTO users (username, password_hash, name, role, access_level, district, health_unit, email, phone, cpf, matricula, is_active, created_at)
+                    VALUES (:username, :password_hash, :name, 'viewer', :access_level, :district, :health_unit, :email, :phone, :cpf, :matricula, true, NOW())
+                """),
+                {
+                    'username': request.username,
+                    'password_hash': password_hash,
+                    'name': request.name,
+                    'access_level': request.access_level,
+                    'district': request.district,
+                    'health_unit': request.health_unit,
+                    'email': request.email,
+                    'phone': request.phone,
+                    'cpf': request.cpf,
+                    'matricula': request.matricula
+                }
+            )
+            
+            conn.execute(
+                text("""
+                    UPDATE access_requests 
+                    SET status = 'approved', reviewed_at = NOW(), reviewed_by = :reviewed_by
+                    WHERE id = :id
+                """),
+                {'id': request_id, 'reviewed_by': reviewed_by}
+            )
+            
+            conn.commit()
+            return {'success': True, 'message': f'Acesso aprovado! Usuário: {request.username}'}
+        except Exception as e:
+            conn.rollback()
+            return {'success': False, 'message': f'Erro ao aprovar: {str(e)}'}
+
+
+def reject_access_request(request_id, reviewed_by, reason):
+    engine = get_engine()
+    
+    with engine.connect() as conn:
+        try:
+            conn.execute(
+                text("""
+                    UPDATE access_requests 
+                    SET status = 'rejected', reviewed_at = NOW(), reviewed_by = :reviewed_by, rejection_reason = :reason
+                    WHERE id = :id AND status = 'pending'
+                """),
+                {'id': request_id, 'reviewed_by': reviewed_by, 'reason': reason}
+            )
+            conn.commit()
+            return {'success': True, 'message': 'Solicitação rejeitada.'}
+        except Exception as e:
+            conn.rollback()
+            return {'success': False, 'message': f'Erro ao rejeitar: {str(e)}'}
+
+
+def get_units_by_district(district):
+    engine = get_engine()
+    query = """
+        SELECT DISTINCT unidade_de_saude__nome 
+        FROM exam_records 
+        WHERE distrito_sanitario = :district AND unidade_de_saude__nome IS NOT NULL
+        ORDER BY unidade_de_saude__nome
+    """
+    with engine.connect() as conn:
+        result = conn.execute(text(query), {'district': district})
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+    return df['unidade_de_saude__nome'].tolist() if not df.empty else []
+
+
+def get_district_for_unit(health_unit):
+    engine = get_engine()
+    query = """
+        SELECT DISTINCT distrito_sanitario 
+        FROM exam_records 
+        WHERE unidade_de_saude__nome = :health_unit AND distrito_sanitario IS NOT NULL
+        LIMIT 1
+    """
+    with engine.connect() as conn:
+        result = conn.execute(text(query), {'health_unit': health_unit})
+        row = result.fetchone()
+    return row[0] if row else None

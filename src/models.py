@@ -18,6 +18,13 @@ class User(Base, UserMixin):
     password_hash = Column(String(255), nullable=False)
     name = Column(String(200), nullable=False)
     role = Column(String(50), default='viewer')
+    access_level = Column(String(50), default='secretaria')
+    district = Column(String(100), nullable=True)
+    health_unit = Column(String(300), nullable=True)
+    email = Column(String(200), nullable=True)
+    phone = Column(String(50), nullable=True)
+    cpf = Column(String(14), nullable=True)
+    matricula = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime)
@@ -30,6 +37,33 @@ class User(Base, UserMixin):
     
     def get_id(self):
         return str(self.id)
+    
+    def can_unmask(self):
+        return self.access_level in ('secretaria', 'distrito') or self.username == 'admin'
+    
+    def can_approve_requests(self):
+        return self.access_level in ('secretaria', 'distrito') or self.username == 'admin'
+
+
+class AccessRequest(Base):
+    __tablename__ = 'access_requests'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(200), nullable=False)
+    email = Column(String(200), nullable=False)
+    phone = Column(String(50), nullable=True)
+    cpf = Column(String(14), nullable=False)
+    matricula = Column(String(50), nullable=False)
+    username = Column(String(100), nullable=False)
+    access_level = Column(String(50), nullable=False)
+    district = Column(String(100), nullable=True)
+    health_unit = Column(String(300), nullable=True)
+    justification = Column(Text, nullable=True)
+    status = Column(String(20), default='pending')
+    created_at = Column(DateTime, default=datetime.utcnow)
+    reviewed_at = Column(DateTime, nullable=True)
+    reviewed_by = Column(String(100), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
 
 
 class ExamRecord(Base):

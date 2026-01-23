@@ -14,7 +14,8 @@ from src.data_layer import (
     get_unit_wait_time_trend_sql, get_unit_follow_up_overdue_sql, get_unit_follow_up_count_sql,
     get_indicators_data_sql, get_unit_high_risk_patients_sql, get_all_high_risk_patients_sql,
     get_termo_linkage_summary_sql, get_termo_linkage_data_sql, get_termo_linkage_count_sql,
-    get_unit_prioritization_sql, get_unit_priority_summary_sql
+    get_unit_prioritization_sql, get_unit_priority_summary_sql,
+    get_pending_access_requests, approve_access_request, reject_access_request
 )
 from src.config import COLORS
 from src.components.cards import create_kpi_card, create_chart_card
@@ -679,3 +680,86 @@ def register_callbacks(app):
         except Exception as e:
             print(f"Erro ao carregar tabela linkage: {e}")
             return html.P(f'Erro ao carregar dados', className='text-danger text-center p-4'), '', 1
+    
+    @app.callback(
+        Output('access-requests-table', 'children'),
+        Input('refresh-access-requests-btn', 'n_clicks'),
+        [State('user-access-level-store', 'data'),
+         State('user-district-store', 'data')],
+        prevent_initial_call=True
+    )
+    def refresh_access_requests(n_clicks, user_access_level, user_district):
+        if not n_clicks:
+            return no_update
+        
+        try:
+            df = get_pending_access_requests(user_access_level, user_district)
+            
+            if df.empty:
+                return dbc.Alert([
+                    html.I(className='fas fa-check-circle me-2'),
+                    'Não há solicitações pendentes.'
+                ], color='success')
+            
+            access_labels = {
+                'secretaria': 'Secretaria de Saúde',
+                'distrito': 'Gestor de Distrito',
+                'unidade': 'Unidade de Saúde'
+            }
+            
+            rows = []
+            for _, row in df.iterrows():
+                location = row.get('district') or row.get('health_unit') or '-'
+                rows.append(
+                    html.Tr([
+                        html.Td(row['name'], style={'fontSize': '0.85rem'}),
+                        html.Td(row['email'], style={'fontSize': '0.85rem'}),
+                        html.Td(row['matricula'], style={'fontSize': '0.85rem'}),
+                        html.Td(row['username'], style={'fontSize': '0.85rem'}),
+                        html.Td(access_labels.get(row['access_level'], row['access_level']), style={'fontSize': '0.85rem'}),
+                        html.Td(location, style={'fontSize': '0.85rem'}),
+                        html.Td(str(row['created_at'])[:10] if row['created_at'] else '-', style={'fontSize': '0.85rem'}),
+                        html.Td([
+                            dbc.Button(
+                                html.I(className='fas fa-check'),
+                                id={'type': 'approve-btn', 'index': row['id']},
+                                color='success',
+                                size='sm',
+                                className='me-1',
+                                title='Aprovar'
+                            ),
+                            dbc.Button(
+                                html.I(className='fas fa-times'),
+                                id={'type': 'reject-btn', 'index': row['id']},
+                                color='danger',
+                                size='sm',
+                                title='Rejeitar'
+                            )
+                        ])
+                    ])
+                )
+            
+            table = dbc.Table([
+                html.Thead([
+                    html.Tr([
+                        html.Th('Nome'),
+                        html.Th('E-mail'),
+                        html.Th('Matrícula'),
+                        html.Th('Usuário'),
+                        html.Th('Tipo Acesso'),
+                        html.Th('Localização'),
+                        html.Th('Data'),
+                        html.Th('Ações')
+                    ], style={'backgroundColor': COLORS['primary'], 'color': 'white'})
+                ]),
+                html.Tbody(rows)
+            ], bordered=True, hover=True, responsive=True, striped=True, size='sm')
+            
+            return dbc.Card([
+                dbc.CardBody([
+                    html.H6(f'{len(df)} solicitação(ões) pendente(s)', className='mb-3'),
+                    table
+                ])
+            ])
+        except Exception as e:
+            return dbc.Alert(f'Erro ao carregar solicitações: {str(e)}', color='danger')

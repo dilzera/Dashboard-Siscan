@@ -1,6 +1,133 @@
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 from src.config import COLORS
+from src.data_layer import get_regions, get_health_units
+
+
+def create_access_request_layout(colors, regions=None, health_units=None):
+    if regions is None:
+        regions = get_regions()
+    if health_units is None:
+        health_units = get_health_units()
+    
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.I(className='fas fa-user-plus', style={'fontSize': '2.5rem', 'color': colors['primary']}),
+                    html.H2('Solicitar Acesso', style={'color': colors['primary'], 'marginTop': '15px'}),
+                    html.P('Preencha os dados para solicitar acesso ao sistema', 
+                           style={'color': colors['text_muted'], 'fontSize': '0.9rem'})
+                ], className='text-center mb-4'),
+                
+                html.Div(id='access-request-message'),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label('Nome Completo *', className='fw-bold'),
+                        dbc.Input(id='req-name', type='text', placeholder='Seu nome completo', className='mb-3')
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Label('CPF *', className='fw-bold'),
+                        dbc.Input(id='req-cpf', type='text', placeholder='000.000.000-00', className='mb-3', maxLength=14)
+                    ], md=6),
+                ]),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label('E-mail *', className='fw-bold'),
+                        dbc.Input(id='req-email', type='email', placeholder='seu.email@curitiba.pr.gov.br', className='mb-3')
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Label('Telefone', className='fw-bold'),
+                        dbc.Input(id='req-phone', type='text', placeholder='(41) 00000-0000', className='mb-3')
+                    ], md=6),
+                ]),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label('Matrícula Funcional *', className='fw-bold'),
+                        dbc.Input(id='req-matricula', type='text', placeholder='Número da matrícula', className='mb-3')
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Label('Nome de Usuário Desejado *', className='fw-bold'),
+                        dbc.Input(id='req-username', type='text', placeholder='usuario.desejado', className='mb-3')
+                    ], md=6),
+                ]),
+                
+                html.Hr(style={'margin': '20px 0'}),
+                
+                html.H5('Tipo de Acesso', className='fw-bold mb-3'),
+                
+                dbc.RadioItems(
+                    id='req-access-level',
+                    options=[
+                        {'label': html.Span([html.I(className='fas fa-building me-2'), 'Secretaria de Saúde - Acesso completo a todos os dados'], style={'fontSize': '0.9rem'}), 'value': 'secretaria'},
+                        {'label': html.Span([html.I(className='fas fa-map-marker-alt me-2'), 'Gestor de Distrito - Acesso aos dados do distrito'], style={'fontSize': '0.9rem'}), 'value': 'distrito'},
+                        {'label': html.Span([html.I(className='fas fa-hospital me-2'), 'Unidade de Saúde/Prestador - Acesso aos dados da unidade'], style={'fontSize': '0.9rem'}), 'value': 'unidade'},
+                    ],
+                    value='unidade',
+                    className='mb-3'
+                ),
+                
+                html.Div([
+                    dbc.Label('Distrito Sanitário *', className='fw-bold'),
+                    dcc.Dropdown(
+                        id='req-district',
+                        options=[{'label': r, 'value': r} for r in regions],
+                        placeholder='Selecione o distrito',
+                        className='mb-3'
+                    )
+                ], id='req-district-div', style={'display': 'none'}),
+                
+                html.Div([
+                    dbc.Label('Unidade de Saúde/Prestador *', className='fw-bold'),
+                    dcc.Dropdown(
+                        id='req-health-unit',
+                        options=[{'label': u, 'value': u} for u in health_units],
+                        placeholder='Selecione a unidade de saúde',
+                        className='mb-3'
+                    )
+                ], id='req-health-unit-div', style={'display': 'none'}),
+                
+                dbc.Label('Justificativa (opcional)', className='fw-bold'),
+                dbc.Textarea(id='req-justification', placeholder='Descreva o motivo da solicitação de acesso...', className='mb-4', rows=3),
+                
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Button(
+                            [html.I(className='fas fa-arrow-left me-2'), 'Voltar'],
+                            id='back-to-login-btn',
+                            color='secondary',
+                            outline=True,
+                            className='w-100'
+                        )
+                    ], md=6),
+                    dbc.Col([
+                        dbc.Button(
+                            [html.I(className='fas fa-paper-plane me-2'), 'Enviar Solicitação'],
+                            id='submit-access-request-btn',
+                            color='primary',
+                            className='w-100'
+                        )
+                    ], md=6),
+                ])
+            ], className='p-4', style={
+                'backgroundColor': 'white',
+                'borderRadius': '10px',
+                'boxShadow': '0 4px 20px rgba(0,0,0,0.1)',
+                'maxWidth': '700px',
+                'width': '100%'
+            })
+        ], style={
+            'display': 'flex',
+            'justifyContent': 'center',
+            'alignItems': 'center',
+            'minHeight': '100vh',
+            'backgroundColor': colors['background'],
+            'padding': '20px'
+        })
+    ])
 
 
 def create_login_layout(colors, session_expired=False):
@@ -73,7 +200,21 @@ def create_login_layout(colors, session_expired=False):
                     html.I(className='fas fa-shield-alt me-2', style={'color': colors['secondary']}),
                     html.Span('Sessão expira automaticamente após 1 hora', 
                              style={'color': colors['text_muted'], 'fontSize': '0.85rem'})
-                ], className='text-center mt-4')
+                ], className='text-center mt-4'),
+                
+                html.Hr(style={'margin': '20px 0'}),
+                
+                html.Div([
+                    html.P('Ainda não tem acesso?', style={'color': colors['text_muted'], 'fontSize': '0.9rem', 'marginBottom': '10px'}),
+                    dbc.Button(
+                        [html.I(className='fas fa-user-plus me-2'), 'Solicitar Acesso'],
+                        id='request-access-btn',
+                        color='secondary',
+                        outline=True,
+                        className='w-100',
+                        style={'borderRadius': '5px'}
+                    )
+                ], className='text-center')
             ], className='login-card')
         ], className='login-container')
     ])
@@ -955,8 +1096,65 @@ def create_linkage_tab(initial_content=None):
     ])
 
 
-def create_tabs(initial_content=None, sex_options=None, birads_options=None, health_units=None):
-    return dbc.Tabs([
+def create_access_management_tab():
+    return html.Div([
+        dbc.Row([
+            dbc.Col([
+                html.H4([
+                    html.I(className='fas fa-user-shield me-2'),
+                    'Gerenciamento de Acessos'
+                ], className='mb-3'),
+                html.P('Gerencie as solicitações de acesso ao sistema.', className='text-muted mb-4')
+            ])
+        ]),
+        
+        dbc.Row([
+            dbc.Col([
+                dbc.Button(
+                    [html.I(className='fas fa-sync-alt me-2'), 'Atualizar Lista'],
+                    id='refresh-access-requests-btn',
+                    color='primary',
+                    size='sm',
+                    className='mb-3'
+                )
+            ])
+        ]),
+        
+        html.Div(id='access-requests-table', children=[
+            dbc.Alert('Clique em "Atualizar Lista" para carregar as solicitações pendentes.', color='info')
+        ]),
+        
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle('Aprovar Solicitação')),
+            dbc.ModalBody([
+                html.P('Defina uma senha temporária para o novo usuário:'),
+                dbc.Input(id='approve-temp-password', type='password', placeholder='Senha temporária'),
+                html.Small('O usuário deverá alterar a senha no primeiro acesso.', className='text-muted')
+            ]),
+            dbc.ModalFooter([
+                dbc.Button('Cancelar', id='approve-cancel-btn', color='secondary'),
+                dbc.Button('Aprovar', id='approve-confirm-btn', color='success')
+            ])
+        ], id='approve-modal', is_open=False),
+        
+        dbc.Modal([
+            dbc.ModalHeader(dbc.ModalTitle('Rejeitar Solicitação')),
+            dbc.ModalBody([
+                html.P('Informe o motivo da rejeição:'),
+                dbc.Textarea(id='reject-reason', placeholder='Motivo da rejeição...', rows=3)
+            ]),
+            dbc.ModalFooter([
+                dbc.Button('Cancelar', id='reject-cancel-btn', color='secondary'),
+                dbc.Button('Rejeitar', id='reject-confirm-btn', color='danger')
+            ])
+        ], id='reject-modal', is_open=False),
+        
+        dcc.Store(id='selected-request-id', data=None)
+    ])
+
+
+def create_tabs(initial_content=None, sex_options=None, birads_options=None, health_units=None, show_access_management=False):
+    tabs = [
         dbc.Tab(
             create_performance_tab(initial_content),
             label='Visão Geral de Performance',
@@ -1005,7 +1203,19 @@ def create_tabs(initial_content=None, sex_options=None, birads_options=None, hea
             tab_id='tab-linkage',
             className='p-3'
         )
-    ], id='main-tabs', active_tab='tab-performance')
+    ]
+    
+    if show_access_management:
+        tabs.append(
+            dbc.Tab(
+                create_access_management_tab(),
+                label='Gerenciar Acessos',
+                tab_id='tab-access-management',
+                className='p-3'
+            )
+        )
+    
+    return dbc.Tabs(tabs, id='main-tabs', active_tab='tab-performance')
 
 
 def create_footer():
@@ -1025,10 +1235,13 @@ def create_footer():
 def create_main_layout(years, health_units, regions, initial_content=None,
                        selected_year=None, selected_health_unit=None,
                        selected_region=None, selected_conformity=None,
-                       sex_options=None, birads_options=None, user_name=None):
+                       sex_options=None, birads_options=None, user_name=None,
+                       user_access_level=None, user_district=None, user_health_unit=None):
     last_update_text = ''
     if initial_content:
         last_update_text = initial_content.get('last_update', '')
+    
+    show_access_management = user_access_level in ('secretaria', 'distrito')
     
     return html.Div([
         create_header(user_name=user_name),
@@ -1040,7 +1253,11 @@ def create_main_layout(years, health_units, regions, initial_content=None,
             html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
                     style={'fontSize': '0.85rem'}),
             create_kpi_row(initial_content),
-            create_tabs(initial_content, sex_options, birads_options, health_units),
+            create_tabs(initial_content, sex_options, birads_options, health_units, show_access_management=show_access_management),
             create_footer()
-        ], fluid=True, className='px-4')
+        ], fluid=True, className='px-4'),
+        
+        dcc.Store(id='user-access-level-store', data=user_access_level),
+        dcc.Store(id='user-district-store', data=user_district),
+        dcc.Store(id='user-health-unit-store', data=user_health_unit)
     ], style={'backgroundColor': COLORS['background'], 'minHeight': '100vh'})

@@ -4,8 +4,8 @@ import dash_bootstrap_components as dbc
 from flask import request, redirect, url_for, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from datetime import timedelta, datetime
-from src.data_layer import get_years, get_health_units, get_regions, get_sex_options, get_birads_options
-from src.components.layout import create_main_layout, create_login_layout
+from src.data_layer import get_years, get_health_units, get_regions, get_sex_options, get_birads_options, create_access_request, get_pending_access_requests, approve_access_request, reject_access_request
+from src.components.layout import create_main_layout, create_login_layout, create_access_request_layout
 from src.callbacks import build_dashboard_content
 from src.config import COLORS, SESSION_SECRET
 from src.models import User, TermoLinkage, get_session, get_engine, Base
@@ -307,6 +307,9 @@ def display_page(pathname, search):
         session_expired = search and 'expired=1' in search
         return create_login_layout(COLORS, session_expired=session_expired)
     
+    if pathname == '/solicitar-acesso':
+        return create_access_request_layout(COLORS)
+    
     if not current_user.is_authenticated:
         return create_login_layout(COLORS)
     
@@ -315,7 +318,25 @@ def display_page(pathname, search):
     regions = get_regions()
     sex_options = get_sex_options()
     birads_options = get_birads_options()
-    initial_content = build_dashboard_content()
+    
+    user_access_level = getattr(current_user, 'access_level', 'secretaria') or 'secretaria'
+    user_district = getattr(current_user, 'district', None)
+    user_health_unit = getattr(current_user, 'health_unit', None)
+    
+    if user_access_level == 'distrito' and user_district:
+        from src.data_layer import get_units_by_district
+        health_units = get_units_by_district(user_district)
+        regions = [user_district]
+    elif user_access_level == 'unidade' and user_health_unit:
+        health_units = [user_health_unit]
+        from src.data_layer import get_district_for_unit
+        district = get_district_for_unit(user_health_unit)
+        regions = [district] if district else []
+    
+    initial_content = build_dashboard_content(
+        health_unit=user_health_unit if user_access_level == 'unidade' else None,
+        region=user_district if user_access_level == 'distrito' else None
+    )
     
     return create_main_layout(
         years, 
@@ -324,7 +345,10 @@ def display_page(pathname, search):
         initial_content,
         sex_options=sex_options,
         birads_options=birads_options,
-        user_name=current_user.name if current_user.is_authenticated else None
+        user_name=current_user.name if current_user.is_authenticated else None,
+        user_access_level=user_access_level,
+        user_district=user_district,
+        user_health_unit=user_health_unit
     )
 
 @app.callback(
@@ -425,9 +449,12 @@ def handle_unmask(confirm_clicks, toggle_clicks, password, is_masked):
         
         db_session = get_session()
         try:
-            admin_users = db_session.query(User).filter_by(role='admin').all()
+            authorized_users = db_session.query(User).filter(
+                User.is_active == True,
+                (User.role == 'admin') | (User.access_level.in_(['secretaria', 'distrito']))
+            ).all()
             password_valid = False
-            for user in admin_users:
+            for user in authorized_users:
                 if user.check_password(password):
                     password_valid = True
                     break
@@ -435,11 +462,100 @@ def handle_unmask(confirm_clicks, toggle_clicks, password, is_masked):
             if password_valid:
                 return False, '', 'success', 'Dados visíveis - Clique para mascarar', [html.I(className='fas fa-eye')]
             else:
-                return dash.no_update, 'Senha incorreta ou usuário sem permissão de administrador.', dash.no_update, dash.no_update, dash.no_update
+                return dash.no_update, 'Senha incorreta ou usuário sem permissão.', dash.no_update, dash.no_update, dash.no_update
         finally:
             db_session.close()
     
     return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+@app.callback(
+    Output('url', 'pathname', allow_duplicate=True),
+    Input('request-access-btn', 'n_clicks'),
+    prevent_initial_call=True
+)
+def go_to_access_request(n_clicks):
+    if n_clicks:
+        return '/solicitar-acesso'
+    return dash.no_update
+
+
+@app.callback(
+    Output('url', 'pathname', allow_duplicate=True),
+    Input('back-to-login-btn', 'n_clicks'),
+    prevent_initial_call=True
+)
+def go_back_to_login(n_clicks):
+    if n_clicks:
+        return '/login'
+    return dash.no_update
+
+
+@app.callback(
+    [Output('req-district-div', 'style'),
+     Output('req-health-unit-div', 'style')],
+    Input('req-access-level', 'value')
+)
+def toggle_access_level_fields(access_level):
+    if access_level == 'secretaria':
+        return {'display': 'none'}, {'display': 'none'}
+    elif access_level == 'distrito':
+        return {'display': 'block'}, {'display': 'none'}
+    else:
+        return {'display': 'none'}, {'display': 'block'}
+
+
+@app.callback(
+    Output('access-request-message', 'children'),
+    Input('submit-access-request-btn', 'n_clicks'),
+    [State('req-name', 'value'),
+     State('req-email', 'value'),
+     State('req-phone', 'value'),
+     State('req-cpf', 'value'),
+     State('req-matricula', 'value'),
+     State('req-username', 'value'),
+     State('req-access-level', 'value'),
+     State('req-district', 'value'),
+     State('req-health-unit', 'value'),
+     State('req-justification', 'value')],
+    prevent_initial_call=True
+)
+def submit_access_request(n_clicks, name, email, phone, cpf, matricula, username, access_level, district, health_unit, justification):
+    if not n_clicks:
+        return dash.no_update
+    
+    if not name or not email or not cpf or not matricula or not username:
+        return dbc.Alert('Por favor, preencha todos os campos obrigatórios.', color='danger')
+    
+    if access_level == 'distrito' and not district:
+        return dbc.Alert('Por favor, selecione o distrito sanitário.', color='danger')
+    
+    if access_level == 'unidade' and not health_unit:
+        return dbc.Alert('Por favor, selecione a unidade de saúde.', color='danger')
+    
+    result = create_access_request(
+        name=name,
+        email=email,
+        phone=phone,
+        cpf=cpf,
+        matricula=matricula,
+        username=username,
+        access_level=access_level,
+        district=district if access_level in ('distrito', 'unidade') else None,
+        health_unit=health_unit if access_level == 'unidade' else None,
+        justification=justification
+    )
+    
+    if result['success']:
+        return dbc.Alert([
+            html.I(className='fas fa-check-circle me-2'),
+            result['message']
+        ], color='success')
+    else:
+        return dbc.Alert([
+            html.I(className='fas fa-exclamation-circle me-2'),
+            result['message']
+        ], color='danger')
+
 
 from src.callbacks import register_callbacks
 register_callbacks(app)
