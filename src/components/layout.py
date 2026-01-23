@@ -517,6 +517,57 @@ def create_audit_tab(initial_content=None):
 
 
 def create_outliers_tab(initial_content=None):
+    sort_options = [
+        {'label': 'Descrição', 'value': 'descricao_motivo'},
+        {'label': 'Motivo', 'value': 'motivo_do_outlier'},
+        {'label': 'Nome do Paciente', 'value': 'nome_paciente'},
+        {'label': 'Cartão SUS', 'value': 'cartao_sus'},
+        {'label': 'Distrito', 'value': 'distrito_saude'},
+        {'label': 'Unidade de Saúde', 'value': 'unidade_saude'},
+        {'label': 'Data Inconsistente', 'value': 'data_inconsistente'},
+        {'label': 'Valor Crítico', 'value': 'valor_critico'}
+    ]
+    
+    sort_controls = dbc.Card([
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col([
+                    html.Label('Classificar por:', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    dcc.Dropdown(
+                        id='outliers-sort-field',
+                        options=sort_options,
+                        value='descricao_motivo',
+                        clearable=False,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=4, sm=6, className='mb-2 mb-md-0'),
+                dbc.Col([
+                    html.Label('Ordem:', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    dcc.Dropdown(
+                        id='outliers-sort-order',
+                        options=[
+                            {'label': 'Crescente (A-Z)', 'value': 'asc'},
+                            {'label': 'Decrescente (Z-A)', 'value': 'desc'}
+                        ],
+                        value='asc',
+                        clearable=False,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=3, sm=6, className='mb-2 mb-md-0'),
+                dbc.Col([
+                    html.Label('\u00a0', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    dbc.Button(
+                        [html.I(className='fas fa-sort me-2'), 'Aplicar Ordenação'],
+                        id='outliers-sort-btn',
+                        color='primary',
+                        className='w-100',
+                        size='sm'
+                    )
+                ], md=3, sm=12)
+            ])
+        ])
+    ], className='mb-3 shadow-sm')
+    
     if initial_content and 'outliers_summary' in initial_content:
         return html.Div([
             html.Div([
@@ -526,6 +577,7 @@ def create_outliers_tab(initial_content=None):
             ]),
             html.Div(initial_content.get('outliers_summary', ''), id='outliers-summary'),
             html.Hr(className='my-4'),
+            sort_controls,
             dbc.Row([
                 dbc.Col(html.Div(initial_content.get('outliers_table', ''), id='outliers-table'), lg=12, className='mb-4')
             ])
@@ -538,6 +590,7 @@ def create_outliers_tab(initial_content=None):
         ]),
         html.Div(id='outliers-summary'),
         html.Hr(className='my-4'),
+        sort_controls,
         dbc.Row([
             dbc.Col(html.Div(id='outliers-table'), lg=12, className='mb-4')
         ])

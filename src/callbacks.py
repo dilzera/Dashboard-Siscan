@@ -682,6 +682,28 @@ def register_callbacks(app):
             return html.P(f'Erro ao carregar dados', className='text-danger text-center p-4'), '', 1
     
     @app.callback(
+        Output('outliers-table', 'children', allow_duplicate=True),
+        Input('outliers-sort-btn', 'n_clicks'),
+        [State('outliers-sort-field', 'value'),
+         State('outliers-sort-order', 'value'),
+         State('year-filter', 'value'),
+         State('health-unit-filter', 'value'),
+         State('region-filter', 'value'),
+         State('data-masked-store', 'data')],
+        prevent_initial_call=True
+    )
+    def sort_outliers_table(n_clicks, sort_field, sort_order, year, health_unit, region, is_masked):
+        if not n_clicks:
+            return no_update
+        
+        try:
+            outliers_df = get_outliers_audit_sql(year, health_unit, region)
+            return create_outliers_table(outliers_df, is_masked, sort_field, sort_order)
+        except Exception as e:
+            print(f"Erro ao ordenar outliers: {e}")
+            return html.P('Erro ao ordenar dados', className='text-danger text-center p-4')
+    
+    @app.callback(
         Output('access-requests-table', 'children'),
         Input('refresh-access-requests-btn', 'n_clicks'),
         [State('user-access-level-store', 'data'),

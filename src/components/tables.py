@@ -137,12 +137,16 @@ def create_high_risk_table(df, is_masked=True):
     )
 
 
-def create_outliers_table(df, is_masked=True):
+def create_outliers_table(df, is_masked=True, sort_field='descricao_motivo', sort_order='asc'):
     if df.empty:
         return html.Div(
             html.P('Nenhum outlier identificado', className='text-muted text-center py-4'),
             className='border rounded'
         )
+    
+    if sort_field and sort_field in df.columns:
+        ascending = sort_order != 'desc'
+        df = df.sort_values(by=sort_field, ascending=ascending, na_position='last')
     
     motivo_colors = {
         'A': 'danger',
@@ -153,14 +157,14 @@ def create_outliers_table(df, is_masked=True):
     
     header = html.Thead(
         html.Tr([
+            html.Th('Descrição', style={'fontSize': '0.85rem'}),
             html.Th('Motivo', style={'fontSize': '0.85rem', 'width': '60px'}),
             html.Th('Nome do Paciente', style={'fontSize': '0.85rem'}),
             html.Th('Cartão SUS', style={'fontSize': '0.85rem'}),
             html.Th('Distrito', style={'fontSize': '0.85rem'}),
             html.Th('Unidade de Saúde', style={'fontSize': '0.85rem'}),
             html.Th('Data Inconsistente', style={'fontSize': '0.85rem'}),
-            html.Th('Valor Crítico', style={'fontSize': '0.85rem'}),
-            html.Th('Descrição', style={'fontSize': '0.85rem'})
+            html.Th('Valor Crítico', style={'fontSize': '0.85rem'})
         ])
     )
     
@@ -182,6 +186,7 @@ def create_outliers_table(df, is_masked=True):
             unidade += '...'
         
         cells = [
+            html.Td(str(row.get('descricao_motivo', '-')), style={'fontSize': '0.85rem'}),
             html.Td(dbc.Badge(motivo, color=badge_color, className='fw-bold')),
             html.Td(nome, style={'fontSize': '0.85rem'}),
             html.Td(cartao, style={'fontSize': '0.85rem', 'fontFamily': 'monospace'}),
@@ -191,8 +196,7 @@ def create_outliers_table(df, is_masked=True):
             html.Td(
                 html.Span(str(row.get('valor_critico', '-')), 
                          style={'color': COLORS['danger'], 'fontWeight': '500', 'fontSize': '0.85rem'})
-            ),
-            html.Td(str(row.get('descricao_motivo', '-')), style={'fontSize': '0.85rem'})
+            )
         ]
         rows.append(html.Tr(cells))
     
