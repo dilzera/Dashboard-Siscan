@@ -153,7 +153,7 @@ def register_callbacks(app):
     )
     def go_to_overview_on_title_click(n_clicks):
         if n_clicks:
-            return 'tab-overview', None, None, None, None, None, None
+            return 'tab-performance', None, None, None, None, None, None
         return no_update, no_update, no_update, no_update, no_update, no_update, no_update
     
     @app.callback(
@@ -171,7 +171,7 @@ def register_callbacks(app):
         Output('outliers-summary', 'children'),
         Output('outliers-table', 'children'),
         Output('navigation-stats', 'children'),
-        Output('navigation-table', 'children'),
+        Output('navigation-table', 'children', allow_duplicate=True),
         Output('last-update-display', 'children'),
         Input('refresh-btn', 'n_clicks'),
         Input('data-masked-store', 'data'),
@@ -220,6 +220,31 @@ def register_callbacks(app):
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_card, error_message
             )
+    
+    @app.callback(
+        Output('navigation-table', 'children', allow_duplicate=True),
+        [Input('navigation-apply-filter-btn', 'n_clicks')],
+        [State('navigation-evolution-filter', 'value'),
+         State('year-filter', 'value'),
+         State('health-unit-filter', 'value'),
+         State('region-filter', 'value'),
+         State('data-masked-store', 'data')],
+        prevent_initial_call=True
+    )
+    def update_navigation_with_evolution_filter(n_clicks, evolution_filter, year, health_unit, region, is_masked):
+        if not n_clicks:
+            return no_update
+        
+        try:
+            navigation_list_df = get_patient_navigation_list_sql(
+                year, health_unit, region, 
+                min_exams=2, limit=50, 
+                evolution_filter=evolution_filter
+            )
+            return create_patient_navigation_table(navigation_list_df, is_masked)
+        except Exception as e:
+            print(f"Erro ao filtrar navegação: {e}")
+            return html.Div([html.P(f'Erro ao filtrar: {str(e)}', className='text-danger')])
     
     @app.callback(
         Output('patient-data-table', 'children'),

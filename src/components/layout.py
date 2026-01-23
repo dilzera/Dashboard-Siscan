@@ -771,6 +771,36 @@ def create_outliers_tab(initial_content=None):
 
 
 def create_patient_navigation_tab(initial_content=None):
+    evolution_filter = dbc.Card([
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col([
+                    html.Label('Filtrar por Evolução', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    dcc.Dropdown(
+                        id='navigation-evolution-filter',
+                        options=[
+                            {'label': html.Span([html.I(className='fas fa-arrow-down me-2', style={'color': '#28a745'}), 'Evolução Positiva (BI-RADS diminuiu)'], style={'fontSize': '0.9rem'}), 'value': 'positive'},
+                            {'label': html.Span([html.I(className='fas fa-arrow-up me-2', style={'color': '#dc3545'}), 'Evolução Negativa (BI-RADS aumentou)'], style={'fontSize': '0.9rem'}), 'value': 'negative'},
+                        ],
+                        placeholder='Todos os pacientes',
+                        clearable=True,
+                        optionHeight=45,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=4, sm=6, className='mb-2'),
+                dbc.Col([
+                    html.Label('\u00a0', className='d-block mb-1', style={'fontSize': '0.9rem'}),
+                    dbc.Button(
+                        [html.I(className='fas fa-filter me-2'), 'Aplicar Filtro'],
+                        id='navigation-apply-filter-btn',
+                        color='primary',
+                        style={'backgroundColor': COLORS['primary'], 'borderColor': COLORS['primary']}
+                    )
+                ], md=2, sm=6, className='mb-2')
+            ])
+        ], className='p-3')
+    ], className='border-0 shadow-sm mb-4')
+    
     if initial_content and 'navigation_stats' in initial_content:
         return html.Div([
             html.Div([
@@ -778,6 +808,7 @@ def create_patient_navigation_tab(initial_content=None):
                 html.P('Pacientes com múltiplos atendimentos e histórico de exames.', 
                        className='text-muted mb-4')
             ]),
+            evolution_filter,
             html.Div(initial_content.get('navigation_stats', ''), id='navigation-stats'),
             html.Hr(className='my-4'),
             dbc.Row([
@@ -790,6 +821,7 @@ def create_patient_navigation_tab(initial_content=None):
             html.P('Pacientes com múltiplos atendimentos e histórico de exames.', 
                    className='text-muted mb-4')
         ]),
+        evolution_filter,
         html.Div(id='navigation-stats'),
         html.Hr(className='my-4'),
         dbc.Row([

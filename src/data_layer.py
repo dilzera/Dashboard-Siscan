@@ -670,8 +670,11 @@ def get_patient_navigation_summary_sql(year=None, health_unit=None, region=None,
     return df
 
 
-def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, conformity=None, min_exams=2, limit=100):
-    """Get list of patients with multiple exams and their exam history"""
+def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, conformity=None, min_exams=2, limit=100, evolution_filter=None):
+    """Get list of patients with multiple exams and their exam history
+    
+    evolution_filter: 'positive' (BI-RADS desceu), 'negative' (BI-RADS subiu), None (todos)
+    """
     where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity)
     where_clause_e, _ = _build_navigation_where_clause(year, health_unit, region, conformity, table_prefix="e")
     
@@ -738,9 +741,18 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
         pe.conformity_status,
         COALESCE(ev.first_birads, 0) as first_birads,
         COALESCE(ev.last_birads, 0) as last_birads,
-        CASE WHEN ev.first_birads > ev.last_birads THEN 1 ELSE 0 END as evolucao_positiva
+        CASE WHEN ev.first_birads > ev.last_birads THEN 1 ELSE 0 END as evolucao_positiva,
+        CASE WHEN ev.first_birads < ev.last_birads THEN 1 ELSE 0 END as evolucao_negativa
     FROM patient_exams pe
     LEFT JOIN patient_evolution ev ON pe.patient_unique_id = ev.patient_unique_id
+    """
+    
+    if evolution_filter == 'positive':
+        query += " WHERE ev.first_birads > ev.last_birads "
+    elif evolution_filter == 'negative':
+        query += " WHERE ev.first_birads < ev.last_birads "
+    
+    query += """
     ORDER BY 
         CASE WHEN ev.first_birads > ev.last_birads THEN 0 ELSE 1 END,
         (ev.first_birads - ev.last_birads) DESC NULLS LAST,
