@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Inteligente de Câncer de Mama - Pitch Ministério da Saúde</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        .slide {
+            min-height: 100vh;
+            padding: 60px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.4);
+        }
+        
+        .ribbon {
+            width: 60px;
+            height: 60px;
+            position: absolute;
+            top: 30px;
+            right: 40px;
+        }
+        
+        .ribbon i {
+            font-size: 50px;
+            color: #ff69b4;
+        }
+        
+        /* Slide 1 - Capa */
+        .slide-cover {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            text-align: center;
+        }
+        
+        .slide-cover h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #ff69b4, #17a2b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .slide-cover h2 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: #aaa;
+            margin-bottom: 60px;
+        }
+        
+        .slide-cover .tagline {
+            font-size: 1.4rem;
+            color: #17a2b8;
+            font-weight: 500;
+            margin-top: 40px;
+            padding: 20px 40px;
+            border: 2px solid #17a2b8;
+            border-radius: 50px;
+            display: inline-block;
+        }
+        
+        .logo-container {
+            margin-bottom: 40px;
+        }
+        
+        .logo-container i {
+            font-size: 120px;
+            color: #ff69b4;
+            text-shadow: 0 0 60px rgba(255, 105, 180, 0.5);
+        }
+        
+        /* Slide genérico */
+        .slide h2 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 50px;
+            color: #fff;
+        }
+        
+        .slide h2 span {
+            color: #17a2b8;
+        }
+        
+        .slide h3 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #ff69b4;
+            margin-bottom: 20px;
+        }
+        
+        /* Cards */
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            background: rgba(255,255,255,0.1);
+            border-color: #17a2b8;
+        }
+        
+        .card i {
+            font-size: 50px;
+            margin-bottom: 25px;
+            color: #17a2b8;
+        }
+        
+        .card h4 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .card p {
+            font-size: 0.95rem;
+            color: #aaa;
+            line-height: 1.6;
+        }
+        
+        /* Feature list */
+        .feature-list {
+            list-style: none;
+            margin-top: 30px;
+        }
+        
+        .feature-list li {
+            font-size: 1.2rem;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature-list li i {
+            color: #17a2b8;
+            margin-right: 20px;
+            font-size: 1.4rem;
+        }
+        
+        /* Two columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+        
+        .column-text p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+        
+        /* Stats */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 30px;
+            background: rgba(23, 162, 184, 0.1);
+            border-radius: 15px;
+            border: 1px solid rgba(23, 162, 184, 0.3);
+        }
+        
+        .stat-box .number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #17a2b8;
+            display: block;
+        }
+        
+        .stat-box .label {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-top: 10px;
+        }
+        
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(23, 162, 184, 0.2));
+            border-radius: 20px;
+            padding: 40px;
+            margin: 30px 0;
+            border-left: 5px solid #ff69b4;
+        }
+        
+        .highlight-box h4 {
+            font-size: 1.4rem;
+            color: #ff69b4;
+            margin-bottom: 15px;
+        }
+        
+        .highlight-box p {
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: #ddd;
+        }
+        
+        /* Timeline */
+        .timeline {
+            position: relative;
+            margin-top: 40px;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(to bottom, #ff69b4, #17a2b8);
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding: 20px 0 20px 30px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -7px;
+            top: 25px;
+            width: 16px;
+            height: 16px;
+            background: #17a2b8;
+            border-radius: 50%;
+            border: 3px solid #1a1a2e;
+        }
+        
+        .timeline-item h4 {
+            font-size: 1.2rem;
+            color: #17a2b8;
+            margin-bottom: 10px;
+        }
+        
+        .timeline-item p {
+            color: #aaa;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        /* Differentials */
+        .differentials {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            margin-top: 30px;
+        }
+        
+        .differential-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        
+        .differential-item .icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #ff69b4, #17a2b8);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .differential-item .icon i {
+            font-size: 24px;
+            color: #fff;
+        }
+        
+        .differential-item h4 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        
+        .differential-item p {
+            font-size: 0.95rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+        
+        /* CTA */
+        .cta-section {
+            text-align: center;
+            margin-top: 60px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 20px 60px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, #ff69b4, #17a2b8);
+            border-radius: 50px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 20px 40px rgba(23, 162, 184, 0.3);
+        }
+        
+        /* Footer */
+        .slide-footer {
+            position: absolute;
+            bottom: 30px;
+            left: 80px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.4);
+        }
+        
+        /* Print styles */
+        @media print {
+            .slide {
+                page-break-after: always;
+                min-height: 100vh;
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .slide {
+                padding: 40px;
+            }
+            .cards-container {
+                grid-template-columns: 1fr;
+            }
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SLIDE 1: CAPA -->
+    <section class="slide slide-cover">
+        <div class="logo-container">
+            <i class="fas fa-ribbon"></i>
+        </div>
+        <h1>Central Inteligente de Câncer de Mama</h1>
+        <h2>Curitiba - Paraná</h2>
+        <div class="tagline">
+            <i class="fas fa-brain"></i> &nbsp; Mais que um Dashboard: Uma Plataforma de Inteligência para Jornada do Paciente
+        </div>
+        <div class="slide-number">01</div>
+    </section>
+
+    <!-- SLIDE 2: O PROBLEMA -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2>O <span>Problema</span></h2>
+        
+        <div class="cards-container">
+            <div class="card">
+                <i class="fas fa-clock"></i>
+                <h4>Tempo de Espera</h4>
+                <p>Pacientes aguardam meses entre a solicitação da mamografia e o resultado, perdendo a janela crítica de tratamento precoce.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-user-slash"></i>
+                <h4>Pacientes Perdidas</h4>
+                <p>Mulheres com BI-RADS 4 e 5 (alto risco) não retornam para acompanhamento, aumentando mortalidade evitável.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-database"></i>
+                <h4>Dados Fragmentados</h4>
+                <p>SISCAN, eSaúde e outros sistemas não conversam entre si, impossibilitando visão completa da jornada da paciente.</p>
+            </div>
+        </div>
+        
+        <div class="highlight-box" style="margin-top: 50px;">
+            <h4><i class="fas fa-exclamation-triangle"></i> &nbsp; Realidade Atual</h4>
+            <p>Gestores tomam decisões baseadas em planilhas estáticas e relatórios defasados, enquanto pacientes de alto risco passam despercebidas pelo sistema.</p>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">02</div>
+    </section>
+
+    <!-- SLIDE 3: A SOLUÇÃO -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2>A <span>Solução</span></h2>
+        
+        <div class="two-columns">
+            <div class="column-text">
+                <h3>Central Inteligente</h3>
+                <p>Uma plataforma que transforma dados brutos do SISCAN em <strong>inteligência acionável</strong>, permitindo:</p>
+                
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i> Visualização em tempo real de toda a rede</li>
+                    <li><i class="fas fa-check-circle"></i> Rastreamento da jornada completa da paciente</li>
+                    <li><i class="fas fa-check-circle"></i> Priorização automática por risco clínico</li>
+                    <li><i class="fas fa-check-circle"></i> Alertas inteligentes para busca ativa</li>
+                    <li><i class="fas fa-check-circle"></i> Indicadores de desempenho por unidade</li>
+                </ul>
+            </div>
+            
+            <div class="column-image" style="text-align: center;">
+                <div style="background: rgba(23, 162, 184, 0.1); border-radius: 20px; padding: 40px; border: 2px solid #17a2b8;">
+                    <i class="fas fa-laptop-medical" style="font-size: 120px; color: #17a2b8;"></i>
+                    <p style="margin-top: 20px; color: #aaa;">Painel unificado para toda a rede de atenção</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">03</div>
+    </section>
+
+    <!-- SLIDE 4: FUNCIONALIDADE 1 - NAVEGAÇÃO DO PACIENTE -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2><span>Funcionalidade 1:</span> Navegação da Paciente</h2>
+        
+        <div class="highlight-box">
+            <h4><i class="fas fa-route"></i> &nbsp; Jornada Completa em Uma Tela</h4>
+            <p>Visualize todo o histórico de uma paciente: desde o primeiro exame até o mais recente, com evolução do BI-RADS, tempos de espera e unidades de atendimento.</p>
+        </div>
+        
+        <div class="timeline">
+            <div class="timeline-item">
+                <h4>1º Exame - Janeiro/2023</h4>
+                <p>BI-RADS 0 (inconclusivo) • UBS Vila Esperança • Aguarda complemento</p>
+            </div>
+            <div class="timeline-item">
+                <h4>2º Exame - Março/2023</h4>
+                <p>BI-RADS 4 (suspeito) • Hospital X • Encaminhada para biópsia</p>
+            </div>
+            <div class="timeline-item">
+                <h4>3º Exame - Junho/2023</h4>
+                <p>BI-RADS 2 (benigno) • Hospital X • Alta com acompanhamento anual</p>
+            </div>
+        </div>
+        
+        <div class="differentials" style="margin-top: 40px;">
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-arrow-trend-up"></i></div>
+                <div>
+                    <h4>Evolução Positiva</h4>
+                    <p>Identifica pacientes que melhoraram (BI-RADS 3,4,5 → 0,1,2)</p>
+                </div>
+            </div>
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-arrow-trend-down"></i></div>
+                <div>
+                    <h4>Evolução Negativa</h4>
+                    <p>Alerta pacientes que pioraram (BI-RADS 0,1,2 → 3,4,5)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">04</div>
+    </section>
+
+    <!-- SLIDE 5: FUNCIONALIDADE 2 - PRIORIZAÇÃO -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2><span>Funcionalidade 2:</span> Priorização Inteligente</h2>
+        
+        <p style="font-size: 1.2rem; color: #ccc; margin-bottom: 40px;">Sistema de classificação baseado no <strong style="color: #17a2b8;">Protocolo Manchester</strong> adaptado para oncologia mamária</p>
+        
+        <div class="cards-container">
+            <div class="card" style="border-left: 5px solid #dc3545;">
+                <i class="fas fa-exclamation-circle" style="color: #dc3545;"></i>
+                <h4 style="color: #dc3545;">CRÍTICO</h4>
+                <p>BI-RADS 5 (altamente suspeito)<br><strong>SLA: 24 horas</strong></p>
+            </div>
+            <div class="card" style="border-left: 5px solid #fd7e14;">
+                <i class="fas fa-exclamation-triangle" style="color: #fd7e14;"></i>
+                <h4 style="color: #fd7e14;">ALTO</h4>
+                <p>BI-RADS 4 (suspeito)<br><strong>SLA: 72 horas</strong></p>
+            </div>
+            <div class="card" style="border-left: 5px solid #ffc107;">
+                <i class="fas fa-clock" style="color: #ffc107;"></i>
+                <h4 style="color: #ffc107;">MÉDIO</h4>
+                <p>BI-RADS 0 (inconclusivo)<br><strong>SLA: 7 dias</strong></p>
+            </div>
+        </div>
+        
+        <div class="highlight-box" style="margin-top: 40px;">
+            <h4><i class="fas fa-file-export"></i> &nbsp; Exportação para Busca Ativa</h4>
+            <p>Com um clique, exporte a lista de pacientes de alto risco (BI-RADS 4 e 5) com dados de contato para que as equipes de saúde realizem busca ativa imediata.</p>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">05</div>
+    </section>
+
+    <!-- SLIDE 6: FUNCIONALIDADE 3 - INTEROPERABILIDADE -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2><span>Funcionalidade 3:</span> Interoperabilidade de Dados</h2>
+        
+        <div class="two-columns">
+            <div class="column-text">
+                <h3>Cruzamento Inteligente</h3>
+                <p>Conexão entre SISCAN e eSaúde para identificar:</p>
+                
+                <ul class="feature-list">
+                    <li><i class="fas fa-users"></i> Pacientes presentes em ambos os sistemas</li>
+                    <li><i class="fas fa-user-check"></i> Pacientes exclusivas do SISCAN</li>
+                    <li><i class="fas fa-user-plus"></i> Pacientes exclusivas do eSaúde</li>
+                    <li><i class="fas fa-copy"></i> Detecção de duplicidades por CNS</li>
+                </ul>
+                
+                <div style="margin-top: 30px; padding: 20px; background: rgba(255, 105, 180, 0.1); border-radius: 10px;">
+                    <p style="color: #ff69b4; font-weight: 600;"><i class="fas fa-lightbulb"></i> &nbsp; Por que isso importa?</p>
+                    <p style="color: #aaa; margin-top: 10px;">Garante que nenhuma paciente fique "invisível" por estar em apenas um sistema.</p>
+                </div>
+            </div>
+            
+            <div class="column-image">
+                <div class="stats-container" style="grid-template-columns: 1fr;">
+                    <div class="stat-box">
+                        <span class="number">10.000+</span>
+                        <span class="label">Registros Cruzados</span>
+                    </div>
+                    <div class="stat-box" style="background: rgba(255, 105, 180, 0.1); border-color: rgba(255, 105, 180, 0.3);">
+                        <span class="number" style="color: #ff69b4;">100%</span>
+                        <span class="label">Cobertura de Dados</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">06</div>
+    </section>
+
+    <!-- SLIDE 7: FUNCIONALIDADE 4 - INDICADORES -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2><span>Funcionalidade 4:</span> Indicadores Clínicos</h2>
+        
+        <p style="font-size: 1.2rem; color: #ccc; margin-bottom: 30px;">10 indicadores organizados em 4 blocos estratégicos</p>
+        
+        <div class="cards-container" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="card">
+                <i class="fas fa-bullseye"></i>
+                <h4>Cobertura</h4>
+                <p>População-alvo atendida vs. meta</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-shipping-fast"></i>
+                <h4>Agilidade</h4>
+                <p>Tempo médio entre solicitação e resultado</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-chart-pie"></i>
+                <h4>Encaminhamentos</h4>
+                <p>Distribuição por categoria BI-RADS</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-star"></i>
+                <h4>Casos Especiais</h4>
+                <p>Fora da faixa etária e situações atípicas</p>
+            </div>
+        </div>
+        
+        <div class="highlight-box" style="margin-top: 40px;">
+            <h4><i class="fas fa-chart-line"></i> &nbsp; Monitoramento Contínuo</h4>
+            <p>Cada indicador possui meta definida e comparativo histórico, permitindo acompanhar a evolução da rede ao longo do tempo e identificar unidades que precisam de suporte.</p>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">07</div>
+    </section>
+
+    <!-- SLIDE 8: FUNCIONALIDADE 5 - ANÁLISE POR UNIDADE -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2><span>Funcionalidade 5:</span> Análise por Unidade de Saúde</h2>
+        
+        <div class="differentials">
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-chart-bar"></i></div>
+                <div>
+                    <h4>KPIs Específicos</h4>
+                    <p>Cada unidade tem seus próprios indicadores de desempenho, permitindo comparações e identificação de melhores práticas.</p>
+                </div>
+            </div>
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-th-large"></i></div>
+                <div>
+                    <h4>Heatmap Demográfico</h4>
+                    <p>Visualização por faixa etária e distribuição das pacientes, auxiliando no planejamento de campanhas.</p>
+                </div>
+            </div>
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-stopwatch"></i></div>
+                <div>
+                    <h4>Distribuição de Agilidade</h4>
+                    <p>Histograma de tempos de espera com meta de 30 dias claramente demarcada.</p>
+                </div>
+            </div>
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-list-check"></i></div>
+                <div>
+                    <h4>Fila de Retorno Pendente</h4>
+                    <p>Lista de pacientes BI-RADS 0, 3, 4 e 5 que ainda não retornaram para acompanhamento.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">08</div>
+    </section>
+
+    <!-- SLIDE 9: SEGURANÇA E GOVERNANÇA -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2><span>Segurança</span> e Governança</h2>
+        
+        <div class="cards-container">
+            <div class="card">
+                <i class="fas fa-shield-halved"></i>
+                <h4>Controle de Acesso</h4>
+                <p>3 níveis hierárquicos: Secretaria, Distrito e Unidade, cada um com visão restrita ao seu escopo.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-user-lock"></i>
+                <h4>Mascaramento de Dados</h4>
+                <p>Nomes, CPF, CNS e telefones são mascarados por padrão, protegendo a privacidade das pacientes.</p>
+            </div>
+            <div class="card">
+                <i class="fas fa-key"></i>
+                <h4>Autenticação Segura</h4>
+                <p>Senhas criptografadas, timeout de sessão e fluxo completo de recuperação de senha.</p>
+            </div>
+        </div>
+        
+        <div class="highlight-box" style="margin-top: 40px;">
+            <h4><i class="fas fa-check-double"></i> &nbsp; Conformidade LGPD</h4>
+            <p>O sistema foi projetado com privacidade desde a concepção (Privacy by Design), garantindo que dados sensíveis de saúde sejam tratados conforme a legislação brasileira.</p>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">09</div>
+    </section>
+
+    <!-- SLIDE 10: DIFERENCIAIS -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2>Por que é <span>Diferente</span>?</h2>
+        
+        <div class="two-columns">
+            <div>
+                <h3 style="color: #aaa;"><i class="fas fa-times-circle" style="color: #dc3545;"></i> &nbsp; Dashboard Tradicional</h3>
+                <ul class="feature-list">
+                    <li><i class="fas fa-minus" style="color: #dc3545;"></i> Mostra dados agregados e estáticos</li>
+                    <li><i class="fas fa-minus" style="color: #dc3545;"></i> Foca em números, não em pessoas</li>
+                    <li><i class="fas fa-minus" style="color: #dc3545;"></i> Sem rastreabilidade individual</li>
+                    <li><i class="fas fa-minus" style="color: #dc3545;"></i> Gestão reativa</li>
+                </ul>
+            </div>
+            <div>
+                <h3 style="color: #17a2b8;"><i class="fas fa-check-circle" style="color: #17a2b8;"></i> &nbsp; Central Inteligente</h3>
+                <ul class="feature-list">
+                    <li><i class="fas fa-plus" style="color: #17a2b8;"></i> Constrói a jornada individual da paciente</li>
+                    <li><i class="fas fa-plus" style="color: #17a2b8;"></i> Prioriza por risco clínico</li>
+                    <li><i class="fas fa-plus" style="color: #17a2b8;"></i> Detecta evolução e alerta automaticamente</li>
+                    <li><i class="fas fa-plus" style="color: #17a2b8;"></i> Gestão proativa com busca ativa</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="cta-section">
+            <p style="font-size: 1.5rem; color: #ff69b4; margin-bottom: 20px; font-weight: 600;">
+                "Não contamos exames. Acompanhamos vidas."
+            </p>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">10</div>
+    </section>
+
+    <!-- SLIDE 11: VISÃO DE FUTURO -->
+    <section class="slide">
+        <div class="ribbon"><i class="fas fa-ribbon"></i></div>
+        <h2>Visão de <span>Futuro</span></h2>
+        
+        <div class="differentials">
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-robot"></i></div>
+                <div>
+                    <h4>Inteligência Artificial</h4>
+                    <p>Predição de risco de não-retorno baseada em padrões históricos da paciente.</p>
+                </div>
+            </div>
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-bell"></i></div>
+                <div>
+                    <h4>Alertas Automatizados</h4>
+                    <p>Notificações em tempo real para gestores quando pacientes de alto risco não retornam no prazo.</p>
+                </div>
+            </div>
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-mobile-alt"></i></div>
+                <div>
+                    <h4>App para ACS</h4>
+                    <p>Aplicativo móvel para Agentes Comunitários de Saúde realizarem busca ativa em campo.</p>
+                </div>
+            </div>
+            <div class="differential-item">
+                <div class="icon"><i class="fas fa-expand"></i></div>
+                <div>
+                    <h4>Expansão Nacional</h4>
+                    <p>Modelo replicável para outros municípios e estados do Brasil via DATASUS.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="slide-footer">Secretaria Municipal de Saúde de Curitiba</div>
+        <div class="slide-number">11</div>
+    </section>
+
+    <!-- SLIDE 12: ENCERRAMENTO -->
+    <section class="slide slide-cover">
+        <div class="logo-container">
+            <i class="fas fa-ribbon"></i>
+        </div>
+        <h1>Central Inteligente de Câncer de Mama</h1>
+        <h2>Transformando dados em vidas salvas</h2>
+        
+        <div style="margin-top: 60px;">
+            <p style="font-size: 1.3rem; color: #aaa; margin-bottom: 30px;">Desenvolvido pela</p>
+            <p style="font-size: 1.6rem; font-weight: 600; color: #17a2b8;">Secretaria Municipal de Saúde de Curitiba</p>
+        </div>
+        
+        <div class="cta-section" style="margin-top: 50px;">
+            <a href="#" class="cta-button">
+                <i class="fas fa-play-circle"></i> &nbsp; Ver Demonstração
+            </a>
+        </div>
+        
+        <div class="slide-number">12</div>
+    </section>
+
+</body>
+</html>
