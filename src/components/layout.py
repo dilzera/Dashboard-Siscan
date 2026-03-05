@@ -516,10 +516,10 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         placeholder='Todas as unidades',
                         clearable=True,
                         searchable=True,
-                        optionHeight=45,
-                        style={'fontSize': '0.9rem'}
+                        optionHeight=50,
+                        style={'fontSize': '0.85rem', 'minWidth': '200px'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
+                ], lg=3, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     label_with_tip('Distrito Sanitário', 'tip-region'),

@@ -946,6 +946,20 @@ def create_unit_kpi_cards(kpis):
                 ])
             ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
         ], md=2, sm=4, className='mb-3'),
+        
+        dbc.Col([
+            dbc.Card([
+                dbc.CardBody([
+                    html.Div([
+                        html.I(className='fas fa-file-signature fa-2x', style={'color': '#6f42c1'}),
+                        html.Span(' Realização → Laudo', className='ms-2 fw-bold', style={'fontSize': '0.9rem'})
+                    ], className='d-flex align-items-center mb-2'),
+                    html.H3(f'{kpis.get("media_realizacao_liberacao", 0)} dias', 
+                           style={'color': '#6f42c1', 'fontWeight': '600'}),
+                    html.Small(f'Mediana: {kpis.get("mediana_realizacao_liberacao", 0)} dias', className='text-muted')
+                ])
+            ], className='shadow-sm h-100', style={'borderRadius': '10px', 'border': 'none'})
+        ], md=2, sm=4, className='mb-3'),
     ]
     
     return dbc.Row(cards)

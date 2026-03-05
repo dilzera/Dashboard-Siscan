@@ -1096,7 +1096,21 @@ def get_unit_kpis_sql(health_unit, year=None, region=None):
         COALESCE(AVG(wait_days), 0) as media_espera,
         COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY wait_days), 0) as mediana_espera,
         COALESCE(COUNT(CASE WHEN conformity_status = 'Dentro do Prazo' THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0), 0) as taxa_conformidade,
-        COUNT(CASE WHEN birads_max IN ('4', '5') THEN 1 END) as casos_alto_risco
+        COUNT(CASE WHEN birads_max IN ('4', '5') THEN 1 END) as casos_alto_risco,
+        COALESCE(AVG(
+            CASE WHEN responsavel_pelo_resultado__data_da_liberacao IS NOT NULL 
+                 AND prestador_de_servico__data_da_realizacao IS NOT NULL
+                 AND responsavel_pelo_resultado__data_da_liberacao >= prestador_de_servico__data_da_realizacao
+            THEN (responsavel_pelo_resultado__data_da_liberacao - prestador_de_servico__data_da_realizacao)
+            END
+        ), 0) as media_realizacao_liberacao,
+        COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY 
+            CASE WHEN responsavel_pelo_resultado__data_da_liberacao IS NOT NULL 
+                 AND prestador_de_servico__data_da_realizacao IS NOT NULL
+                 AND responsavel_pelo_resultado__data_da_liberacao >= prestador_de_servico__data_da_realizacao
+            THEN (responsavel_pelo_resultado__data_da_liberacao - prestador_de_servico__data_da_realizacao)
+            END
+        ), 0) as mediana_realizacao_liberacao
     FROM exam_records
     WHERE {where_clause}
     """
@@ -1113,7 +1127,9 @@ def get_unit_kpis_sql(health_unit, year=None, region=None):
             'media_espera': 0,
             'mediana_espera': 0,
             'taxa_conformidade': 0,
-            'casos_alto_risco': 0
+            'casos_alto_risco': 0,
+            'media_realizacao_liberacao': 0,
+            'mediana_realizacao_liberacao': 0
         }
     
     return {
@@ -1122,7 +1138,9 @@ def get_unit_kpis_sql(health_unit, year=None, region=None):
         'media_espera': round(float(row[2]) if row[2] else 0, 1),
         'mediana_espera': round(float(row[3]) if row[3] else 0, 1),
         'taxa_conformidade': round(float(row[4]) if row[4] else 0, 1),
-        'casos_alto_risco': int(row[5]) if row[5] else 0
+        'casos_alto_risco': int(row[5]) if row[5] else 0,
+        'media_realizacao_liberacao': round(float(row[6]) if row[6] else 0, 1),
+        'mediana_realizacao_liberacao': round(float(row[7]) if row[7] else 0, 1)
     }
 
 

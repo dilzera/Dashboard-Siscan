@@ -39,7 +39,7 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
     - **Outlier Auditing:** Detection of data inconsistencies (absurd dates, negative deltas, invalid BI-RADS, excessive wait times).
     - **Quality Data Audit:** Categorization of data inconsistencies (e.g., dates before 2020-01-01, negative delta between request and completion dates, invalid BI-RADS, wait times > 365 days).
     - **Indicators:** 10 clinical indicators across 4 blocks (Target Population Coverage, Access and Result Delivery Agility, Referrals by BI-RADS Category, Special Cases/Out-of-Age Range).
-    - **Health Unit Analysis:** Detailed analysis per unit including specific KPIs, patient demographics (heatmap), agility (wait time distribution), trend analysis (monthly wait time with 30-day goal), and pending return table for BI-RADS 0/3/4/5.
+    - **Health Unit Analysis:** Detailed analysis per unit including specific KPIs (total exames, média espera, conformidade, alto risco, realização→laudo), patient demographics (heatmap), agility (wait time distribution), trend analysis (monthly wait time with 30-day goal), and pending return table for BI-RADS 0/3/4/5.
     - **Patient Data:** Comprehensive listing of all records with specific filters (name, sex, BI-RADS) and pagination.
     - **Patient Navigation:** Tracking patients with multiple appointments, displaying full history including BI-RADS, dates, unit, and wait times.
     - **Interoperability Data (formerly Termo Linkage):** Data crossing between SISCAN and eSaude, with summary cards and search functionality.
@@ -63,6 +63,7 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
 - **Database Schema (`exam_records`):** Fields include `patient_id`, `health_unit`, `region`, `request_date`, `completion_date`, `wait_days`, `birads_category`, `conformity_status`, `year`, `month`, `abertura_aih` (Date), `conclusao_apac` (String). Full clinical fields: nódulos (nodulo_01/02/03), microcalcificações, achados benignos, linfonodos, tipo de mama/mamografia, recomendações.
 - **Enriched Query Returns:** All query functions (patient data, navigation, health unit follow-up, linkage) now return: data do exame, resultado exame, nome do prestador, APAC info (conclusão APAC), Abertura AIH, and Tempestividade e Intervenção (calculated field based on BI-RADS SLA).
 - **Tempestividade Calculation:** BI-RADS 4/5 and 0: SLA 30 days; BI-RADS 3: SLA 180 days; BI-RADS 1/2: SLA 365 days. Shows "Tempestivo" (green badge) or "Atrasado" (red badge).
+- **POC Users:** 146 auto-generated users (1 secretaria, 10 distritos, 124 unidades, 11 prestadores) with pattern username/password. Generated via `scripts/create_poc_users.py`, spreadsheet at `usuarios_poc_siscan.xlsx`.
 - **Testing:** Comprehensive test suite with 71 tests covering database connection, filters, KPIs, charts, outliers, navigation, data integrity, error handling, authentication, and security.
 
 ## External Dependencies
