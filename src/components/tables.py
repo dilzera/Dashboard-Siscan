@@ -4,6 +4,204 @@ import pandas as pd
 from src.config import COLORS, BIRADS_COLORS
 
 
+COLUMN_LEGENDS = {
+    'patient_name': 'Nome completo do paciente (mascarado por padrão)',
+    'nome': 'Nome completo do paciente (mascarado por padrão)',
+    'patient_cns': 'Cartão Nacional de Saúde (CNS) — identificador único do SUS',
+    'cartao_sus': 'Cartão Nacional de Saúde (CNS) — identificador único do SUS',
+    'patient_phone': 'Telefone de contato do paciente',
+    'health_unit': 'Unidade de saúde que solicitou o exame',
+    'unidade_saude': 'Unidade de saúde que solicitou o exame',
+    'birads_category': 'Classificação BI-RADS do exame (0 a 6)',
+    'birads_max': 'Classificação BI-RADS mais alta entre mama direita e esquerda',
+    'request_date': 'Data em que a unidade de saúde solicitou o exame',
+    'data_solicitacao': 'Data em que a unidade de saúde solicitou o exame',
+    'completion_date': 'Data em que o exame de mamografia foi realizado',
+    'data_realizacao': 'Data em que o exame de mamografia foi realizado',
+    'data_liberacao': 'Data em que o laudo foi liberado pelo responsável',
+    'wait_days': 'Dias entre a solicitação e a realização do exame',
+    'conformity_status': 'Dentro do Prazo (≤30 dias) ou Fora do Prazo (>30 dias)',
+    'descricao_motivo': 'Descrição da inconsistência encontrada no registro',
+    'motivo_do_outlier': 'Tipo de outlier: A=Datas absurdas, B=Delta negativo, C=BI-RADS inválido, D=Espera excessiva',
+    'nome_paciente': 'Nome completo do paciente (mascarado por padrão)',
+    'distrito_saude': 'Distrito sanitário ao qual a unidade pertence',
+    'data_inconsistente': 'Data que apresenta a inconsistência identificada',
+    'valor_critico': 'Valor que evidencia a anomalia (ex: dias negativos, datas futuras)',
+    'idade': 'Idade do paciente na data do exame',
+    'sexo': 'Sexo biológico do paciente',
+    'data_nascimento': 'Data de nascimento do paciente',
+    'nome_mae': 'Nome da mãe do paciente (mascarado por padrão)',
+    'prestador_servico': 'Prestador que realizou o exame (clínica/hospital)',
+    'prestador_executante': 'Prestador que realizou o exame (clínica/hospital)',
+    'numero_exame': 'Número de registro do exame no SISCAN',
+    'tipo_mamografia': 'Tipo de mamografia: Rastreamento ou Diagnóstica',
+    'tipo_mama': 'Classificação da composição mamária',
+    'linfonodos_axilares': 'Avaliação dos linfonodos axilares no exame',
+    'achados_benignos': 'Achados benignos identificados na mamografia',
+    'nodulos': 'Descrição dos nódulos identificados (até 3)',
+    'microcalcificacoes': 'Presença e descrição de microcalcificações',
+    'birads_direita_class': 'Classificação BI-RADS da mama direita',
+    'birads_esquerda_class': 'Classificação BI-RADS da mama esquerda',
+    'recomendacoes': 'Recomendações clínicas do laudo',
+    'conclusao_apac': 'Conclusão da APAC (Autorização de Procedimento de Alta Complexidade) para câncer',
+    'abertura_aih': 'Data de abertura da AIH (Autorização de Internação Hospitalar)',
+    'tempestividade': 'Indica se o atendimento foi dentro do prazo (SLA): BI-RADS 4/5/0 ≤30d, BI-RADS 3 ≤180d, BI-RADS 1/2 ≤365d',
+    'data_prevista_retorno': 'Data prevista para o retorno da paciente com base no BI-RADS',
+    'dias_atraso': 'Dias de atraso além da data prevista de retorno',
+    'motivo_retorno': 'Motivo pelo qual o retorno foi recomendado',
+    'prioridade': 'Nível de prioridade baseado no Protocolo de Manchester',
+    'acao': 'Ação recomendada com base na classificação BI-RADS',
+    'sla_resolucao': 'Prazo máximo recomendado para resolução do caso',
+    'cpf': 'CPF do paciente (mascarado por padrão)',
+    'nome_siscan': 'Nome do paciente registrado no sistema SISCAN',
+    'nome_esaude': 'Nome do paciente registrado no sistema eSaúde',
+    'nomes_ok': 'Indica se os nomes no SISCAN e eSaúde coincidem',
+    'total_exames': 'Quantidade total de exames realizados pelo paciente',
+    'exam_order': 'Ordem cronológica do exame no histórico do paciente',
+    'birads_direita': 'BI-RADS da mama direita neste exame',
+    'birads_esquerda': 'BI-RADS da mama esquerda neste exame',
+}
+
+
+def create_table_legend(column_keys, compact=False):
+    legend_items = []
+    for key in column_keys:
+        desc = COLUMN_LEGENDS.get(key)
+        if desc:
+            display_name = key.replace('_', ' ').title()
+            if key == 'birads_category' or key == 'birads_max':
+                display_name = 'BI-RADS'
+            elif key == 'patient_cns' or key == 'cartao_sus':
+                display_name = 'Cartão SUS'
+            elif key == 'patient_name' or key == 'nome' or key == 'nome_paciente':
+                display_name = 'Nome'
+            elif key == 'patient_phone':
+                display_name = 'Telefone'
+            elif key == 'health_unit' or key == 'unidade_saude':
+                display_name = 'Unidade de Saúde'
+            elif key == 'request_date' or key == 'data_solicitacao':
+                display_name = 'Solicitação'
+            elif key == 'completion_date' or key == 'data_realizacao':
+                display_name = 'Data Exame'
+            elif key == 'wait_days':
+                display_name = 'Dias de Espera'
+            elif key == 'conformity_status':
+                display_name = 'Status'
+            elif key == 'data_liberacao':
+                display_name = 'Liberação'
+            elif key == 'prestador_servico' or key == 'prestador_executante':
+                display_name = 'Prestador'
+            elif key == 'conclusao_apac':
+                display_name = 'APAC'
+            elif key == 'abertura_aih':
+                display_name = 'AIH'
+            elif key == 'tempestividade':
+                display_name = 'Tempestividade'
+            elif key == 'data_prevista_retorno':
+                display_name = 'Data Prevista'
+            elif key == 'dias_atraso':
+                display_name = 'Dias Atraso'
+            elif key == 'motivo_retorno':
+                display_name = 'Motivo Retorno'
+            elif key == 'motivo_do_outlier':
+                display_name = 'Motivo'
+            elif key == 'descricao_motivo':
+                display_name = 'Descrição'
+            elif key == 'data_inconsistente':
+                display_name = 'Data Inconsistente'
+            elif key == 'valor_critico':
+                display_name = 'Valor Crítico'
+            elif key == 'distrito_saude':
+                display_name = 'Distrito'
+            elif key == 'sla_resolucao':
+                display_name = 'SLA'
+            elif key == 'prioridade':
+                display_name = 'Prioridade'
+            elif key == 'acao':
+                display_name = 'Ação Recomendada'
+            elif key == 'numero_exame':
+                display_name = 'Nº Exame'
+            elif key == 'tipo_mamografia':
+                display_name = 'Tipo Mamo'
+            elif key == 'tipo_mama':
+                display_name = 'Tipo Mama'
+            elif key == 'linfonodos_axilares':
+                display_name = 'Linfonodos'
+            elif key == 'achados_benignos':
+                display_name = 'Achados Benignos'
+            elif key == 'nodulos':
+                display_name = 'Nódulos'
+            elif key == 'microcalcificacoes':
+                display_name = 'Microcalcificações'
+            elif key == 'birads_direita_class':
+                display_name = 'BI-RADS Dir.'
+            elif key == 'birads_esquerda_class':
+                display_name = 'BI-RADS Esq.'
+            elif key == 'recomendacoes':
+                display_name = 'Recomendações'
+            elif key == 'data_nascimento':
+                display_name = 'Data Nasc.'
+            elif key == 'nome_mae':
+                display_name = 'Nome da Mãe'
+            elif key == 'nome_siscan':
+                display_name = 'Nome SISCAN'
+            elif key == 'nome_esaude':
+                display_name = 'Nome eSaude'
+            elif key == 'nomes_ok':
+                display_name = 'Nomes OK'
+            elif key == 'cpf':
+                display_name = 'CPF'
+            elif key == 'exam_order':
+                display_name = '#'
+            elif key == 'total_exames':
+                display_name = 'Total Exames'
+            elif key == 'idade':
+                display_name = 'Idade'
+            elif key == 'sexo':
+                display_name = 'Sexo'
+
+            legend_items.append(
+                html.Div([
+                    html.Strong(f'{display_name}: ', style={'fontSize': '0.75rem', 'color': COLORS['text']}),
+                    html.Span(desc, style={'fontSize': '0.75rem', 'color': '#666'})
+                ], className='me-3 mb-1' if compact else 'mb-1')
+            )
+
+    if not legend_items:
+        return html.Div()
+
+    if compact:
+        container = html.Div(
+            legend_items,
+            style={'display': 'flex', 'flexWrap': 'wrap'}
+        )
+    else:
+        mid = (len(legend_items) + 1) // 2
+        container = dbc.Row([
+            dbc.Col(legend_items[:mid], md=6),
+            dbc.Col(legend_items[mid:], md=6)
+        ])
+
+    return html.Details([
+        html.Summary(
+            html.Small([
+                html.I(className='fas fa-info-circle me-1'),
+                'Legenda das colunas'
+            ], style={'color': COLORS['primary'], 'cursor': 'pointer', 'fontWeight': '500'}),
+        ),
+        html.Div(
+            container,
+            style={
+                'padding': '8px 12px',
+                'marginTop': '6px',
+                'backgroundColor': '#f8f9fa',
+                'borderRadius': '6px',
+                'border': f'1px solid #e9ecef'
+            }
+        )
+    ], className='mt-2 mb-0')
+
+
 def mask_name(name, is_masked=True):
     """Mascara nome do paciente mantendo apenas iniciais"""
     if not name or not is_masked:
@@ -118,6 +316,11 @@ def create_high_risk_table(df, is_masked=True):
     
     body = html.Tbody(rows)
     
+    legend = create_table_legend([
+        'patient_name', 'patient_cns', 'patient_phone', 'health_unit',
+        'birads_category', 'request_date', 'completion_date', 'wait_days', 'conformity_status'
+    ])
+
     return dbc.Card([
         dbc.CardHeader(
             html.H5('Casos de Alto Risco (BI-RADS 4/5)', className='mb-0', style={'fontWeight': '500'}),
@@ -132,7 +335,8 @@ def create_high_risk_table(df, is_masked=True):
                 striped=True,
                 size='sm',
                 className='mb-0'
-            )
+            ),
+            legend
         ])
     ],
         className='shadow-sm',
@@ -212,6 +416,11 @@ def create_other_birads_table(df, is_masked=True):
     
     body = html.Tbody(rows)
     
+    legend = create_table_legend([
+        'patient_name', 'patient_cns', 'patient_phone', 'health_unit',
+        'birads_category', 'request_date', 'completion_date', 'wait_days', 'conformity_status'
+    ])
+
     return dbc.Card([
         dbc.CardHeader(
             html.H5('Outros Casos (BI-RADS 0/1/2/3)', className='mb-0', style={'fontWeight': '500'}),
@@ -226,7 +435,8 @@ def create_other_birads_table(df, is_masked=True):
                 striped=True,
                 size='sm',
                 className='mb-0'
-            )
+            ),
+            legend
         ])
     ],
         className='shadow-sm',
@@ -303,6 +513,11 @@ def create_outliers_table(df, is_masked=True, sort_field='descricao_motivo', sor
     
     body = html.Tbody(rows)
     
+    legend = create_table_legend([
+        'descricao_motivo', 'motivo_do_outlier', 'nome_paciente', 'cartao_sus',
+        'distrito_saude', 'unidade_saude', 'data_inconsistente', 'valor_critico'
+    ])
+
     return dbc.Card([
         dbc.CardHeader(
             html.H5('Lista de Outliers para Auditoria', className='mb-0', style={'fontWeight': '500'}),
@@ -317,7 +532,8 @@ def create_outliers_table(df, is_masked=True, sort_field='descricao_motivo', sor
                 striped=True,
                 size='sm',
                 className='mb-0'
-            )
+            ),
+            legend
         ])
     ],
         className='shadow-sm',
@@ -562,6 +778,12 @@ def create_patient_navigation_table(df, is_masked=True):
             )
         )
     
+    legend = create_table_legend([
+        'exam_order', 'data_solicitacao', 'data_realizacao', 'data_liberacao',
+        'birads_max', 'birads_direita', 'birads_esquerda', 'unidade_saude',
+        'prestador_executante', 'wait_days', 'conclusao_apac', 'abertura_aih', 'tempestividade'
+    ])
+
     return dbc.Card([
         dbc.CardHeader(
             html.H5('Histórico de Atendimentos por Paciente', className='mb-0', style={'fontWeight': '500'}),
@@ -570,7 +792,8 @@ def create_patient_navigation_table(df, is_masked=True):
         dbc.CardBody([
             html.P(f'Mostrando {min(50, len(grouped))} pacientes com mais atendimentos', 
                    className='text-muted mb-3', style={'fontSize': '0.85rem'}),
-            dbc.Accordion(accordion_items, start_collapsed=True, flush=True)
+            dbc.Accordion(accordion_items, start_collapsed=True, flush=True),
+            legend
         ])
     ],
         className='shadow-sm',
@@ -719,6 +942,15 @@ def create_patient_data_table(df, is_masked=True):
     
     body = html.Tbody(rows)
     
+    legend = create_table_legend([
+        'nome', 'idade', 'sexo', 'data_nascimento', 'nome_mae', 'unidade_saude',
+        'data_solicitacao', 'data_realizacao', 'data_liberacao', 'prestador_servico',
+        'numero_exame', 'tipo_mamografia', 'tipo_mama', 'linfonodos_axilares',
+        'achados_benignos', 'nodulos', 'microcalcificacoes',
+        'birads_direita_class', 'birads_esquerda_class', 'recomendacoes',
+        'conclusao_apac', 'abertura_aih', 'tempestividade'
+    ])
+
     return dbc.Card([
         dbc.CardBody([
             html.Div([
@@ -738,7 +970,8 @@ def create_patient_data_table(df, is_masked=True):
                 'overflowX': 'auto',
                 'display': 'block',
                 'width': '100%'
-            })
+            }),
+            legend
         ], className='p-2')
     ],
         className='shadow-sm',
@@ -844,6 +1077,12 @@ def create_follow_up_overdue_table(df, is_masked=True):
     
     body = html.Tbody(rows)
     
+    legend = create_table_legend([
+        'nome', 'idade', 'birads_max', 'data_realizacao', 'data_liberacao',
+        'prestador_servico', 'data_prevista_retorno', 'dias_atraso', 'motivo_retorno',
+        'conclusao_apac', 'abertura_aih', 'tempestividade', 'cartao_sus'
+    ])
+
     return dbc.Card([
         dbc.CardHeader([
             html.Div([
@@ -862,7 +1101,8 @@ def create_follow_up_overdue_table(df, is_masked=True):
                     size='sm',
                     className='mb-0'
                 )
-            ], style={'maxHeight': '400px', 'overflowY': 'auto', 'overflowX': 'auto'})
+            ], style={'maxHeight': '400px', 'overflowY': 'auto', 'overflowX': 'auto'}),
+            legend
         ], className='p-2')
     ],
         className='shadow-sm',
@@ -1065,11 +1305,18 @@ def create_priority_table(df, is_masked=True):
             ])
         )
     
-    return dbc.Table(
-        [header, html.Tbody(rows)],
-        bordered=True,
-        hover=True,
-        responsive=True,
-        size='sm',
-        className='mb-0'
-    )
+    legend = create_table_legend([
+        'prioridade', 'nome', 'cartao_sus', 'birads_max', 'idade', 'acao', 'sla_resolucao'
+    ])
+
+    return html.Div([
+        dbc.Table(
+            [header, html.Tbody(rows)],
+            bordered=True,
+            hover=True,
+            responsive=True,
+            size='sm',
+            className='mb-0'
+        ),
+        legend
+    ])

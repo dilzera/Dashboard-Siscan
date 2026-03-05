@@ -31,7 +31,8 @@ from src.components.tables import (
     create_patient_navigation_stats_cards, create_patient_navigation_table,
     create_patient_data_table, create_follow_up_overdue_table, create_unit_kpi_cards,
     create_priority_summary_cards, create_priority_table,
-    mask_name, mask_cns, mask_cpf, mask_phone
+    mask_name, mask_cns, mask_cpf, mask_phone,
+    create_table_legend
 )
 
 
@@ -740,26 +741,35 @@ def register_callbacks(app):
                     html.Td(tempest_cell, style={'fontSize': '0.75rem', 'textAlign': 'center'})
                 ], style=row_style))
             
-            table = dbc.Table([
-                html.Thead([
-                    html.Tr([
-                        html.Th('Nome SISCAN', style={'fontSize': '0.8rem'}),
-                        html.Th('Nome eSaude', style={'fontSize': '0.8rem'}),
-                        html.Th('Nomes OK', style={'fontSize': '0.8rem'}),
-                        html.Th('Cartao SUS', style={'fontSize': '0.8rem'}),
-                        html.Th('CPF', style={'fontSize': '0.8rem'}),
-                        html.Th('Data Exame', style={'fontSize': '0.8rem'}),
-                        html.Th('Liberação', style={'fontSize': '0.8rem'}),
-                        html.Th('Prestador', style={'fontSize': '0.8rem'}),
-                        html.Th('BI-RADS', style={'fontSize': '0.8rem'}),
-                        html.Th('Unidade', style={'fontSize': '0.8rem'}),
-                        html.Th('APAC', style={'fontSize': '0.8rem'}),
-                        html.Th('AIH', style={'fontSize': '0.8rem'}),
-                        html.Th('Tempest.', style={'fontSize': '0.8rem'})
-                    ])
-                ]),
-                html.Tbody(rows)
-            ], bordered=True, hover=True, responsive=True, striped=True, size='sm')
+            legend = create_table_legend([
+                'nome_siscan', 'nome_esaude', 'nomes_ok', 'cartao_sus', 'cpf',
+                'data_realizacao', 'data_liberacao', 'prestador_servico',
+                'birads_max', 'unidade_saude', 'conclusao_apac', 'abertura_aih', 'tempestividade'
+            ])
+
+            table = html.Div([
+                dbc.Table([
+                    html.Thead([
+                        html.Tr([
+                            html.Th('Nome SISCAN', style={'fontSize': '0.8rem'}),
+                            html.Th('Nome eSaude', style={'fontSize': '0.8rem'}),
+                            html.Th('Nomes OK', style={'fontSize': '0.8rem'}),
+                            html.Th('Cartao SUS', style={'fontSize': '0.8rem'}),
+                            html.Th('CPF', style={'fontSize': '0.8rem'}),
+                            html.Th('Data Exame', style={'fontSize': '0.8rem'}),
+                            html.Th('Liberação', style={'fontSize': '0.8rem'}),
+                            html.Th('Prestador', style={'fontSize': '0.8rem'}),
+                            html.Th('BI-RADS', style={'fontSize': '0.8rem'}),
+                            html.Th('Unidade', style={'fontSize': '0.8rem'}),
+                            html.Th('APAC', style={'fontSize': '0.8rem'}),
+                            html.Th('AIH', style={'fontSize': '0.8rem'}),
+                            html.Th('Tempest.', style={'fontSize': '0.8rem'})
+                        ])
+                    ]),
+                    html.Tbody(rows)
+                ], bordered=True, hover=True, responsive=True, striped=True, size='sm'),
+                legend
+            ])
             
             count_text = f'Mostrando {offset + 1}-{min(offset + limit, total)} de {total:,} registros'.replace(',', '.')
             
@@ -848,21 +858,76 @@ def register_callbacks(app):
                     ])
                 )
             
-            table = dbc.Table([
-                html.Thead([
-                    html.Tr([
-                        html.Th('Nome'),
-                        html.Th('E-mail'),
-                        html.Th('Matrícula'),
-                        html.Th('Usuário'),
-                        html.Th('Tipo Acesso'),
-                        html.Th('Localização'),
-                        html.Th('Data'),
-                        html.Th('Ações')
-                    ], style={'backgroundColor': COLORS['primary'], 'color': 'white'})
-                ]),
-                html.Tbody(rows)
-            ], bordered=True, hover=True, responsive=True, striped=True, size='sm')
+            access_legend = html.Details([
+                html.Summary(
+                    html.Small([
+                        html.I(className='fas fa-info-circle me-1'),
+                        'Legenda das colunas'
+                    ], style={'color': COLORS['primary'], 'cursor': 'pointer', 'fontWeight': '500'}),
+                ),
+                html.Div(
+                    html.Div([
+                        html.Div([
+                            html.Strong('Nome: ', style={'fontSize': '0.75rem'}),
+                            html.Span('Nome completo do solicitante', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                        html.Div([
+                            html.Strong('E-mail: ', style={'fontSize': '0.75rem'}),
+                            html.Span('E-mail institucional do solicitante', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                        html.Div([
+                            html.Strong('Matrícula: ', style={'fontSize': '0.75rem'}),
+                            html.Span('Matrícula funcional do servidor', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                        html.Div([
+                            html.Strong('Usuário: ', style={'fontSize': '0.75rem'}),
+                            html.Span('Nome de usuário desejado para login', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                        html.Div([
+                            html.Strong('Tipo Acesso: ', style={'fontSize': '0.75rem'}),
+                            html.Span('Nível solicitado: Secretaria (total), Distrito (distrital) ou Unidade (local)', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                        html.Div([
+                            html.Strong('Localização: ', style={'fontSize': '0.75rem'}),
+                            html.Span('Distrito ou unidade de saúde vinculada ao solicitante', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                        html.Div([
+                            html.Strong('Data: ', style={'fontSize': '0.75rem'}),
+                            html.Span('Data em que a solicitação de acesso foi enviada', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                        html.Div([
+                            html.Strong('Ações: ', style={'fontSize': '0.75rem'}),
+                            html.Span('Aprovar (cria usuário com senha temporária) ou Rejeitar a solicitação', style={'fontSize': '0.75rem', 'color': '#666'})
+                        ], className='mb-1'),
+                    ]),
+                    style={
+                        'padding': '8px 12px',
+                        'marginTop': '6px',
+                        'backgroundColor': '#f8f9fa',
+                        'borderRadius': '6px',
+                        'border': '1px solid #e9ecef'
+                    }
+                )
+            ], className='mt-2 mb-0')
+
+            table = html.Div([
+                dbc.Table([
+                    html.Thead([
+                        html.Tr([
+                            html.Th('Nome'),
+                            html.Th('E-mail'),
+                            html.Th('Matrícula'),
+                            html.Th('Usuário'),
+                            html.Th('Tipo Acesso'),
+                            html.Th('Localização'),
+                            html.Th('Data'),
+                            html.Th('Ações')
+                        ], style={'backgroundColor': COLORS['primary'], 'color': 'white'})
+                    ]),
+                    html.Tbody(rows)
+                ], bordered=True, hover=True, responsive=True, striped=True, size='sm'),
+                access_legend
+            ])
             
             return dbc.Card([
                 dbc.CardBody([

@@ -52,6 +52,7 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
 - **Manchester Protocol Colors:** BI-RADS and Priority filters display visual color indicators following Manchester Protocol: Red (#dc3545) for critical, Orange (#fd7e14) for high, Yellow (#ffc107) for medium, Green (#28a745) for monitoring, Blue (#17a2b8) for routine.
 - **Duplicate Detection:** Interoperability data highlights patients with duplicate CNS entries using yellow background and badge showing count.
 - **Intelligent Sorting:** Patient navigation sorted by BI-RADS evolution (prioritizes patients showing improvement when no filters applied).
+- **Table Column Legends:** All 9 data tables include collapsible "Legenda das colunas" sections with descriptions for every column, implemented via `create_table_legend()` helper using `<details>` HTML element.
 
 **Performance Optimizations:**
 - **In-Memory Cache:** TTL-based caching (2 minutes for queries, 10 minutes for static lists) via `src/cache.py` decorator.
