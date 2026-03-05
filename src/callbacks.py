@@ -447,7 +447,7 @@ def register_callbacks(app):
             
             ind1 = create_indicator_card(
                 'Mamografia de Rastreamento (50-74 anos)',
-                'Medir a cobertura da população alvo. Exames de rastreamento em mulheres na faixa etária recomendada.',
+                'Mamografia de Rastreamento / Idade entre 50-74 anos. Medir a cobertura da população alvo.',
                 indicators.get('rastreamento_50_74', 0),
                 percentage=(indicators.get('rastreamento_50_74', 0) / total * 100) if total > 0 else 0,
                 icon_class='fas fa-users'
@@ -500,7 +500,7 @@ def register_callbacks(app):
                 dbc.Card([
                     dbc.CardBody([
                         html.H6('Cobertura por Unidade/Distrito', className='mb-3', style={'fontSize': '0.95rem', 'fontWeight': '600'}),
-                        html.P('Medir a cobertura da população alvo por unidade de saúde ou distrito sanitário.', 
+                        html.P('Mamografia de Rastreamento / Idade entre 50-74 anos / Unidade de Saúde. Medir a cobertura da população alvo por unidade de saúde ou distrito sanitário.', 
                                className='text-muted mb-3', style={'fontSize': '0.8rem'}),
                         dbc.Tabs([
                             dbc.Tab(chart_distrito, label='Por Distrito'),
@@ -513,7 +513,7 @@ def register_callbacks(app):
             tempo_sol_lib = indicators.get('tempo_solicitacao_liberacao', {'media': 0, 'mediana': 0})
             ind3 = create_time_indicator_card(
                 'Solicitação até Liberação do Laudo',
-                'Medir a agilidade de acesso ao exame e tempo de espera total desde a solicitação até a liberação do resultado.',
+                'Data da solicitação / Data da liberação do laudo. Medir a agilidade de acesso ao exame e tempo de espera.',
                 tempo_sol_lib['media'],
                 tempo_sol_lib['mediana'],
                 icon_class='fas fa-hourglass-half'
@@ -522,15 +522,15 @@ def register_callbacks(app):
             tempo_real_lib = indicators.get('tempo_realizacao_liberacao', {'media': 0, 'mediana': 0})
             ind4 = create_time_indicator_card(
                 'Realização até Liberação do Resultado',
-                'Medir a eficiência do prestador na agilidade da entrega dos resultados.',
+                'Data da realização / Data da liberação do resultado. Medir a eficiência do prestador na agilidade da entrega dos resultados.',
                 tempo_real_lib['media'],
                 tempo_real_lib['mediana'],
                 icon_class='fas fa-file-medical'
             )
             
             ind5 = create_indicator_card(
-                'Exames Categoria 0',
-                'Encaminhamento para US de mamas. Exames que necessitam de avaliação adicional por imagem.',
+                'Exames com Categoria 0',
+                'Exames com Categoria 0. Encaminhamento para US de mamas.',
                 indicators.get('categoria_0', 0),
                 percentage=(indicators.get('categoria_0', 0) / total * 100) if total > 0 else 0,
                 icon_class='fas fa-search-plus'
@@ -540,7 +540,7 @@ def register_callbacks(app):
             cat3_total = indicators.get('categoria_3_total', 0)
             ind6 = create_indicator_card(
                 'Categoria 3 com Nódulo',
-                f'Encaminhamento para US de mamas e Mastologia. Total Cat. 3: {cat3_total:,} exames.',
+                f'Exames com Categoria 3 / Presença de nódulo no laudo. Encaminhamento para US de mamas e Mastologia. Total Cat. 3: {cat3_total:,} exames.',
                 cat3_nodulo,
                 percentage=(cat3_nodulo / cat3_total * 100) if cat3_total > 0 else 0,
                 icon_class='fas fa-notes-medical'
@@ -548,7 +548,7 @@ def register_callbacks(app):
             
             ind7 = create_indicator_card(
                 'Categoria 4/5 - Rastreamento',
-                'Necessidade de biópsia na população feminina. Encaminhamento para a Cancerologia.',
+                'Exames Categoria 4 e 5 / Mamografia de rastreamento. Necessidade de biópsia na população feminina. Encaminhamento para a Cancerologia.',
                 indicators.get('categoria_4_5_rastreamento', 0),
                 percentage=(indicators.get('categoria_4_5_rastreamento', 0) / total * 100) if total > 0 else 0,
                 icon_class='fas fa-exclamation-circle'
@@ -556,7 +556,7 @@ def register_callbacks(app):
             
             ind8 = create_indicator_card(
                 '50-74 anos: Mamas Densas ou Cat. 0',
-                'Encaminhamento para US de mamas. Pacientes na faixa etária alvo com mamas densas ou classificação BI-RADS 0.',
+                'Idade entre 50 e 74 anos / Mamas densas ou Categoria 0. Encaminhamento para US de mamas.',
                 indicators.get('idade_50_74_densas_cat0', 0),
                 percentage=(indicators.get('idade_50_74_densas_cat0', 0) / total * 100) if total > 0 else 0,
                 icon_class='fas fa-female'
@@ -564,14 +564,14 @@ def register_callbacks(app):
             
             ind9 = create_indicator_card(
                 'Idade < 49 anos: Categoria 4/5',
-                'Mostra incidência de lesão suspeita fora da faixa etária de rastreamento.',
+                'Idade < 49 anos / Categoria 4 e 5. Mostra incidência de lesão suspeita fora da faixa etária de rastreamento.',
                 indicators.get('idade_menor_49_cat_4_5', 0),
                 icon_class='fas fa-user-clock'
             )
             
             ind10 = create_indicator_card(
                 'Idade < 40 anos com Nódulo',
-                'Encaminhamento para US de mamas. Pacientes jovens com presença de nódulo no laudo.',
+                'Idade abaixo de 40 anos / Presença de nódulo no laudo. Encaminhamento para US de mamas.',
                 indicators.get('idade_menor_40_nodulo', 0),
                 icon_class='fas fa-user-md'
             )
@@ -718,6 +718,9 @@ def register_callbacks(app):
                     cartao_masked[:18]
                 ]) if is_dup else cartao_masked
                 
+                tempest = row.get('tempestividade', '')
+                tempest_cell = dbc.Badge('Tempestivo', color='success', className='px-1') if tempest == 'Tempestivo' else (dbc.Badge('Atrasado', color='danger', className='px-1') if tempest == 'Atrasado' else '-')
+                
                 rows.append(html.Tr([
                     html.Td(mask_name(row.get('nome_siscan', ''), is_masked), style={'fontSize': '0.75rem'}),
                     html.Td(mask_name(row.get('nome_esaude', ''), is_masked), style={'fontSize': '0.75rem'}),
@@ -727,11 +730,14 @@ def register_callbacks(app):
                     ),
                     html.Td(dup_badge, style={'fontSize': '0.75rem'}),
                     html.Td(mask_cpf(row.get('cpf', ''), is_masked), style={'fontSize': '0.75rem'}),
-                    html.Td(mask_phone(row.get('telefone_siscan', ''), is_masked), style={'fontSize': '0.75rem'}),
-                    html.Td(mask_phone(row.get('telefone_esaude', ''), is_masked), style={'fontSize': '0.75rem'}),
+                    html.Td(str(row.get('data_realizacao', ''))[:10] if row.get('data_realizacao') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(str(row.get('data_liberacao', ''))[:10] if row.get('data_liberacao') else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(str(row.get('prestador_servico', ''))[:20] if row.get('prestador_servico') else '-', style={'fontSize': '0.75rem'}),
                     html.Td(row.get('birads_max', '') if row.get('birads_max') else '-', style={'fontSize': '0.75rem'}),
                     html.Td(row.get('unidade_saude', '')[:25] if row.get('unidade_saude') else '-', style={'fontSize': '0.75rem'}),
-                    html.Td(str(row.get('ultima_apac_cancer', ''))[:10] if row.get('ultima_apac_cancer') else '-', style={'fontSize': '0.75rem'})
+                    html.Td(str(row.get('conclusao_apac', ''))[:10] if row.get('conclusao_apac') and str(row.get('conclusao_apac')).strip() else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(str(row.get('abertura_aih', ''))[:10] if row.get('abertura_aih') and str(row.get('abertura_aih')).lower() != 'none' else '-', style={'fontSize': '0.75rem'}),
+                    html.Td(tempest_cell, style={'fontSize': '0.75rem', 'textAlign': 'center'})
                 ], style=row_style))
             
             table = dbc.Table([
@@ -742,11 +748,14 @@ def register_callbacks(app):
                         html.Th('Nomes OK', style={'fontSize': '0.8rem'}),
                         html.Th('Cartao SUS', style={'fontSize': '0.8rem'}),
                         html.Th('CPF', style={'fontSize': '0.8rem'}),
-                        html.Th('Tel SISCAN', style={'fontSize': '0.8rem'}),
-                        html.Th('Tel eSaude', style={'fontSize': '0.8rem'}),
+                        html.Th('Data Exame', style={'fontSize': '0.8rem'}),
+                        html.Th('Liberação', style={'fontSize': '0.8rem'}),
+                        html.Th('Prestador', style={'fontSize': '0.8rem'}),
                         html.Th('BI-RADS', style={'fontSize': '0.8rem'}),
                         html.Th('Unidade', style={'fontSize': '0.8rem'}),
-                        html.Th('APAC Cancer', style={'fontSize': '0.8rem'})
+                        html.Th('APAC', style={'fontSize': '0.8rem'}),
+                        html.Th('AIH', style={'fontSize': '0.8rem'}),
+                        html.Th('Tempest.', style={'fontSize': '0.8rem'})
                     ])
                 ]),
                 html.Tbody(rows)

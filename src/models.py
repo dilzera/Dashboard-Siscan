@@ -147,6 +147,9 @@ class ExamRecord(Base):
     resultado_exame__microcalcificacoes = Column(Text)
     resultado_exame__radioterapia = Column(String(200))
     resultado_exame__cirurgias_realizadas = Column(Text)
+    
+    abertura_aih = Column(Date)
+    conclusao_apac = Column(String(200))
 
 
 class TermoLinkage(Base):

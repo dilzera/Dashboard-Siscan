@@ -701,6 +701,7 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
             p.total_exames,
             e.unidade_de_saude__data_da_solicitacao as data_solicitacao,
             e.prestador_de_servico__data_da_realizacao as data_realizacao,
+            e.responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
             e.birads_max,
             e.birads_direita,
             e.birads_esquerda,
@@ -709,6 +710,19 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
             e.distrito_sanitario,
             e.wait_days,
             e.conformity_status,
+            e.abertura_aih,
+            COALESCE(e.conclusao_apac, '') as conclusao_apac,
+            CASE 
+                WHEN e.birads_max IN ('4', '5') THEN 
+                    CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+                WHEN e.birads_max = '0' THEN 
+                    CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+                WHEN e.birads_max = '3' THEN 
+                    CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 180 THEN 'Tempestivo' ELSE 'Atrasado' END
+                WHEN e.birads_max IN ('1', '2') THEN 
+                    CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 365 THEN 'Tempestivo' ELSE 'Atrasado' END
+                ELSE ''
+            END as tempestividade,
             ROW_NUMBER() OVER (PARTITION BY e.patient_unique_id ORDER BY e.unidade_de_saude__data_da_solicitacao) as exam_order
         FROM exam_records e
         INNER JOIN patient_exam_counts p ON e.patient_unique_id = p.patient_unique_id
@@ -731,6 +745,7 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
         pe.exam_order,
         pe.data_solicitacao,
         pe.data_realizacao,
+        pe.data_liberacao,
         pe.birads_max,
         pe.birads_direita,
         pe.birads_esquerda,
@@ -739,6 +754,9 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
         pe.distrito_sanitario,
         pe.wait_days,
         pe.conformity_status,
+        pe.abertura_aih,
+        pe.conclusao_apac,
+        pe.tempestividade,
         COALESCE(ev.first_birads, 0) as first_birads,
         COALESCE(ev.last_birads, 0) as last_birads,
         CASE WHEN ev.first_birads IN (3,4,5) AND ev.last_birads NOT IN (3,4,5) THEN 1 ELSE 0 END as evolucao_positiva,
@@ -809,31 +827,32 @@ def get_patient_navigation_stats_sql(year=None, health_unit=None, region=None, c
 
 
 def _build_patient_data_where_clause(year=None, health_unit=None, region=None, conformity=None, 
-                                      patient_name=None, sex=None, birads=None):
+                                      patient_name=None, sex=None, birads=None, table_prefix="e"):
     """Build a safe parameterized WHERE clause for patient data queries"""
-    conditions = ["unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
+    p = f"{table_prefix}." if table_prefix else ""
+    conditions = [f"{p}unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
     params = {}
     
     if year:
-        conditions.append("EXTRACT(YEAR FROM unidade_de_saude__data_da_solicitacao) = :pd_year")
+        conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) = :pd_year")
         params['pd_year'] = year
     if health_unit:
-        conditions.append("unidade_de_saude__nome = :pd_health_unit")
+        conditions.append(f"{p}unidade_de_saude__nome = :pd_health_unit")
         params['pd_health_unit'] = health_unit
     if region:
-        conditions.append("distrito_sanitario = :pd_region")
+        conditions.append(f"{p}distrito_sanitario = :pd_region")
         params['pd_region'] = region
     if conformity:
-        conditions.append("conformity_status = :pd_conformity")
+        conditions.append(f"{p}conformity_status = :pd_conformity")
         params['pd_conformity'] = conformity
     if patient_name:
-        conditions.append("UPPER(paciente__nome) LIKE UPPER(:pd_patient_name)")
+        conditions.append(f"UPPER({p}paciente__nome) LIKE UPPER(:pd_patient_name)")
         params['pd_patient_name'] = f"%{patient_name}%"
     if sex:
-        conditions.append("paciente__sexo = :pd_sex")
+        conditions.append(f"{p}paciente__sexo = :pd_sex")
         params['pd_sex'] = sex
     if birads:
-        conditions.append("birads_max = :pd_birads")
+        conditions.append(f"{p}birads_max = :pd_birads")
         params['pd_birads'] = birads
     
     return " AND ".join(conditions), params
@@ -853,31 +872,49 @@ def get_patient_data_list_sql(year=None, health_unit=None, region=None, conformi
     
     query = f"""
     SELECT 
-        paciente__nome as nome,
-        paciente__idade as idade,
-        paciente__sexo as sexo,
-        paciente__data_do_nascimento as data_nascimento,
-        paciente__mae as nome_mae,
-        unidade_de_saude__nome as unidade_saude,
-        unidade_de_saude__data_da_solicitacao as data_solicitacao,
-        prestador_de_servico__data_da_realizacao as data_realizacao,
-        responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
-        prestador_de_servico__nome as prestador_servico,
-        unidade_de_saude__n_do_exame as numero_exame,
-        COALESCE(resultado_exame__indicacao__tipo_de_mamografia, resultado_exame__indicacao__mamografia_de_rastreamento) as tipo_mamografia,
-        COALESCE(resultado_exame__mama_direita__tipo_de_mama, resultado_exame__mama_esquerda__tipo_de_mama) as tipo_mama,
-        resultado_exame__linfonodos_axilares__linfonodos_axilares as linfonodos_axilares,
-        resultado_exame__achados_benignos__achados_benignos as achados_benignos,
-        resultado_exame__classificacao_radiologica__mama_direita as birads_direita_class,
-        resultado_exame__classificacao_radiologica__mama_esquerda as birads_esquerda_class,
-        resultado_exame__recomendacoes as recomendacoes,
-        birads_max,
-        distrito_sanitario,
-        conformity_status,
-        wait_days
-    FROM exam_records
+        e.paciente__nome as nome,
+        e.paciente__idade as idade,
+        e.paciente__sexo as sexo,
+        e.paciente__data_do_nascimento as data_nascimento,
+        e.paciente__mae as nome_mae,
+        e.unidade_de_saude__nome as unidade_saude,
+        e.unidade_de_saude__data_da_solicitacao as data_solicitacao,
+        e.prestador_de_servico__data_da_realizacao as data_realizacao,
+        e.responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
+        e.prestador_de_servico__nome as prestador_servico,
+        e.unidade_de_saude__n_do_exame as numero_exame,
+        COALESCE(e.resultado_exame__indicacao__tipo_de_mamografia, e.resultado_exame__indicacao__mamografia_de_rastreamento) as tipo_mamografia,
+        COALESCE(e.resultado_exame__mama_direita__tipo_de_mama, e.resultado_exame__mama_esquerda__tipo_de_mama) as tipo_mama,
+        e.resultado_exame__linfonodos_axilares__linfonodos_axilares as linfonodos_axilares,
+        e.resultado_exame__achados_benignos__achados_benignos as achados_benignos,
+        COALESCE(e.resultado_exame__nodulos__nodulo_01, '') || 
+            CASE WHEN e.resultado_exame__nodulos__nodulo_02 IS NOT NULL THEN ' | ' || e.resultado_exame__nodulos__nodulo_02 ELSE '' END ||
+            CASE WHEN e.resultado_exame__nodulos__nodulo_03 IS NOT NULL THEN ' | ' || e.resultado_exame__nodulos__nodulo_03 ELSE '' END as nodulos,
+        e.resultado_exame__microcalcificacoes as microcalcificacoes,
+        e.resultado_exame__classificacao_radiologica__mama_direita as birads_direita_class,
+        e.resultado_exame__classificacao_radiologica__mama_esquerda as birads_esquerda_class,
+        e.resultado_exame__recomendacoes as recomendacoes,
+        e.birads_max,
+        e.distrito_sanitario,
+        e.conformity_status,
+        e.wait_days,
+        COALESCE(t.ultima_apac_cancer::text, e.conclusao_apac, '') as conclusao_apac,
+        e.abertura_aih,
+        CASE 
+            WHEN e.birads_max IN ('4', '5') THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+            WHEN e.birads_max = '0' THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+            WHEN e.birads_max = '3' THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 180 THEN 'Tempestivo' ELSE 'Atrasado' END
+            WHEN e.birads_max IN ('1', '2') THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 365 THEN 'Tempestivo' ELSE 'Atrasado' END
+            ELSE ''
+        END as tempestividade
+    FROM exam_records e
+    LEFT JOIN termo_linkage t ON e.paciente__cartao_sus = t.cartao_sus
     WHERE {where_clause}
-    ORDER BY unidade_de_saude__data_da_solicitacao DESC, paciente__nome
+    ORDER BY e.unidade_de_saude__data_da_solicitacao DESC, e.paciente__nome
     LIMIT :pd_limit OFFSET :pd_offset
     """
     
@@ -893,7 +930,7 @@ def get_patient_data_count_sql(year=None, health_unit=None, region=None, conform
                                 patient_name=None, sex=None, birads=None):
     """Get total count of patient records for pagination"""
     where_clause, params = _build_patient_data_where_clause(
-        year, health_unit, region, conformity, patient_name, sex, birads
+        year, health_unit, region, conformity, patient_name, sex, birads, table_prefix=""
     )
     
     query = f"""
@@ -940,21 +977,22 @@ def get_birads_options():
     return df['birads_max'].dropna().tolist()
 
 
-def _build_unit_where_clause(health_unit, year=None, region=None):
+def _build_unit_where_clause(health_unit, year=None, region=None, table_prefix=""):
     """Build WHERE clause for health unit specific queries"""
+    p = f"{table_prefix}." if table_prefix else ""
     conditions = [
-        "unidade_de_saude__nome = :unit_name",
-        "unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
-        "(prestador_de_servico__data_da_realizacao IS NULL OR prestador_de_servico__data_da_realizacao >= unidade_de_saude__data_da_solicitacao)",
-        "(wait_days IS NULL OR (wait_days >= 0 AND wait_days <= 365))"
+        f"{p}unidade_de_saude__nome = :unit_name",
+        f"{p}unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
+        f"({p}prestador_de_servico__data_da_realizacao IS NULL OR {p}prestador_de_servico__data_da_realizacao >= {p}unidade_de_saude__data_da_solicitacao)",
+        f"({p}wait_days IS NULL OR ({p}wait_days >= 0 AND {p}wait_days <= 365))"
     ]
     params = {'unit_name': health_unit}
     
     if year:
-        conditions.append("EXTRACT(YEAR FROM unidade_de_saude__data_da_solicitacao) = :unit_year")
+        conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) = :unit_year")
         params['unit_year'] = year
     if region:
-        conditions.append("distrito_sanitario = :unit_region")
+        conditions.append(f"{p}distrito_sanitario = :unit_region")
         params['unit_region'] = region
     
     return " AND ".join(conditions), params
@@ -1251,24 +1289,37 @@ def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=10
     if not health_unit:
         return pd.DataFrame()
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, table_prefix="e")
     params['follow_limit'] = limit
     
     query = f"""
     WITH latest_exams AS (
         SELECT 
-            patient_unique_id,
-            paciente__nome,
-            paciente__cartao_sus,
-            paciente__idade,
-            birads_max,
-            birads_direita,
-            birads_esquerda,
-            unidade_de_saude__data_da_solicitacao as data_exame,
-            prestador_de_servico__data_da_realizacao as data_realizacao,
-            wait_days,
-            ROW_NUMBER() OVER (PARTITION BY patient_unique_id ORDER BY unidade_de_saude__data_da_solicitacao DESC) as rn
-        FROM exam_records
+            e.patient_unique_id,
+            e.paciente__nome,
+            e.paciente__cartao_sus,
+            e.paciente__idade,
+            e.birads_max,
+            e.birads_direita,
+            e.birads_esquerda,
+            e.unidade_de_saude__data_da_solicitacao as data_exame,
+            e.prestador_de_servico__data_da_realizacao as data_realizacao,
+            e.responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
+            e.prestador_de_servico__nome as prestador_servico,
+            e.wait_days,
+            e.abertura_aih,
+            COALESCE(e.conclusao_apac, '') as conclusao_apac,
+            CASE 
+                WHEN e.birads_max IN ('4', '5') THEN 
+                    CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+                WHEN e.birads_max = '0' THEN 
+                    CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+                WHEN e.birads_max = '3' THEN 
+                    CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 180 THEN 'Tempestivo' ELSE 'Atrasado' END
+                ELSE ''
+            END as tempestividade,
+            ROW_NUMBER() OVER (PARTITION BY e.patient_unique_id ORDER BY e.unidade_de_saude__data_da_solicitacao DESC) as rn
+        FROM exam_records e
         WHERE {where_clause}
     ),
     patients_with_followup AS (
@@ -1282,7 +1333,12 @@ def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=10
             birads_esquerda,
             data_exame,
             data_realizacao,
+            data_liberacao,
+            prestador_servico,
             wait_days,
+            abertura_aih,
+            conclusao_apac,
+            tempestividade,
             CASE 
                 WHEN birads_max = '0' THEN 30
                 WHEN birads_max = '3' THEN 180
@@ -1308,9 +1364,14 @@ def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=10
         birads_esquerda,
         data_exame,
         data_realizacao,
+        data_liberacao,
+        prestador_servico,
         wait_days as espera_dias,
         intervalo_retorno_dias,
         motivo_retorno,
+        abertura_aih,
+        conclusao_apac,
+        tempestividade,
         (COALESCE(data_realizacao, data_exame) + (intervalo_retorno_dias || ' days')::INTERVAL)::DATE as data_prevista_retorno,
         (CURRENT_DATE - (COALESCE(data_realizacao, data_exame) + (intervalo_retorno_dias || ' days')::INTERVAL)::DATE) as dias_atraso
     FROM patients_with_followup
@@ -1770,12 +1831,28 @@ def get_termo_linkage_data_sql(search_nome=None, search_cpf=None, search_cartao_
         e.paciente__data_do_nascimento as data_nasc_siscan,
         t.data_nascimento as data_nasc_esaude,
         e.unidade_de_saude__data_da_solicitacao as data_solicitacao_siscan,
+        e.prestador_de_servico__data_da_realizacao as data_realizacao,
+        e.responsavel_pelo_resultado__data_da_liberacao as data_liberacao,
+        e.prestador_de_servico__nome as prestador_servico,
         t.data_solicitacao_esaude,
         t.data_insercao_resultado_esaude,
         t.ultima_apac_cancer,
+        COALESCE(t.ultima_apac_cancer::text, e.conclusao_apac, '') as conclusao_apac,
+        e.abertura_aih,
         e.birads_max,
         e.unidade_de_saude__nome as unidade_saude,
         e.distrito_sanitario,
+        CASE 
+            WHEN e.birads_max IN ('4', '5') THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+            WHEN e.birads_max = '0' THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 30 THEN 'Tempestivo' ELSE 'Atrasado' END
+            WHEN e.birads_max = '3' THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 180 THEN 'Tempestivo' ELSE 'Atrasado' END
+            WHEN e.birads_max IN ('1', '2') THEN 
+                CASE WHEN e.wait_days IS NOT NULL AND e.wait_days <= 365 THEN 'Tempestivo' ELSE 'Atrasado' END
+            ELSE ''
+        END as tempestividade,
         COALESCE(d.total_registros, 1) as qtd_registros_cns,
         CASE WHEN d.total_registros > 1 THEN TRUE ELSE FALSE END as is_duplicado
     FROM exam_records e

@@ -1,0 +1,76 @@
+adcione em todos os retornos de query:
+
+data do exame / resultado exame /nome do prestador 
+Informação APAC: conclusão Apac
+Abertura AIH
+Tempestividade e Intervenção
+
+
+os campos que nao tiver o dado, crie mesmo assim, e deixe a estrutura pronta para receber esse dado
+
+
+DADOS
+
+Nome
+
+Idade
+
+Sexo
+
+Data de Nascimento
+
+Nome da mãe
+
+Unidade de Saúde
+
+Data da Solicitação
+
+Data da realização
+
+Data da liberação do resultado
+
+Nome do prestador de serviço
+
+Número do exame
+
+Tipo de mamografia (ex: rastreamento)
+
+Tipo de mama (ex: predominantemente densa)
+
+Linfonodos axilares (ex: não visualizados)
+
+Achados benignos (ex: calcificações tipicamente benignas)
+
+Nódulos (ex: QSL - 14 mm - Regular - Parcialmente definidos - Hipoecoico Sólido)
+
+Microcalcificações (ex: Microcalcificação 01: RC - Irregulares - Trajeto ductal)
+
+Classificação radiológica mama direita (ex: Categoria 2)
+
+Classificação radiológica mama direita (ex: Categoria 2)
+
+Recomendações (ex: mamografia em 2 anos)
+
+ 
+
+adicione os INDICADORES
+
+- Mamografia de Rastreamento / Idade entre 50-74 anos. Medir a cobertura da população alvo.
+
+- Mamografia de Rastreamento / Idade entre 50-74 anos / Unidade de Saúde. Medir a cobertura da população alvo por unidade de saúde ou distrito sanitário.
+
+- Data da solicitação / Data da liberação do laudo. Medir a agilidade de acesso ao exame e tempo de espera.
+
+- Data da realização / data da liberação do resultado. Medir a eficiência do prestador na agilidade da entrega dos resultados.
+
+- Exames com Categoria 0. Encaminhamento para US de mamas.
+
+- Exames com Categoria 3 / Presença de nódulo no laudo. Encaminhamento para US de mamas e Mastologia.
+
+- Exames Categoria 4 e 5 / Mamografia de rastreamento. Necessidade de biópsia na população feminina. Encaminhamento para a Cancerologia.
+
+- Idade entre 50 e 74 anos / Mamas densas ou Categoria 0. Encaminhamento para US de mamas.
+
+- Idade < 49 anos / Categoria 4 e 5. Mostra incidência de lesão suspeita fora da faixa etária de rastreamento.
+
+- Idade abaixo de 40 anos / Presença de nódulo no laudo. Encaminhamento para US de mamas.
