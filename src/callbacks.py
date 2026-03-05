@@ -737,14 +737,13 @@ def register_callbacks(app):
                     html.Td(row.get('birads_max', '') if row.get('birads_max') else '-', style={'fontSize': '0.75rem'}),
                     html.Td(row.get('unidade_saude', '')[:25] if row.get('unidade_saude') else '-', style={'fontSize': '0.75rem'}),
                     html.Td(str(row.get('conclusao_apac', ''))[:10] if row.get('conclusao_apac') and str(row.get('conclusao_apac')).strip() else '-', style={'fontSize': '0.75rem'}),
-                    html.Td(str(row.get('abertura_aih', ''))[:10] if row.get('abertura_aih') and str(row.get('abertura_aih')).lower() != 'none' else '-', style={'fontSize': '0.75rem'}),
                     html.Td(tempest_cell, style={'fontSize': '0.75rem', 'textAlign': 'center'})
                 ], style=row_style))
             
             legend = create_table_legend([
                 'nome_siscan', 'nome_esaude', 'nomes_ok', 'cartao_sus', 'cpf',
                 'data_realizacao', 'data_liberacao', 'prestador_servico',
-                'birads_max', 'unidade_saude', 'conclusao_apac', 'abertura_aih', 'tempestividade'
+                'birads_max', 'unidade_saude', 'conclusao_apac', 'tempestividade'
             ])
 
             table = html.Div([
@@ -762,7 +761,6 @@ def register_callbacks(app):
                             html.Th('BI-RADS', style={'fontSize': '0.8rem'}),
                             html.Th('Unidade', style={'fontSize': '0.8rem'}),
                             html.Th('APAC', style={'fontSize': '0.8rem'}),
-                            html.Th('AIH', style={'fontSize': '0.8rem'}),
                             html.Th('Tempest.', style={'fontSize': '0.8rem'})
                         ])
                     ]),

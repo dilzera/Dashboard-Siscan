@@ -710,7 +710,6 @@ def create_patient_navigation_table(df, is_masked=True):
             wait = exam.get('wait_days', '-')
             ordem = exam.get('exam_order', '-')
             apac = str(exam.get('conclusao_apac', ''))[:10] if exam.get('conclusao_apac') and str(exam.get('conclusao_apac')).strip() else '-'
-            aih = str(exam.get('abertura_aih', ''))[:10] if exam.get('abertura_aih') and str(exam.get('abertura_aih')).lower() != 'none' else '-'
             tempest = exam.get('tempestividade', '')
             tempest_badge = dbc.Badge('Tempestivo', color='success', className='px-1') if tempest == 'Tempestivo' else (dbc.Badge('Atrasado', color='danger', className='px-1') if tempest == 'Atrasado' else '-')
             
@@ -728,7 +727,6 @@ def create_patient_navigation_table(df, is_masked=True):
                 html.Td(prestador, style={'fontSize': '0.85rem'}),
                 html.Td(f'{wait} dias' if wait and wait != '-' else '-', style={'fontSize': '0.85rem'}),
                 html.Td(apac, style={'fontSize': '0.8rem'}),
-                html.Td(aih, style={'fontSize': '0.8rem'}),
                 html.Td(tempest_badge, style={'textAlign': 'center'})
             ]))
         
@@ -749,7 +747,6 @@ def create_patient_navigation_table(df, is_masked=True):
                     html.Th('Prestador'),
                     html.Th('Espera', style={'width': '70px'}),
                     html.Th('APAC', style={'width': '80px'}),
-                    html.Th('AIH', style={'width': '80px'}),
                     html.Th('Tempest.', style={'width': '80px', 'textAlign': 'center'})
                 ])),
                 html.Tbody(exams_rows)
@@ -781,7 +778,7 @@ def create_patient_navigation_table(df, is_masked=True):
     legend = create_table_legend([
         'exam_order', 'data_solicitacao', 'data_realizacao', 'data_liberacao',
         'birads_max', 'birads_direita', 'birads_esquerda', 'unidade_saude',
-        'prestador_executante', 'wait_days', 'conclusao_apac', 'abertura_aih', 'tempestividade'
+        'prestador_executante', 'wait_days', 'conclusao_apac', 'tempestividade'
     ])
 
     return dbc.Card([
@@ -850,7 +847,6 @@ def create_patient_data_table(df, is_masked=True):
         ('birads_esquerda_class', 'BI-RADS Esq.', 100),
         ('recomendacoes', 'Recomendações', 200),
         ('conclusao_apac', 'APAC Câncer', 100),
-        ('abertura_aih', 'Abertura AIH', 100),
         ('tempestividade', 'Tempestividade', 100),
     ]
     
@@ -913,8 +909,6 @@ def create_patient_data_table(df, is_masked=True):
                     cell_content = '-'
             elif col == 'conclusao_apac':
                 cell_content = str(value)[:10] if value and str(value).strip() else '-'
-            elif col == 'abertura_aih':
-                cell_content = str(value)[:10] if value and str(value).strip() and str(value).lower() != 'none' else '-'
             elif col == 'prestador_servico':
                 text = str(value)[:25]
                 if len(str(value)) > 25:
@@ -948,7 +942,7 @@ def create_patient_data_table(df, is_masked=True):
         'numero_exame', 'tipo_mamografia', 'tipo_mama', 'linfonodos_axilares',
         'achados_benignos', 'nodulos', 'microcalcificacoes',
         'birads_direita_class', 'birads_esquerda_class', 'recomendacoes',
-        'conclusao_apac', 'abertura_aih', 'tempestividade'
+        'conclusao_apac', 'tempestividade'
     ])
 
     return dbc.Card([
@@ -1004,7 +998,6 @@ def create_follow_up_overdue_table(df, is_masked=True):
             html.Th('Dias Atraso', style={'fontSize': '0.8rem', 'width': '90px'}),
             html.Th('Motivo Retorno', style={'fontSize': '0.8rem', 'minWidth': '150px'}),
             html.Th('APAC', style={'fontSize': '0.8rem', 'width': '80px'}),
-            html.Th('AIH', style={'fontSize': '0.8rem', 'width': '80px'}),
             html.Th('Tempest.', style={'fontSize': '0.8rem', 'width': '80px'}),
             html.Th('Cartão SUS', style={'fontSize': '0.8rem', 'width': '130px'})
         ])
@@ -1048,7 +1041,6 @@ def create_follow_up_overdue_table(df, is_masked=True):
         motivo = str(row.get('motivo_retorno', '-'))
         cartao = mask_cns(row.get('cartao_sus', ''), is_masked)
         apac = str(row.get('conclusao_apac', ''))[:10] if row.get('conclusao_apac') and str(row.get('conclusao_apac')).strip() else '-'
-        aih = str(row.get('abertura_aih', ''))[:10] if row.get('abertura_aih') and str(row.get('abertura_aih')).lower() != 'none' else '-'
         tempest = row.get('tempestividade', '')
         tempest_badge = dbc.Badge('Tempestivo', color='success', className='px-1') if tempest == 'Tempestivo' else (dbc.Badge('Atrasado', color='danger', className='px-1') if tempest == 'Atrasado' else '-')
         
@@ -1069,7 +1061,6 @@ def create_follow_up_overdue_table(df, is_masked=True):
             ),
             html.Td(motivo, style={'fontSize': '0.75rem', 'color': '#666'}),
             html.Td(apac, style={'fontSize': '0.75rem'}),
-            html.Td(aih, style={'fontSize': '0.75rem'}),
             html.Td(tempest_badge, style={'textAlign': 'center'}),
             html.Td(cartao, style={'fontSize': '0.75rem', 'fontFamily': 'monospace'})
         ]
@@ -1080,7 +1071,7 @@ def create_follow_up_overdue_table(df, is_masked=True):
     legend = create_table_legend([
         'nome', 'idade', 'birads_max', 'data_realizacao', 'data_liberacao',
         'prestador_servico', 'data_prevista_retorno', 'dias_atraso', 'motivo_retorno',
-        'conclusao_apac', 'abertura_aih', 'tempestividade', 'cartao_sus'
+        'conclusao_apac', 'tempestividade', 'cartao_sus'
     ])
 
     return dbc.Card([
