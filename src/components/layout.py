@@ -4,6 +4,19 @@ from src.config import COLORS
 from src.data_layer import get_regions, get_health_units
 
 
+TOOLTIP_STYLE = {'fontSize': '0.8rem', 'maxWidth': '300px'}
+
+def label_with_tip(text, tip_id, className='fw-bold mb-1', fontSize='0.85rem'):
+    return html.Label([
+        text,
+        html.I(className='fas fa-info-circle ms-1', id=tip_id,
+               style={'fontSize': '0.7rem', 'color': '#999', 'cursor': 'pointer'})
+    ], className=className, style={'fontSize': fontSize})
+
+def tip(target, text):
+    return dbc.Tooltip(text, target=target, placement='top', style=TOOLTIP_STYLE)
+
+
 def create_access_request_layout(colors, regions=None, health_units=None):
     if regions is None:
         regions = get_regions()
@@ -471,11 +484,19 @@ def create_header(user_name=None):
 
 def create_filters(years, health_units, regions, selected_year=None, selected_health_unit=None, 
                    selected_region=None, selected_age_range=None, selected_birads=None, selected_priority=None):
+    tooltips = [
+        tip('tip-year', 'Filtra os dados pelo ano de realização do exame. Dados disponíveis a partir de 2023.'),
+        tip('tip-unit', 'Filtra por unidade de saúde ou prestador que realizou o exame de mamografia.'),
+        tip('tip-region', 'Filtra pelo distrito sanitário responsável pela região da paciente.'),
+        tip('tip-age', 'Filtra pela faixa etária da paciente. A faixa de rastreamento recomendada é 50-69 anos.'),
+        tip('tip-birads', 'Classificação BI-RADS: 0=Inconclusivo, 1-2=Benigno, 3=Provavelmente benigno, 4-5=Suspeito, 6=Maligno confirmado.'),
+        tip('tip-priority', 'Nível de prioridade baseado no Protocolo Manchester adaptado. Define o SLA de atendimento.'),
+    ]
     return dbc.Card([
         dbc.CardBody([
             dbc.Row([
                 dbc.Col([
-                    html.Label('Ano', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Ano', 'tip-year'),
                     dcc.Dropdown(
                         id='year-filter',
                         options=[{'label': str(y), 'value': y} for y in years],
@@ -487,7 +508,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
-                    html.Label('Unidade de Saúde', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Unidade de Saúde', 'tip-unit'),
                     dcc.Dropdown(
                         id='health-unit-filter',
                         options=[{'label': u, 'value': u} for u in health_units],
@@ -501,7 +522,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
-                    html.Label('Distrito Sanitário', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Distrito Sanitário', 'tip-region'),
                     dcc.Dropdown(
                         id='region-filter',
                         options=[{'label': r, 'value': r} for r in regions],
@@ -513,7 +534,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
-                    html.Label('Faixa Etária', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Faixa Etária', 'tip-age'),
                     dcc.Dropdown(
                         id='age-range-filter',
                         options=[
@@ -530,7 +551,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
-                    html.Label('BI-RADS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('BI-RADS', 'tip-birads'),
                     dcc.Dropdown(
                         id='birads-filter',
                         options=[
@@ -559,7 +580,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
-                    html.Label('Prioridade', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Prioridade', 'tip-priority'),
                     dcc.Dropdown(
                         id='priority-filter',
                         options=[
@@ -576,6 +597,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     )
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0')
             ], className='g-3'),
+            *tooltips,
             
             dbc.Row([
                 dbc.Col([
@@ -705,7 +727,7 @@ def create_outliers_tab(initial_content=None):
         dbc.CardBody([
             dbc.Row([
                 dbc.Col([
-                    html.Label('Classificar por:', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    label_with_tip('Classificar por:', 'tip-outlier-sort', fontSize='0.9rem'),
                     dcc.Dropdown(
                         id='outliers-sort-field',
                         options=sort_options,
@@ -715,7 +737,7 @@ def create_outliers_tab(initial_content=None):
                     )
                 ], md=4, sm=6, className='mb-2 mb-md-0'),
                 dbc.Col([
-                    html.Label('Ordem:', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    label_with_tip('Ordem:', 'tip-outlier-order', fontSize='0.9rem'),
                     dcc.Dropdown(
                         id='outliers-sort-order',
                         options=[
@@ -737,7 +759,9 @@ def create_outliers_tab(initial_content=None):
                         size='sm'
                     )
                 ], md=3, sm=12)
-            ])
+            ]),
+            tip('tip-outlier-sort', 'Escolha o campo pelo qual deseja ordenar a tabela de inconsistências.'),
+            tip('tip-outlier-order', 'Define a direção da ordenação: crescente (A-Z, menor-maior) ou decrescente (Z-A, maior-menor).')
         ])
     ], className='mb-3 shadow-sm')
     
@@ -775,7 +799,7 @@ def create_patient_navigation_tab(initial_content=None):
         dbc.CardBody([
             dbc.Row([
                 dbc.Col([
-                    html.Label('Filtrar por Evolução', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    label_with_tip('Filtrar por Evolução', 'tip-evolution', fontSize='0.9rem'),
                     dcc.Dropdown(
                         id='navigation-evolution-filter',
                         options=[
@@ -798,7 +822,8 @@ def create_patient_navigation_tab(initial_content=None):
                         style={'backgroundColor': COLORS['primary'], 'borderColor': COLORS['primary']}
                     )
                 ], md=2, sm=6, className='mb-2')
-            ])
+            ]),
+            tip('tip-evolution', 'Filtra pacientes pela mudança no BI-RADS entre o primeiro e o último exame. Positiva=melhora, Negativa=piora, Normal=estável.')
         ], className='p-3')
     ], className='border-0 shadow-sm mb-4')
     
@@ -839,7 +864,7 @@ def create_health_unit_tab(health_units=None, initial_content=None):
         dbc.CardBody([
             dbc.Row([
                 dbc.Col([
-                    html.Label('Selecione a Unidade de Saúde', className='fw-bold mb-1', style={'fontSize': '0.9rem'}),
+                    label_with_tip('Selecione a Unidade de Saúde', 'tip-unit-selector', fontSize='0.9rem'),
                     dcc.Dropdown(
                         id='unit-analysis-selector',
                         options=[{'label': u, 'value': u} for u in units],
@@ -847,7 +872,8 @@ def create_health_unit_tab(health_units=None, initial_content=None):
                         clearable=True,
                         searchable=True,
                         style={'fontSize': '0.9rem'}
-                    )
+                    ),
+                    tip('tip-unit-selector', 'Selecione uma unidade para ver KPIs, heatmap demográfico, agilidade, tendência temporal e fila de retorno pendente.')
                 ], md=8, sm=12, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
@@ -963,7 +989,7 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
         dbc.CardBody([
             dbc.Row([
                 dbc.Col([
-                    html.Label('Buscar por Nome', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Buscar por Nome', 'tip-pd-name'),
                     dbc.Input(
                         id='patient-data-name-filter',
                         type='text',
@@ -974,7 +1000,7 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                 ], md=4, sm=12, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
-                    html.Label('Sexo', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Sexo', 'tip-pd-sex'),
                     dcc.Dropdown(
                         id='patient-data-sex-filter',
                         options=[{'label': s, 'value': s} for s in sex_opts],
@@ -985,7 +1011,7 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                 ], md=2, sm=6, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
-                    html.Label('BI-RADS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('BI-RADS', 'tip-pd-birads'),
                     dcc.Dropdown(
                         id='patient-data-birads-filter',
                         options=[{'label': f'Categoria {b}', 'value': b} for b in birads_opts],
@@ -996,7 +1022,7 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                 ], md=2, sm=6, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
-                    html.Label('Registros por página', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Registros por página', 'tip-pd-pagesize'),
                     dcc.Dropdown(
                         id='patient-data-page-size',
                         options=[
@@ -1021,7 +1047,11 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                         n_clicks=0
                     )
                 ], md=2, sm=6)
-            ])
+            ]),
+            tip('tip-pd-name', 'Busca parcial pelo nome da paciente. Dados mascarados quando ativo.'),
+            tip('tip-pd-sex', 'Filtra os registros pelo sexo da paciente.'),
+            tip('tip-pd-birads', 'Filtra pela categoria BI-RADS do resultado do exame.'),
+            tip('tip-pd-pagesize', 'Define quantos registros são exibidos por página na tabela.')
         ])
     ], className='shadow-sm mb-4', style={'borderRadius': '10px', 'border': 'none'})
     
@@ -1223,7 +1253,7 @@ def create_linkage_tab(initial_content=None):
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
             dbc.Row([
                 dbc.Col([
-                    dbc.Label('Buscar por Nome', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Buscar por Nome', 'tip-lk-nome'),
                     dbc.Input(
                         id='linkage-search-nome',
                         type='text',
@@ -1232,7 +1262,7 @@ def create_linkage_tab(initial_content=None):
                     )
                 ], md=4, className='mb-2'),
                 dbc.Col([
-                    dbc.Label('Buscar por CPF', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Buscar por CPF', 'tip-lk-cpf'),
                     dbc.Input(
                         id='linkage-search-cpf',
                         type='text',
@@ -1241,7 +1271,7 @@ def create_linkage_tab(initial_content=None):
                     )
                 ], md=3, className='mb-2'),
                 dbc.Col([
-                    dbc.Label('Buscar por Cartao SUS', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
+                    label_with_tip('Buscar por Cartao SUS', 'tip-lk-cartao'),
                     dbc.Input(
                         id='linkage-search-cartao',
                         type='text',
@@ -1259,7 +1289,10 @@ def create_linkage_tab(initial_content=None):
                         style={'backgroundColor': COLORS['primary'], 'borderColor': COLORS['primary']}
                     )
                 ], md=2, className='mb-2')
-            ])
+            ]),
+            tip('tip-lk-nome', 'Busca parcial pelo nome da paciente nos dados de interoperabilidade.'),
+            tip('tip-lk-cpf', 'Busca pelo CPF da paciente. Aceita busca parcial.'),
+            tip('tip-lk-cartao', 'Busca pelo número do Cartão SUS (CNS) da paciente.')
         ], className='mb-4 p-3 bg-white rounded shadow-sm'),
         
         html.Div([
@@ -1271,7 +1304,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Registros exam_records', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Registros exam_records', html.I(className='fas fa-info-circle ms-1', id='tip-comp-exam', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='comparison-exam-records', children='...', style={'color': COLORS['primary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1279,7 +1312,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Registros termo_linkage', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Registros termo_linkage', html.I(className='fas fa-info-circle ms-1', id='tip-comp-termo', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='comparison-termo-linkage', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1287,7 +1320,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('CNS únicos exam_records', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['CNS únicos exam_records', html.I(className='fas fa-info-circle ms-1', id='tip-comp-unique-exam', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='comparison-unique-exam', children='...', style={'color': COLORS['primary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1295,7 +1328,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('CNS únicos termo_linkage', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['CNS únicos termo_linkage', html.I(className='fas fa-info-circle ms-1', id='tip-comp-unique-termo', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='comparison-unique-termo', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1303,7 +1336,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('CNS em ambas tabelas', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['CNS em ambas tabelas', html.I(className='fas fa-info-circle ms-1', id='tip-comp-common', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='comparison-common-cns', children='...', style={'color': COLORS['success'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm', style={'borderLeft': f'3px solid {COLORS["success"]}'})
@@ -1311,7 +1344,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('CNS só em exam_records', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['CNS só em exam_records', html.I(className='fas fa-info-circle ms-1', id='tip-comp-only-exam', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='comparison-only-exam', children='...', style={'color': COLORS['warning'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1319,12 +1352,19 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('CNS só em termo_linkage', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['CNS só em termo_linkage', html.I(className='fas fa-info-circle ms-1', id='tip-comp-only-termo', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='comparison-only-termo', children='...', style={'color': COLORS['accent'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
                 ], lg=2, md=4, sm=6, className='mb-3')
-            ])
+            ]),
+            tip('tip-comp-exam', 'Total de registros na tabela de exames do SISCAN.'),
+            tip('tip-comp-termo', 'Total de registros na tabela de interoperabilidade com eSaúde.'),
+            tip('tip-comp-unique-exam', 'Quantidade de pacientes únicas (por CNS) na base do SISCAN.'),
+            tip('tip-comp-unique-termo', 'Quantidade de pacientes únicas (por CNS) na base do eSaúde.'),
+            tip('tip-comp-common', 'Pacientes que aparecem em ambas as bases (SISCAN e eSaúde).'),
+            tip('tip-comp-only-exam', 'Pacientes que estão apenas no SISCAN e não foram encontradas no eSaúde.'),
+            tip('tip-comp-only-termo', 'Pacientes que estão apenas no eSaúde e não foram encontradas no SISCAN.')
         ], className='mb-4 p-3 bg-white rounded shadow-sm'),
         
         html.Div([
@@ -1336,7 +1376,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Total de Registros', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Total de Registros', html.I(className='fas fa-info-circle ms-1', id='tip-q-total', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='linkage-total', children='...', style={'color': COLORS['primary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1344,7 +1384,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Com CPF', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Com CPF', html.I(className='fas fa-info-circle ms-1', id='tip-q-cpf', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='linkage-cpf', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1352,7 +1392,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Com Telefone', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Com Telefone', html.I(className='fas fa-info-circle ms-1', id='tip-q-tel', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='linkage-telefone', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1360,7 +1400,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Com Nome eSaude', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Com Nome eSaude', html.I(className='fas fa-info-circle ms-1', id='tip-q-nome', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='linkage-nome-esaude', children='...', style={'color': COLORS['secondary'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1368,7 +1408,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Com APAC Cancer', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Com APAC Cancer', html.I(className='fas fa-info-circle ms-1', id='tip-q-apac', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='linkage-apac', children='...', style={'color': COLORS['accent'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1376,7 +1416,7 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('Nomes Conferem', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['Nomes Conferem', html.I(className='fas fa-info-circle ms-1', id='tip-q-nomes', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='linkage-nomes-conferem', children='...', style={'color': COLORS['success'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm')
@@ -1384,12 +1424,19 @@ def create_linkage_tab(initial_content=None):
                 dbc.Col([
                     dbc.Card([
                         dbc.CardBody([
-                            html.H6('CNS Duplicados', className='text-muted mb-1', style={'fontSize': '0.85rem'}),
+                            html.H6(['CNS Duplicados', html.I(className='fas fa-info-circle ms-1', id='tip-q-dup', style={'fontSize': '0.65rem', 'color': '#bbb', 'cursor': 'pointer'})], className='text-muted mb-1', style={'fontSize': '0.85rem'}),
                             html.H4(id='linkage-duplicados', children='...', style={'color': COLORS['warning'], 'fontWeight': '700'})
                         ], className='text-center p-3')
                     ], className='border-0 shadow-sm', style={'borderLeft': f'3px solid {COLORS["warning"]}'})
                 ], lg=2, md=4, sm=6, className='mb-3')
-            ])
+            ]),
+            tip('tip-q-total', 'Total de registros na tabela de interoperabilidade.'),
+            tip('tip-q-cpf', 'Registros que possuem CPF preenchido.'),
+            tip('tip-q-tel', 'Registros que possuem telefone de contato preenchido.'),
+            tip('tip-q-nome', 'Registros com nome encontrado no sistema eSaúde.'),
+            tip('tip-q-apac', 'Registros com APAC de oncologia (câncer) associada.'),
+            tip('tip-q-nomes', 'Registros onde o nome no SISCAN confere com o nome no eSaúde.'),
+            tip('tip-q-dup', 'Pacientes com mais de um registro usando o mesmo CNS (possíveis duplicidades).')
         ], className='mb-4 p-3 bg-white rounded shadow-sm'),
         
         html.Div([
