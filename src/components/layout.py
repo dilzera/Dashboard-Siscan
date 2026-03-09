@@ -483,7 +483,8 @@ def create_header(user_name=None):
 
 
 def create_filters(years, health_units, regions, selected_year=None, selected_health_unit=None, 
-                   selected_region=None, selected_age_range=None, selected_birads=None, selected_priority=None):
+                   selected_region=None, selected_age_range=None, selected_birads=None, selected_priority=None,
+                   lock_region=False, lock_unit=False):
     tooltips = [
         tip('tip-year', 'Filtra os dados pelo ano de realização do exame. Dados disponíveis a partir de 2023.'),
         tip('tip-unit', 'Filtra por unidade de saúde ou prestador que realizou o exame de mamografia.'),
@@ -514,8 +515,9 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         options=[{'label': u, 'value': u} for u in health_units],
                         value=selected_health_unit,
                         placeholder='Todas as unidades',
-                        clearable=True,
-                        searchable=True,
+                        clearable=not lock_unit,
+                        disabled=lock_unit,
+                        searchable=not lock_unit,
                         optionHeight=50,
                         style={'fontSize': '0.85rem', 'minWidth': '200px'}
                     )
@@ -528,7 +530,8 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         options=[{'label': r, 'value': r} for r in regions],
                         value=selected_region,
                         placeholder='Todos os distritos',
-                        clearable=True,
+                        clearable=not lock_region,
+                        disabled=lock_region,
                         style={'fontSize': '0.9rem'}
                     )
                 ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
@@ -1687,6 +1690,8 @@ def create_main_layout(years, health_units, regions, initial_content=None,
         last_update_text = initial_content.get('last_update', '')
     
     show_access_management = user_access_level in ('secretaria', 'distrito')
+    lock_region = user_access_level in ('distrito', 'unidade')
+    lock_unit = user_access_level == 'unidade'
     
     return html.Div([
         create_header(user_name=user_name),
@@ -1694,7 +1699,8 @@ def create_main_layout(years, health_units, regions, initial_content=None,
         dbc.Container([
             create_filters(years, health_units, regions, 
                           selected_year, selected_health_unit, 
-                          selected_region, selected_conformity),
+                          selected_region, selected_conformity,
+                          lock_region=lock_region, lock_unit=lock_unit),
             html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
                     style={'fontSize': '0.85rem'}),
             create_kpi_row(initial_content),

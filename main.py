@@ -354,11 +354,20 @@ def display_page(pathname, search):
         region=user_district if user_access_level == 'distrito' else None
     )
     
+    if user_access_level == 'distrito' and user_district:
+        selected_region = user_district
+    elif user_access_level == 'unidade' and user_health_unit:
+        selected_region = regions[0] if regions else None
+    else:
+        selected_region = None
+
     return create_main_layout(
         years, 
         health_units, 
         regions, 
         initial_content,
+        selected_region=selected_region,
+        selected_health_unit=user_health_unit if user_access_level == 'unidade' else None,
         sex_options=sex_options,
         birads_options=birads_options,
         user_name=current_user.name if current_user.is_authenticated else None,

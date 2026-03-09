@@ -20,10 +20,10 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
 
 **Technical Implementations & Features:**
 - **Authentication:** Mandatory via Flask-Login with configurable admin user (`admin`), 1-hour session timeout, encrypted passwords (werkzeug/scrypt), automatic redirection to login, and URL preservation post-login.
-- **Hierarchical Access Control:** Three-level access system:
+- **Hierarchical Access Control:** Three-level access system with server-side enforcement via `_enforce_access()` helper in all callbacks:
     - **Secretaria de Saúde:** Full access to all data, districts, and units. Can approve/reject access requests for all levels.
-    - **Gestor de Distrito:** Access restricted to their assigned district. Can approve/reject access requests for their district.
-    - **Unidade de Saúde/Prestador:** Access restricted to their assigned health unit only.
+    - **Gestor de Distrito:** Access restricted to their assigned district. Region filter is locked (disabled, non-clearable). All callbacks enforce district via `user-district-store`. Can approve/reject access requests for their district.
+    - **Unidade de Saúde/Prestador:** Access restricted to their assigned health unit only. Region and unit filters are locked.
 - **Self-Service Access Request:** Users can request access via the login page. Requests are stored with status (pending/approved/rejected) and processed by Secretaria or Distrito managers. Duplicate validation checks CPF, email, matricula, and username against both pending requests and active users.
 - **Access Management Tab:** Available only for Secretaria and Distrito managers, displaying pending access requests with approve/reject functionality. Upon approval, a temporary password is generated and displayed to the approver for secure communication to the new user.
 - **Password Management System:**

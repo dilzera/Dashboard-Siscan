@@ -4,6 +4,22 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from src.cache import clear_cache
+
+
+def _enforce_access(region, health_unit):
+    from flask_login import current_user
+    if not current_user or not current_user.is_authenticated:
+        return region, health_unit
+    access_level = getattr(current_user, 'access_level', 'secretaria') or 'secretaria'
+    user_district = getattr(current_user, 'district', None)
+    user_health_unit = getattr(current_user, 'health_unit', None)
+    if access_level == 'distrito' and user_district:
+        region = user_district
+    elif access_level == 'unidade' and user_health_unit:
+        health_unit = user_health_unit
+        if user_district:
+            region = user_district
+    return region, health_unit
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
     get_birads_distribution_sql, get_conformity_by_unit_sql, get_high_risk_cases_sql,
@@ -163,7 +179,6 @@ def register_callbacks(app):
         [Output('main-tabs', 'active_tab'),
          Output('year-filter', 'value'),
          Output('health-unit-filter', 'value'),
-         Output('region-filter', 'value'),
          Output('age-range-filter', 'value'),
          Output('birads-filter', 'value'),
          Output('priority-filter', 'value')],
@@ -172,8 +187,8 @@ def register_callbacks(app):
     )
     def go_to_overview_on_title_click(n_clicks):
         if n_clicks:
-            return 'tab-performance', None, None, None, None, None, None
-        return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+            return 'tab-performance', None, None, None, None, None
+        return no_update, no_update, no_update, no_update, no_update, no_update
     
     @app.callback(
         Output('kpi-mean-wait', 'children'),
@@ -208,6 +223,7 @@ def register_callbacks(app):
             if ctx.triggered and ctx.triggered[0]['prop_id'].split('.')[0] == 'refresh-btn':
                 clear_cache()
             
+            region, health_unit = _enforce_access(region, health_unit)
             content = build_dashboard_content(year, health_unit, region, age_range, birads, priority, is_masked)
             return (
                 content['kpi_mean'],
@@ -255,6 +271,7 @@ def register_callbacks(app):
             return no_update
         
         try:
+            region, health_unit = _enforce_access(region, health_unit)
             navigation_list_df = get_patient_navigation_list_sql(
                 year, health_unit, region, 
                 min_exams=2, limit=50, 
@@ -290,6 +307,7 @@ def register_callbacks(app):
     def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks, is_masked,
                             year, health_unit, region,
                             patient_name, sex, birads, page_size, current_page):
+        region, health_unit = _enforce_access(region, health_unit)
         try:
             ctx = callback_context
             if not ctx.triggered:
@@ -351,6 +369,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def update_health_unit_analysis(btn_clicks, refresh_clicks, is_masked, selected_unit, year, region):
+        region, _ = _enforce_access(region, None)
         try:
             if not selected_unit:
                 empty_msg = html.Div([
@@ -417,6 +436,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def update_unit_prioritization(n_clicks, is_masked, selected_unit, year, region):
+        region, _ = _enforce_access(region, None)
         if not n_clicks or not selected_unit:
             empty_msg = html.Div(
                 html.P('Selecione uma unidade para ver a priorização.', className='text-muted text-center py-3')
@@ -461,6 +481,7 @@ def register_callbacks(app):
     )
     def update_indicators(n_clicks, year, region, health_unit):
         try:
+            region, health_unit = _enforce_access(region, health_unit)
             indicators = get_indicators_data_sql(year, region, health_unit)
             
             total = indicators.get('total_exames', 1)
@@ -632,6 +653,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def download_busca_ativa_csv(n_clicks, selected_unit, year, region):
+        region, _ = _enforce_access(region, None)
         if not n_clicks or not selected_unit:
             return no_update
         
@@ -830,6 +852,7 @@ def register_callbacks(app):
             return no_update
         
         try:
+            region, health_unit = _enforce_access(region, health_unit)
             outliers_df = get_outliers_audit_sql(year, health_unit, region)
             return create_outliers_table(outliers_df, is_masked, sort_field, sort_order)
         except Exception as e:

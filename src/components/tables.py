@@ -1008,7 +1008,6 @@ def create_follow_up_overdue_table(df, is_masked=True):
             html.Th('Dias Atraso', style={'fontSize': '0.8rem', 'width': '90px'}),
             html.Th('Motivo Retorno', style={'fontSize': '0.8rem', 'minWidth': '150px'}),
             html.Th('APAC', style={'fontSize': '0.8rem', 'width': '80px'}),
-            html.Th('Tempest.', style={'fontSize': '0.8rem', 'width': '80px'}),
             html.Th('Cartão SUS', style={'fontSize': '0.8rem', 'width': '130px'})
         ])
     )
@@ -1051,8 +1050,6 @@ def create_follow_up_overdue_table(df, is_masked=True):
         motivo = str(row.get('motivo_retorno', '-'))
         cartao = mask_cns(row.get('cartao_sus', ''), is_masked)
         apac = str(row.get('conclusao_apac', ''))[:10] if row.get('conclusao_apac') and str(row.get('conclusao_apac')).strip() else '-'
-        tempest = row.get('tempestividade', '')
-        tempest_badge = dbc.Badge('Tempestivo', color='success', className='px-1') if tempest == 'Tempestivo' else (dbc.Badge('Atrasado', color='danger', className='px-1') if tempest == 'Atrasado' else '-')
         
         cells = [
             html.Td(nome, style={'fontSize': '0.8rem', 'fontWeight': '500'}),
@@ -1071,7 +1068,6 @@ def create_follow_up_overdue_table(df, is_masked=True):
             ),
             html.Td(motivo, style={'fontSize': '0.75rem', 'color': '#666'}),
             html.Td(apac, style={'fontSize': '0.75rem'}),
-            html.Td(tempest_badge, style={'textAlign': 'center'}),
             html.Td(cartao, style={'fontSize': '0.75rem', 'fontFamily': 'monospace'})
         ]
         rows.append(html.Tr(cells))
@@ -1081,7 +1077,7 @@ def create_follow_up_overdue_table(df, is_masked=True):
     legend = create_table_legend([
         'nome', 'idade', 'birads_max', 'data_realizacao', 'data_liberacao',
         'prestador_servico', 'data_prevista_retorno', 'dias_atraso', 'motivo_retorno',
-        'conclusao_apac', 'tempestividade', 'cartao_sus'
+        'conclusao_apac', 'cartao_sus'
     ])
 
     return dbc.Card([
