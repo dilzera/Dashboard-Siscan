@@ -47,14 +47,18 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
         'Média de Espera',
         f'{kpis["mean_wait"]} dias',
         'Tempo médio entre solicitação e realização',
-        color='info'
+        color='info',
+        tip_id='tip-kpi-mean',
+        tip_text='Média aritmética do tempo (em dias) entre a data de solicitação e a data de realização do exame de mamografia.'
     )
     
     kpi_median = create_kpi_card(
         'Mediana de Espera',
         f'{kpis["median_wait"]} dias',
         'Metade dos exames realizados em até este período',
-        color='primary'
+        color='primary',
+        tip_id='tip-kpi-median',
+        tip_text='Valor central da distribuição de tempos de espera. Metade dos exames foram realizados em até este número de dias.'
     )
     
     conformity_color = 'success' if kpis['conformity_rate'] >= 70 else 'warning' if kpis['conformity_rate'] >= 50 else 'danger'
@@ -62,7 +66,9 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
         'Taxa de Conformidade',
         f'{kpis["conformity_rate"]}%',
         f'{kpis["total_exams"]:,} exames no período'.replace(',', '.'),
-        color=conformity_color
+        color=conformity_color,
+        tip_id='tip-kpi-conformity',
+        tip_text='Percentual de exames realizados dentro do prazo de 30 dias após a solicitação. Meta INCA: ≥70%.'
     )
     
     risk_color = 'danger' if kpis['high_risk_count'] > 100 else 'warning' if kpis['high_risk_count'] > 50 else 'info'
@@ -70,37 +76,49 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
         'Alto Risco',
         f'{kpis["high_risk_count"]:,}'.replace(',', '.'),
         'BI-RADS 4 e 5',
-        color=risk_color
+        color=risk_color,
+        tip_id='tip-kpi-risk',
+        tip_text='Quantidade de exames classificados como BI-RADS 4 (suspeito) ou 5 (altamente suspeito). Requerem biópsia e encaminhamento prioritário.'
     )
     
     chart_volume = create_chart_card(
         'Volume de Exames por Mês',
         create_line_chart(monthly_df, 'month_year', 'count'),
-        'Tendência temporal de solicitações'
+        'Tendência temporal de solicitações',
+        tip_id='tip-chart-volume',
+        tip_text='Gráfico de linha mostrando a evolução mensal do número de exames de mamografia realizados no período selecionado.'
     )
     
     gauge_chart = create_chart_card(
         'Taxa de Conformidade',
         create_gauge_chart(kpis['conformity_rate'], 'Meta: 70%'),
-        'Exames realizados em até 30 dias'
+        'Exames realizados em até 30 dias',
+        tip_id='tip-chart-gauge',
+        tip_text='Indicador visual da taxa de conformidade (exames realizados em até 30 dias). Verde ≥70%, amarelo 50-69%, vermelho <50%.'
     )
     
     chart_conformity = create_chart_card(
         'Conformidade',
         create_conformity_chart(conformity_df),
-        'Unidades ordenadas por taxa de conformidade'
+        'Unidades ordenadas por taxa de conformidade',
+        tip_id='tip-chart-conformity',
+        tip_text='Gráfico de barras comparando a taxa de conformidade entre as unidades de saúde. Ordenado da maior para a menor taxa.'
     )
     
     chart_birads = create_chart_card(
         'Distribuição BI-RADS',
         create_birads_bar_chart(birads_df),
-        'Classificação de risco dos exames'
+        'Classificação de risco dos exames',
+        tip_id='tip-chart-birads',
+        tip_text='Distribuição dos exames por categoria BI-RADS (0 a 6). Categorias 4 e 5 indicam suspeita de malignidade.'
     )
     
     chart_birads_pie = create_chart_card(
         'Proporção BI-RADS',
         create_pie_chart(birads_df, 'birads_category', 'count'),
-        'Distribuição percentual'
+        'Distribuição percentual',
+        tip_id='tip-chart-birads-pie',
+        tip_text='Gráfico de pizza mostrando a proporção percentual de cada categoria BI-RADS no total de exames.'
     )
     
     table_risk = create_high_risk_table(high_risk_df, is_masked)
@@ -434,6 +452,7 @@ def register_callbacks(app):
         Output('indicator-8-card', 'children'),
         Output('indicator-9-card', 'children'),
         Output('indicator-10-card', 'children'),
+        Output('indicator-11-card', 'children'),
         Input('refresh-btn', 'n_clicks'),
         State('year-filter', 'value'),
         State('region-filter', 'value'),
@@ -446,11 +465,12 @@ def register_callbacks(app):
             
             total = indicators.get('total_exames', 1)
             
+            rastreamento_50_69 = indicators.get('rastreamento_50_69', 0)
             ind1 = create_indicator_card(
-                'Mamografia de Rastreamento (50-74 anos)',
-                'Mamografia de Rastreamento / Idade entre 50-74 anos. Medir a cobertura da população alvo.',
-                indicators.get('rastreamento_50_74', 0),
-                percentage=(indicators.get('rastreamento_50_74', 0) / total * 100) if total > 0 else 0,
+                'Cobertura Mamográfica (50-69 anos)',
+                'Ref. INCA: Razão de exames de mamografia de rastreamento em mulheres de 50 a 69 anos. Meta ≥70%.',
+                rastreamento_50_69,
+                percentage=(rastreamento_50_69 / total * 100) if total > 0 else 0,
                 icon_class='fas fa-users'
             )
             
@@ -500,8 +520,8 @@ def register_callbacks(app):
             ind2 = html.Div([
                 dbc.Card([
                     dbc.CardBody([
-                        html.H6('Cobertura por Unidade/Distrito', className='mb-3', style={'fontSize': '0.95rem', 'fontWeight': '600'}),
-                        html.P('Mamografia de Rastreamento / Idade entre 50-74 anos / Unidade de Saúde. Medir a cobertura da população alvo por unidade de saúde ou distrito sanitário.', 
+                        html.H6('Cobertura por Unidade/Distrito (50-69 anos)', className='mb-3', style={'fontSize': '0.95rem', 'fontWeight': '600'}),
+                        html.P('Ref. INCA: Distribuição da cobertura mamográfica de rastreamento (50-69 anos) por unidade de saúde ou distrito sanitário.', 
                                className='text-muted mb-3', style={'fontSize': '0.8rem'}),
                         dbc.Tabs([
                             dbc.Tab(chart_distrito, label='Por Distrito'),
@@ -511,79 +531,97 @@ def register_callbacks(app):
                 ], className='h-100 shadow-sm', style={'borderLeft': f'4px solid {COLORS["primary"]}'})
             ])
             
-            tempo_sol_lib = indicators.get('tempo_solicitacao_liberacao', {'media': 0, 'mediana': 0})
-            ind3 = create_time_indicator_card(
-                'Solicitação até Liberação do Laudo',
-                'Data da solicitação / Data da liberação do laudo. Medir a agilidade de acesso ao exame e tempo de espera.',
-                tempo_sol_lib['media'],
-                tempo_sol_lib['mediana'],
-                icon_class='fas fa-hourglass-half'
+            tempo_sol_lib = indicators.get('tempo_solicitacao_liberacao', {'media': 0, 'mediana': 0, 'percentual_30_dias': 0, 'dentro_30_dias': 0, 'total_com_datas': 0})
+            pct_30 = tempo_sol_lib.get('percentual_30_dias', 0)
+            dentro_30 = tempo_sol_lib.get('dentro_30_dias', 0)
+            total_datas = tempo_sol_lib.get('total_com_datas', 0)
+            ind3 = create_indicator_card(
+                'Resultado em até 30 dias',
+                f'Ref. INCA: Percentual de mamografias com resultado liberado em até 30 dias da solicitação. {dentro_30:,} de {total_datas:,} exames.'.replace(',', '.'),
+                f'{pct_30}%',
+                icon_class='fas fa-hourglass-half',
+                color='success' if pct_30 >= 70 else 'warning' if pct_30 >= 50 else 'danger'
             )
             
             tempo_real_lib = indicators.get('tempo_realizacao_liberacao', {'media': 0, 'mediana': 0})
             ind4 = create_time_indicator_card(
                 'Realização até Liberação do Resultado',
-                'Data da realização / Data da liberação do resultado. Medir a eficiência do prestador na agilidade da entrega dos resultados.',
+                'Ref. INCA: Tempo entre a realização do exame e a liberação do laudo. Mede a eficiência do prestador.',
                 tempo_real_lib['media'],
                 tempo_real_lib['mediana'],
                 icon_class='fas fa-file-medical'
             )
             
+            total_rastreamento = indicators.get('total_rastreamento', 0)
+            cat0_rastreamento = indicators.get('categoria_0_rastreamento', 0)
+            pct_cat0 = round(cat0_rastreamento / total_rastreamento * 100, 1) if total_rastreamento > 0 else 0
             ind5 = create_indicator_card(
-                'Exames com Categoria 0',
-                'Exames com Categoria 0. Encaminhamento para US de mamas.',
-                indicators.get('categoria_0', 0),
-                percentage=(indicators.get('categoria_0', 0) / total * 100) if total > 0 else 0,
-                icon_class='fas fa-search-plus'
+                'BI-RADS 0 no Rastreamento',
+                f'Ref. INCA: Proporção de exames BI-RADS 0 (inconclusivos) no rastreamento. Meta <10%. Total Cat. 0: {indicators.get("categoria_0", 0):,}.'.replace(',', '.'),
+                cat0_rastreamento,
+                percentage=pct_cat0,
+                icon_class='fas fa-search-plus',
+                color='success' if pct_cat0 < 10 else 'warning' if pct_cat0 < 15 else 'danger'
             )
             
             cat3_nodulo = indicators.get('categoria_3_nodulo', 0)
             cat3_total = indicators.get('categoria_3_total', 0)
             ind6 = create_indicator_card(
                 'Categoria 3 com Nódulo',
-                f'Exames com Categoria 3 / Presença de nódulo no laudo. Encaminhamento para US de mamas e Mastologia. Total Cat. 3: {cat3_total:,} exames.',
+                f'Ref. INCA: Exames BI-RADS 3 com presença de nódulo. Encaminhamento para US de mamas e Mastologia. Total Cat. 3: {cat3_total:,}.'.replace(',', '.'),
                 cat3_nodulo,
                 percentage=(cat3_nodulo / cat3_total * 100) if cat3_total > 0 else 0,
                 icon_class='fas fa-notes-medical'
             )
             
+            cat45_rastr = indicators.get('categoria_4_5_rastreamento', 0)
+            pct_cat45 = round(cat45_rastr / total_rastreamento * 100, 1) if total_rastreamento > 0 else 0
             ind7 = create_indicator_card(
-                'Categoria 4/5 - Rastreamento',
-                'Exames Categoria 4 e 5 / Mamografia de rastreamento. Necessidade de biópsia na população feminina. Encaminhamento para a Cancerologia.',
-                indicators.get('categoria_4_5_rastreamento', 0),
-                percentage=(indicators.get('categoria_4_5_rastreamento', 0) / total * 100) if total > 0 else 0,
+                'BI-RADS 4/5 no Rastreamento',
+                f'Ref. INCA: Proporção de resultados alterados (BI-RADS 4/5) no rastreamento. Necessidade de biópsia. Taxa de detecção esperada: ~6‰.',
+                cat45_rastr,
+                percentage=pct_cat45,
                 icon_class='fas fa-exclamation-circle'
             )
             
             ind8 = create_indicator_card(
-                '50-74 anos: Mamas Densas ou Cat. 0',
-                'Idade entre 50 e 74 anos / Mamas densas ou Categoria 0. Encaminhamento para US de mamas.',
-                indicators.get('idade_50_74_densas_cat0', 0),
-                percentage=(indicators.get('idade_50_74_densas_cat0', 0) / total * 100) if total > 0 else 0,
+                '50-69 anos: Mamas Densas ou Cat. 0',
+                'Ref. INCA: Mulheres na faixa etária alvo (50-69 anos) com mamas densas ou BI-RADS 0. Encaminhamento para US de mamas.',
+                indicators.get('idade_50_69_densas_cat0', 0),
+                percentage=(indicators.get('idade_50_69_densas_cat0', 0) / total * 100) if total > 0 else 0,
                 icon_class='fas fa-female'
             )
             
             ind9 = create_indicator_card(
                 'Idade < 49 anos: Categoria 4/5',
-                'Idade < 49 anos / Categoria 4 e 5. Mostra incidência de lesão suspeita fora da faixa etária de rastreamento.',
+                'Ref. INCA: Casos suspeitos (BI-RADS 4/5) fora da faixa etária de rastreamento. Monitoramento de incidência em mulheres jovens.',
                 indicators.get('idade_menor_49_cat_4_5', 0),
                 icon_class='fas fa-user-clock'
             )
             
             ind10 = create_indicator_card(
                 'Idade < 40 anos com Nódulo',
-                'Idade abaixo de 40 anos / Presença de nódulo no laudo. Encaminhamento para US de mamas.',
+                'Ref. INCA: Mulheres abaixo de 40 anos com presença de nódulo no laudo. Encaminhamento para US de mamas.',
                 indicators.get('idade_menor_40_nodulo', 0),
                 icon_class='fas fa-user-md'
             )
             
-            return ind1, ind2, ind3, ind4, ind5, ind6, ind7, ind8, ind9, ind10
+            diag = indicators.get('diagnostico_estagio_inicial', {'rastreamento': 0, 'total': 0, 'percentual': 0})
+            ind11 = create_indicator_card(
+                'Diagnóstico em Estágio Inicial',
+                f'Ref. INCA: Proporção de casos BI-RADS 4/5 detectados via mamografia de rastreamento. {diag["rastreamento"]:,} de {diag["total"]:,} casos.'.replace(',', '.'),
+                f'{diag["percentual"]}%',
+                icon_class='fas fa-microscope',
+                color='success' if diag['percentual'] >= 70 else 'warning' if diag['percentual'] >= 50 else 'info'
+            )
+            
+            return ind1, ind2, ind3, ind4, ind5, ind6, ind7, ind8, ind9, ind10, ind11
             
         except Exception as e:
             error_card = html.Div([
                 html.P(f'Erro ao carregar indicadores: {str(e)}', className='text-danger')
             ])
-            return (error_card,) * 10
+            return (error_card,) * 11
     
     @app.callback(
         Output('download-busca-ativa-csv', 'data'),

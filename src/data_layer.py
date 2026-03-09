@@ -1476,11 +1476,11 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
         FROM exam_records
         {base_where}
         AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
-        AND paciente__idade >= 50 AND paciente__idade <= 74
+        AND paciente__idade >= 50 AND paciente__idade <= 69
         """
         result = conn.execute(text(ind1_query), params)
         row = result.fetchone()
-        indicators['rastreamento_50_74'] = int(row[0]) if row and row[0] else 0
+        indicators['rastreamento_50_69'] = int(row[0]) if row and row[0] else 0
         
         ind2_query = f"""
         SELECT 
@@ -1489,7 +1489,7 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
         FROM exam_records
         {base_where}
         AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
-        AND paciente__idade >= 50 AND paciente__idade <= 74
+        AND paciente__idade >= 50 AND paciente__idade <= 69
         GROUP BY distrito_sanitario
         ORDER BY total DESC
         """
@@ -1504,7 +1504,7 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
         FROM exam_records
         {base_where}
         AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
-        AND paciente__idade >= 50 AND paciente__idade <= 74
+        AND paciente__idade >= 50 AND paciente__idade <= 69
         GROUP BY unidade_de_saude__nome
         ORDER BY total DESC
         LIMIT 20
@@ -1520,7 +1520,9 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
             )::numeric, 1) as media_dias,
             PERCENTILE_CONT(0.5) WITHIN GROUP (
                 ORDER BY (responsavel_pelo_resultado__data_da_liberacao - unidade_de_saude__data_da_solicitacao)
-            ) as mediana_dias
+            ) as mediana_dias,
+            COUNT(*) FILTER (WHERE (responsavel_pelo_resultado__data_da_liberacao - unidade_de_saude__data_da_solicitacao) <= 30) as dentro_30_dias,
+            COUNT(*) as total_com_datas
         FROM exam_records
         {base_where}
         AND responsavel_pelo_resultado__data_da_liberacao IS NOT NULL
@@ -1529,9 +1531,14 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
         """
         result = conn.execute(text(ind3_query), params)
         row = result.fetchone()
+        dentro_30 = int(row[2]) if row and row[2] else 0
+        total_datas = int(row[3]) if row and row[3] else 0
         indicators['tempo_solicitacao_liberacao'] = {
             'media': float(row[0]) if row and row[0] else 0,
-            'mediana': float(row[1]) if row and row[1] else 0
+            'mediana': float(row[1]) if row and row[1] else 0,
+            'percentual_30_dias': round(dentro_30 / total_datas * 100, 1) if total_datas > 0 else 0,
+            'dentro_30_dias': dentro_30,
+            'total_com_datas': total_datas
         }
         
         ind4_query = f"""
@@ -1555,13 +1562,34 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
             'mediana': float(row[1]) if row and row[1] else 0
         }
         
+        ind_rastreamento_total_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
+        """
+        result = conn.execute(text(ind_rastreamento_total_query), params)
+        row = result.fetchone()
+        indicators['total_rastreamento'] = int(row[0]) if row and row[0] else 0
+        
         ind5_query = f"""
         SELECT COUNT(*) as total
         FROM exam_records
         {base_where}
         AND birads_max = '0'
+        AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'
         """
         result = conn.execute(text(ind5_query), params)
+        row = result.fetchone()
+        indicators['categoria_0_rastreamento'] = int(row[0]) if row and row[0] else 0
+        
+        ind5b_query = f"""
+        SELECT COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND birads_max = '0'
+        """
+        result = conn.execute(text(ind5b_query), params)
         row = result.fetchone()
         indicators['categoria_0'] = int(row[0]) if row and row[0] else 0
         
@@ -1604,7 +1632,7 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
         SELECT COUNT(*) as total
         FROM exam_records
         {base_where}
-        AND paciente__idade >= 50 AND paciente__idade <= 74
+        AND paciente__idade >= 50 AND paciente__idade <= 69
         AND (
             birads_max = '0'
             OR resultado_exame__mama_direita__tipo_de_mama IN ('Densa', 'Predominantemente Densa')
@@ -1613,7 +1641,7 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
         """
         result = conn.execute(text(ind8_query), params)
         row = result.fetchone()
-        indicators['idade_50_74_densas_cat0'] = int(row[0]) if row and row[0] else 0
+        indicators['idade_50_69_densas_cat0'] = int(row[0]) if row and row[0] else 0
         
         ind9_query = f"""
         SELECT COUNT(*) as total
@@ -1639,6 +1667,24 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
         result = conn.execute(text(ind10_query), params)
         row = result.fetchone()
         indicators['idade_menor_40_nodulo'] = int(row[0]) if row and row[0] else 0
+        
+        ind11_query = f"""
+        SELECT 
+            COUNT(*) FILTER (WHERE resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo') as rastreamento,
+            COUNT(*) as total
+        FROM exam_records
+        {base_where}
+        AND birads_max IN ('4', '5')
+        """
+        result = conn.execute(text(ind11_query), params)
+        row = result.fetchone()
+        cat45_rastreamento = int(row[0]) if row and row[0] else 0
+        cat45_total = int(row[1]) if row and row[1] else 0
+        indicators['diagnostico_estagio_inicial'] = {
+            'rastreamento': cat45_rastreamento,
+            'total': cat45_total,
+            'percentual': round(cat45_rastreamento / cat45_total * 100, 1) if cat45_total > 0 else 0
+        }
         
         total_query = f"""
         SELECT COUNT(*) as total
@@ -1679,13 +1725,17 @@ def get_indicator_details_sql(indicator_type, year=None, region=None, health_uni
     """
     
     indicator_conditions = {
-        'rastreamento_50_74': "AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo' AND paciente__idade >= 50 AND paciente__idade <= 74",
+        'rastreamento_50_69': "AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo' AND paciente__idade >= 50 AND paciente__idade <= 69",
+        'rastreamento_50_74': "AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo' AND paciente__idade >= 50 AND paciente__idade <= 69",
         'categoria_0': "AND birads_max = '0'",
+        'categoria_0_rastreamento': "AND birads_max = '0' AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'",
         'categoria_3_nodulo': "AND birads_max = '3' AND (resultado_exame__achados_benignos__achados_benignos ILIKE '%nódulo%' OR resultado_exame__achados_benignos__achados_benignos ILIKE '%nodulo%')",
         'categoria_4_5_rastreamento': "AND birads_max IN ('4', '5') AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'",
-        'idade_50_74_densas_cat0': "AND paciente__idade >= 50 AND paciente__idade <= 74 AND (birads_max = '0' OR resultado_exame__mama_direita__tipo_de_mama IN ('Densa', 'Predominantemente Densa') OR resultado_exame__mama_esquerda__tipo_de_mama IN ('Densa', 'Predominantemente Densa'))",
+        'idade_50_69_densas_cat0': "AND paciente__idade >= 50 AND paciente__idade <= 69 AND (birads_max = '0' OR resultado_exame__mama_direita__tipo_de_mama IN ('Densa', 'Predominantemente Densa') OR resultado_exame__mama_esquerda__tipo_de_mama IN ('Densa', 'Predominantemente Densa'))",
+        'idade_50_74_densas_cat0': "AND paciente__idade >= 50 AND paciente__idade <= 69 AND (birads_max = '0' OR resultado_exame__mama_direita__tipo_de_mama IN ('Densa', 'Predominantemente Densa') OR resultado_exame__mama_esquerda__tipo_de_mama IN ('Densa', 'Predominantemente Densa'))",
         'idade_menor_49_cat_4_5': "AND paciente__idade < 49 AND birads_max IN ('4', '5')",
-        'idade_menor_40_nodulo': "AND paciente__idade < 40 AND (resultado_exame__achados_benignos__achados_benignos ILIKE '%nódulo%' OR resultado_exame__achados_benignos__achados_benignos ILIKE '%nodulo%')"
+        'idade_menor_40_nodulo': "AND paciente__idade < 40 AND (resultado_exame__achados_benignos__achados_benignos ILIKE '%nódulo%' OR resultado_exame__achados_benignos__achados_benignos ILIKE '%nodulo%')",
+        'diagnostico_estagio_inicial': "AND birads_max IN ('4', '5') AND resultado_exame__indicacao__mamografia_de_rastreamento = 'População alvo'"
     }
     
     condition = indicator_conditions.get(indicator_type, "")

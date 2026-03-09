@@ -38,7 +38,7 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
     - **Risk Auditing:** BI-RADS distribution, high-risk cases.
     - **Outlier Auditing:** Detection of data inconsistencies (absurd dates, negative deltas, invalid BI-RADS, excessive wait times).
     - **Quality Data Audit:** Categorization of data inconsistencies (e.g., dates before 2020-01-01, negative delta between request and completion dates, invalid BI-RADS, wait times > 365 days).
-    - **Indicators:** 10 clinical indicators across 4 blocks (Target Population Coverage, Access and Result Delivery Agility, Referrals by BI-RADS Category, Special Cases/Out-of-Age Range).
+    - **Indicators:** 11 clinical indicators across 5 blocks aligned with INCA Ficha Técnica 2014: Cobertura (50-69 anos), Agilidade (resultado em ≤30 dias), Encaminhamentos BI-RADS, Casos Especiais, Diagnóstico em estágio inicial.
     - **Health Unit Analysis:** Detailed analysis per unit including specific KPIs (total exames, média espera, conformidade, alto risco, realização→laudo), patient demographics (heatmap), agility (wait time distribution), trend analysis (monthly wait time with 30-day goal), and pending return table for BI-RADS 0/3/4/5.
     - **Patient Data:** Comprehensive listing of all records with specific filters (name, sex, BI-RADS) and pagination.
     - **Patient Navigation:** Tracking patients with multiple appointments, displaying full history including BI-RADS, dates, unit, and wait times.
@@ -53,6 +53,7 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
 - **Duplicate Detection:** Interoperability data highlights patients with duplicate CNS entries using yellow background and badge showing count.
 - **Intelligent Sorting:** Patient navigation sorted by BI-RADS evolution (prioritizes patients showing improvement when no filters applied).
 - **Table Column Legends:** All 9 data tables include collapsible "Legenda das colunas" sections with descriptions for every column, implemented via `create_table_legend()` helper using `<details>` HTML element.
+- **Tooltip System:** Info icons (ℹ) with hover tooltips on all KPI cards, chart titles, section headers, filter labels, and indicator blocks. Uses `label_with_tip(text, tip_id)` for labels and `tip(target, text)` for `dbc.Tooltip`. KPI/chart cards support `tip_id`/`tip_text` params via `create_kpi_card()` and `create_chart_card()` in `cards.py`.
 
 **Performance Optimizations:**
 - **In-Memory Cache:** TTL-based caching (2 minutes for queries, 10 minutes for static lists) via `src/cache.py` decorator.

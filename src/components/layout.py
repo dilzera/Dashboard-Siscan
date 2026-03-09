@@ -765,13 +765,20 @@ def create_outliers_tab(initial_content=None):
         ])
     ], className='mb-3 shadow-sm')
     
+    outliers_header = html.Div([
+        html.H5([
+            'Resumo de Inconsistências',
+            html.I(className='fas fa-info-circle ms-2', id='tip-outliers-header',
+                   style={'fontSize': '0.7rem', 'color': '#999', 'cursor': 'pointer'})
+        ], className='mb-3'),
+        html.P('Registros que violam regras de integridade lógica ou limites estatísticos.', 
+               className='text-muted mb-4'),
+        tip('tip-outliers-header', 'Identificação de dados inconsistentes: datas absurdas (antes de 2020), deltas negativos, BI-RADS inválidos e tempos de espera > 365 dias.')
+    ])
+    
     if initial_content and 'outliers_summary' in initial_content:
         return html.Div([
-            html.Div([
-                html.H5('Resumo de Inconsistências', className='mb-3'),
-                html.P('Registros que violam regras de integridade lógica ou limites estatísticos.', 
-                       className='text-muted mb-4')
-            ]),
+            outliers_header,
             html.Div(initial_content.get('outliers_summary', ''), id='outliers-summary'),
             html.Hr(className='my-4'),
             sort_controls,
@@ -780,11 +787,7 @@ def create_outliers_tab(initial_content=None):
             ])
         ])
     return html.Div([
-        html.Div([
-            html.H5('Resumo de Inconsistências', className='mb-3'),
-            html.P('Registros que violam regras de integridade lógica ou limites estatísticos.', 
-                   className='text-muted mb-4')
-        ]),
+        outliers_header,
         html.Div(id='outliers-summary'),
         html.Hr(className='my-4'),
         sort_controls,
@@ -827,13 +830,20 @@ def create_patient_navigation_tab(initial_content=None):
         ], className='p-3')
     ], className='border-0 shadow-sm mb-4')
     
+    nav_header = html.Div([
+        html.H5([
+            'Navegação da Paciente',
+            html.I(className='fas fa-info-circle ms-2', id='tip-nav-header',
+                   style={'fontSize': '0.7rem', 'color': '#999', 'cursor': 'pointer'})
+        ], className='mb-3'),
+        html.P('Pacientes com múltiplos atendimentos e histórico de exames.', 
+               className='text-muted mb-4'),
+        tip('tip-nav-header', 'Acompanhamento de pacientes com 2 ou mais exames. Permite identificar evolução do BI-RADS ao longo do tempo e mudanças no quadro clínico.')
+    ])
+    
     if initial_content and 'navigation_stats' in initial_content:
         return html.Div([
-            html.Div([
-                html.H5('Navegação da Paciente', className='mb-3'),
-                html.P('Pacientes com múltiplos atendimentos e histórico de exames.', 
-                       className='text-muted mb-4')
-            ]),
+            nav_header,
             evolution_filter,
             html.Div(initial_content.get('navigation_stats', ''), id='navigation-stats'),
             html.Hr(className='my-4'),
@@ -842,11 +852,7 @@ def create_patient_navigation_tab(initial_content=None):
             ])
         ])
     return html.Div([
-        html.Div([
-            html.H5('Navegação da Paciente', className='mb-3'),
-            html.P('Pacientes com múltiplos atendimentos e histórico de exames.', 
-                   className='text-muted mb-4')
-        ]),
+        nav_header,
         evolution_filter,
         html.Div(id='navigation-stats'),
         html.Hr(className='my-4'),
@@ -893,9 +899,14 @@ def create_health_unit_tab(health_units=None, initial_content=None):
     
     return html.Div([
         html.Div([
-            html.H5('Análise por Unidade de Saúde', className='mb-3'),
+            html.H5([
+                'Análise por Unidade de Saúde',
+                html.I(className='fas fa-info-circle ms-2', id='tip-unit-header',
+                       style={'fontSize': '0.7rem', 'color': '#999', 'cursor': 'pointer'})
+            ], className='mb-3'),
             html.P('Visão detalhada do desempenho de cada unidade de saúde.', 
-                   className='text-muted mb-4')
+                   className='text-muted mb-4'),
+            tip('tip-unit-header', 'Análise individual por unidade: KPIs, heatmap demográfico, distribuição de agilidade, tendência temporal e fila de retorno pendente.')
         ]),
         unit_selector,
         
@@ -908,8 +919,11 @@ def create_health_unit_tab(health_units=None, initial_content=None):
                     dbc.CardHeader([
                         html.H6([
                             html.I(className='fas fa-sort-amount-up me-2'),
-                            'Priorização de Atendimento'
-                        ], className='mb-0')
+                            'Priorização de Atendimento',
+                            html.I(className='fas fa-info-circle ms-2', id='tip-unit-priority',
+                                   style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
+                        ], className='mb-0'),
+                        tip('tip-unit-priority', 'Classificação dos pacientes por nível de urgência baseado no Protocolo Manchester adaptado: CRÍTICA (BI-RADS 4/5), ALTA (BI-RADS 0), MÉDIA (BI-RADS 3), ROTINA (BI-RADS 1/2).')
                     ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
                     dbc.CardBody([
                         html.Div(id='unit-priority-summary', className='mb-3'),
@@ -931,7 +945,12 @@ def create_health_unit_tab(health_units=None, initial_content=None):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H6('Pacientes por Faixa Etária e BI-RADS', className='mb-0')
+                        html.H6([
+                            'Pacientes por Faixa Etária e BI-RADS',
+                            html.I(className='fas fa-info-circle ms-2', id='tip-unit-demographics',
+                                   style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
+                        ], className='mb-0'),
+                        tip('tip-unit-demographics', 'Heatmap mostrando a distribuição de pacientes por faixa etária e categoria BI-RADS. Cores mais intensas indicam maior concentração.')
                     ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
                     dbc.CardBody([
                         html.Div(id='unit-demographics-chart')
@@ -942,7 +961,12 @@ def create_health_unit_tab(health_units=None, initial_content=None):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H6('Agilidade no Atendimento', className='mb-0')
+                        html.H6([
+                            'Agilidade no Atendimento',
+                            html.I(className='fas fa-info-circle ms-2', id='tip-unit-agility',
+                                   style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
+                        ], className='mb-0'),
+                        tip('tip-unit-agility', 'Distribuição dos tempos de espera da unidade. Mostra a proporção de exames realizados em diferentes faixas de tempo.')
                     ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
                     dbc.CardBody([
                         html.Div(id='unit-agility-chart')
@@ -955,7 +979,12 @@ def create_health_unit_tab(health_units=None, initial_content=None):
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H6('Tempo Médio de Espera por Mês', className='mb-0')
+                        html.H6([
+                            'Tempo Médio de Espera por Mês',
+                            html.I(className='fas fa-info-circle ms-2', id='tip-unit-wait-trend',
+                                   style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
+                        ], className='mb-0'),
+                        tip('tip-unit-wait-trend', 'Evolução mensal do tempo médio de espera da unidade. Linha de referência em 30 dias (meta INCA).')
                     ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
                     dbc.CardBody([
                         html.Div(id='unit-wait-time-chart')
@@ -968,11 +997,16 @@ def create_health_unit_tab(health_units=None, initial_content=None):
             dbc.Col([
                 html.Div([
                     html.Div([
-                        html.H6('Pacientes Sem Retorno', className='mb-1'),
+                        html.H6([
+                            'Pacientes Sem Retorno',
+                            html.I(className='fas fa-info-circle ms-2', id='tip-unit-followup',
+                                   style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
+                        ], className='mb-1'),
                         html.Small([
                             'Pacientes com BI-RADS 0, 3, 4 ou 5 que não retornaram na data prevista. ',
                             dbc.Badge(id='unit-follow-up-count', color='danger', className='ms-2')
-                        ], className='text-muted')
+                        ], className='text-muted'),
+                        tip('tip-unit-followup', 'Lista de pacientes que precisam de busca ativa. BI-RADS 0/3/4/5 com retorno pendente conforme SLA de tempestividade.')
                     ], className='mb-3'),
                     html.Div(id='unit-follow-up-table')
                 ])
@@ -1080,9 +1114,14 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
     
     return html.Div([
         html.Div([
-            html.H5('Dados do Paciente', className='mb-3'),
+            html.H5([
+                'Dados do Paciente',
+                html.I(className='fas fa-info-circle ms-2', id='tip-pd-header',
+                       style={'fontSize': '0.7rem', 'color': '#999', 'cursor': 'pointer'})
+            ], className='mb-3'),
             html.P('Listagem completa dos registros de exames com dados clínicos detalhados.', 
-                   className='text-muted mb-4')
+                   className='text-muted mb-4'),
+            tip('tip-pd-header', 'Tabela com todos os registros de exames. Permite busca por nome, filtro por sexo e BI-RADS. Dados mascarados quando o modo de proteção está ativo.')
         ]),
         filters_row,
         html.Div(id='patient-data-count', className='text-muted mb-2', style={'fontSize': '0.85rem'}),
@@ -1158,20 +1197,28 @@ def create_time_indicator_card(title, description, media, mediana, icon_class='f
 
 
 def create_indicators_tab(initial_content=None):
-    """Create the Indicators tab with all 10 indicators organized in blocks"""
+    """Create the Indicators tab with all 11 indicators organized in 5 blocks (INCA reference)"""
     
     return html.Div([
         html.Div([
-            html.H5('Indicadores de Rastreamento e Encaminhamento', className='mb-3'),
-            html.P('Indicadores clínicos para monitoramento da cobertura populacional e encaminhamentos.', 
-                   className='text-muted mb-4')
+            html.H5([
+                'Indicadores de Rastreamento e Encaminhamento',
+                html.I(className='fas fa-info-circle ms-2', id='tip-ind-header',
+                       style={'fontSize': '0.7rem', 'color': '#999', 'cursor': 'pointer'})
+            ], className='mb-3'),
+            html.P('Indicadores clínicos baseados na Ficha Técnica de Indicadores INCA (2014) para monitoramento do rastreamento mamográfico.', 
+                   className='text-muted mb-4'),
+            tip('tip-ind-header', 'Indicadores alinhados às recomendações do INCA para rastreamento do câncer de mama. Faixa etária alvo: 50-69 anos.')
         ]),
         
         html.Div([
             html.H6([
                 html.I(className='fas fa-users me-2'),
-                'Cobertura da População Alvo'
+                'Bloco 1: Cobertura da População Alvo',
+                html.I(className='fas fa-info-circle ms-2', id='tip-ind-bloco1',
+                       style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            tip('tip-ind-bloco1', 'Ref. INCA: Razão de exames de mamografia de rastreamento realizados em mulheres de 50 a 69 anos na população residente. Meta ≥70%.'),
             dbc.Row([
                 dbc.Col([
                     html.Div(id='indicator-1-card')
@@ -1185,8 +1232,11 @@ def create_indicators_tab(initial_content=None):
         html.Div([
             html.H6([
                 html.I(className='fas fa-clock me-2'),
-                'Agilidade no Acesso e Entrega de Resultados'
+                'Bloco 2: Agilidade no Acesso e Entrega de Resultados',
+                html.I(className='fas fa-info-circle ms-2', id='tip-ind-bloco2',
+                       style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            tip('tip-ind-bloco2', 'Ref. INCA: Tempo entre solicitação e liberação do resultado. Meta: resultado em até 30 dias.'),
             dbc.Row([
                 dbc.Col([
                     html.Div(id='indicator-3-card')
@@ -1200,8 +1250,11 @@ def create_indicators_tab(initial_content=None):
         html.Div([
             html.H6([
                 html.I(className='fas fa-directions me-2'),
-                'Encaminhamentos por Categoria BI-RADS'
+                'Bloco 3: Encaminhamentos por Categoria BI-RADS',
+                html.I(className='fas fa-info-circle ms-2', id='tip-ind-bloco3',
+                       style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            tip('tip-ind-bloco3', 'Ref. INCA: Proporção de exames por categoria BI-RADS no rastreamento. BI-RADS 0 <10%, taxa de detecção de câncer ~6‰.'),
             dbc.Row([
                 dbc.Col([
                     html.Div(id='indicator-5-card')
@@ -1218,8 +1271,11 @@ def create_indicators_tab(initial_content=None):
         html.Div([
             html.H6([
                 html.I(className='fas fa-exclamation-triangle me-2'),
-                'Casos Especiais e Fora da Faixa Etária'
+                'Bloco 4: Casos Especiais e Fora da Faixa Etária',
+                html.I(className='fas fa-info-circle ms-2', id='tip-ind-bloco4',
+                       style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            tip('tip-ind-bloco4', 'Monitoramento de casos fora da faixa etária alvo (50-69 anos) e achados especiais que requerem atenção diferenciada.'),
             dbc.Row([
                 dbc.Col([
                     html.Div(id='indicator-8-card')
@@ -1231,6 +1287,21 @@ def create_indicators_tab(initial_content=None):
                     html.Div(id='indicator-10-card')
                 ], lg=4, md=12, className='mb-3')
             ], className='mb-4')
+        ], className='mb-4 p-3 bg-white rounded shadow-sm'),
+        
+        html.Div([
+            html.H6([
+                html.I(className='fas fa-microscope me-2'),
+                'Bloco 5: Diagnóstico',
+                html.I(className='fas fa-info-circle ms-2', id='tip-ind-bloco5',
+                       style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
+            ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
+            tip('tip-ind-bloco5', 'Ref. INCA: Proporção de casos diagnosticados em estágios iniciais via rastreamento. Quanto maior, melhor a efetividade do programa.'),
+            dbc.Row([
+                dbc.Col([
+                    html.Div(id='indicator-11-card')
+                ], lg=6, md=12, className='mb-3')
+            ], className='mb-4')
         ], className='mb-4 p-3 bg-white rounded shadow-sm')
     ])
 
@@ -1240,10 +1311,13 @@ def create_linkage_tab(initial_content=None):
         html.Div([
             html.H5([
                 html.I(className='fas fa-exchange-alt me-2'),
-                'Dados de Interoperabilidade SISCAN x eSaude'
+                'Dados de Interoperabilidade SISCAN x eSaude',
+                html.I(className='fas fa-info-circle ms-2', id='tip-linkage-header',
+                       style={'fontSize': '0.7rem', 'color': '#999', 'cursor': 'pointer'})
             ], className='mb-3', style={'color': COLORS['primary'], 'fontWeight': '600'}),
             html.P('Visualize e compare dados de pacientes entre sistemas SISCAN e eSaude', 
-                   className='text-muted mb-4')
+                   className='text-muted mb-4'),
+            tip('tip-linkage-header', 'Cruzamento de dados entre SISCAN (mamografia) e eSaúde (prontuário eletrônico). Permite verificar completude dos dados, APAC de oncologia e consistência de nomes.')
         ]),
         
         html.Div([

@@ -603,6 +603,16 @@ def create_outliers_summary_cards(summary_df):
     return dbc.Row([total_card] + cards)
 
 
+def _tip_inline(tip_id, tip_text):
+    """Helper to create inline tooltip icon + tooltip component"""
+    return [
+        html.I(className='fas fa-info-circle ms-1', id=tip_id,
+               style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'}),
+        dbc.Tooltip(tip_text, target=tip_id, placement='top',
+                    style={'fontSize': '0.8rem', 'maxWidth': '300px'})
+    ]
+
+
 def create_patient_navigation_stats_cards(stats):
     if not stats:
         return html.Div('Nenhum dado disponível', className='text-muted')
@@ -614,7 +624,7 @@ def create_patient_navigation_stats_cards(stats):
             dbc.CardBody([
                 html.Div([
                     html.I(className='fas fa-users fa-2x', style={'color': COLORS['primary']}),
-                    html.Span(' Pacientes', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                    html.Span([' Pacientes'] + _tip_inline('tip-nav-pacientes', 'Quantidade de pacientes que possuem 2 ou mais exames de mamografia no período selecionado.'), className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
                 ], className='d-flex align-items-center mb-2'),
                 html.H3(f'{stats["pacientes_multiplos_exames"]:,}'.replace(',', '.'), 
                        style={'color': COLORS['primary'], 'fontWeight': '600'}),
@@ -628,7 +638,7 @@ def create_patient_navigation_stats_cards(stats):
             dbc.CardBody([
                 html.Div([
                     html.I(className='fas fa-file-medical fa-2x', style={'color': COLORS['info']}),
-                    html.Span(' Exames', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                    html.Span([' Exames'] + _tip_inline('tip-nav-exames', 'Soma total de exames realizados pelas pacientes com múltiplos atendimentos.'), className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
                 ], className='d-flex align-items-center mb-2'),
                 html.H3(f'{stats["total_exames_multiplos"]:,}'.replace(',', '.'), 
                        style={'color': COLORS['info'], 'fontWeight': '600'}),
@@ -642,7 +652,7 @@ def create_patient_navigation_stats_cards(stats):
             dbc.CardBody([
                 html.Div([
                     html.I(className='fas fa-chart-line fa-2x', style={'color': COLORS['success']}),
-                    html.Span(' Média', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                    html.Span([' Média'] + _tip_inline('tip-nav-media', 'Média de exames por paciente entre as que possuem múltiplos atendimentos.'), className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
                 ], className='d-flex align-items-center mb-2'),
                 html.H3(f'{stats["media_exames_por_paciente"]:.1f}', 
                        style={'color': COLORS['success'], 'fontWeight': '600'}),
@@ -656,7 +666,7 @@ def create_patient_navigation_stats_cards(stats):
             dbc.CardBody([
                 html.Div([
                     html.I(className='fas fa-trophy fa-2x', style={'color': COLORS['warning']}),
-                    html.Span(' Máximo', className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
+                    html.Span([' Máximo'] + _tip_inline('tip-nav-max', 'Maior número de exames registrados para uma única paciente no período.'), className='ms-2 fw-bold', style={'fontSize': '1.1rem'})
                 ], className='d-flex align-items-center mb-2'),
                 html.H3(f'{stats["max_exames_paciente"]}', 
                        style={'color': COLORS['warning'], 'fontWeight': '600'}),
@@ -1116,7 +1126,7 @@ def create_unit_kpi_cards(kpis):
                 dbc.CardBody([
                     html.Div([
                         html.I(className='fas fa-file-medical fa-2x', style={'color': COLORS['primary']}),
-                        html.Span(' Total Exames', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                        html.Span([' Total Exames'] + _tip_inline('tip-ukpi-total', 'Número total de exames de mamografia realizados pela unidade no período selecionado.'), className='ms-2 fw-bold', style={'fontSize': '1rem'})
                     ], className='d-flex align-items-center mb-2'),
                     html.H3(f'{kpis["total_exames"]:,}'.replace(',', '.'), 
                            style={'color': COLORS['primary'], 'fontWeight': '600'}),
@@ -1130,7 +1140,7 @@ def create_unit_kpi_cards(kpis):
                 dbc.CardBody([
                     html.Div([
                         html.I(className='fas fa-clock fa-2x', style={'color': COLORS['info']}),
-                        html.Span(' Média Espera', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                        html.Span([' Média Espera'] + _tip_inline('tip-ukpi-wait', 'Tempo médio (em dias) entre a solicitação e a realização do exame nesta unidade.'), className='ms-2 fw-bold', style={'fontSize': '1rem'})
                     ], className='d-flex align-items-center mb-2'),
                     html.H3(f'{kpis["media_espera"]} dias', 
                            style={'color': COLORS['info'], 'fontWeight': '600'}),
@@ -1145,7 +1155,7 @@ def create_unit_kpi_cards(kpis):
                     html.Div([
                         html.I(className='fas fa-check-circle fa-2x', 
                               style={'color': COLORS['success'] if kpis["taxa_conformidade"] >= 70 else COLORS['warning']}),
-                        html.Span(' Conformidade', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                        html.Span([' Conformidade'] + _tip_inline('tip-ukpi-conf', 'Percentual de exames realizados em até 30 dias nesta unidade. Meta INCA: ≥70%.'), className='ms-2 fw-bold', style={'fontSize': '1rem'})
                     ], className='d-flex align-items-center mb-2'),
                     html.H3(f'{kpis["taxa_conformidade"]}%', 
                            style={'color': COLORS['success'] if kpis["taxa_conformidade"] >= 70 else COLORS['warning'], 
@@ -1160,7 +1170,7 @@ def create_unit_kpi_cards(kpis):
                 dbc.CardBody([
                     html.Div([
                         html.I(className='fas fa-exclamation-triangle fa-2x', style={'color': COLORS['danger']}),
-                        html.Span(' Alto Risco', className='ms-2 fw-bold', style={'fontSize': '1rem'})
+                        html.Span([' Alto Risco'] + _tip_inline('tip-ukpi-risk', 'Pacientes com BI-RADS 4 (suspeito) ou 5 (altamente suspeito) nesta unidade. Requerem biópsia.'), className='ms-2 fw-bold', style={'fontSize': '1rem'})
                     ], className='d-flex align-items-center mb-2'),
                     html.H3(f'{kpis["casos_alto_risco"]}', 
                            style={'color': COLORS['danger'], 'fontWeight': '600'}),
@@ -1183,7 +1193,7 @@ def create_unit_kpi_cards(kpis):
                 dbc.CardBody([
                     html.Div([
                         html.I(className='fas fa-file-signature fa-2x', style={'color': '#6f42c1'}),
-                        html.Span(' Realização → Laudo', className='ms-2 fw-bold', style={'fontSize': '0.9rem'})
+                        html.Span([' Realização \u2192 Laudo'] + _tip_inline('tip-ukpi-laudo', 'Tempo médio entre a realização do exame e a liberação do laudo pelo prestador.'), className='ms-2 fw-bold', style={'fontSize': '0.9rem'})
                     ], className='d-flex align-items-center mb-2'),
                     html.H3(f'{kpis.get("media_realizacao_liberacao", 0)} dias', 
                            style={'color': '#6f42c1', 'fontWeight': '600'}),
