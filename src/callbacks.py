@@ -6,6 +6,12 @@ import plotly.graph_objects as go
 from src.cache import clear_cache
 
 
+def _normalize_filter(value):
+    if value == 'ALL' or value == '':
+        return None
+    return value
+
+
 def _enforce_access(region, health_unit):
     from flask_login import current_user
     if not current_user or not current_user.is_authenticated:
@@ -17,8 +23,6 @@ def _enforce_access(region, health_unit):
         region = user_district
     elif access_level == 'unidade' and user_health_unit:
         health_unit = user_health_unit
-        if user_district:
-            region = user_district
     return region, health_unit
 from src.data_layer import (
     get_kpi_data_sql, get_monthly_volume_sql,
@@ -223,6 +227,7 @@ def register_callbacks(app):
             if ctx.triggered and ctx.triggered[0]['prop_id'].split('.')[0] == 'refresh-btn':
                 clear_cache()
             
+            year, health_unit, region, age_range, birads, priority = [_normalize_filter(v) for v in [year, health_unit, region, age_range, birads, priority]]
             region, health_unit = _enforce_access(region, health_unit)
             content = build_dashboard_content(year, health_unit, region, age_range, birads, priority, is_masked)
             return (
@@ -271,6 +276,7 @@ def register_callbacks(app):
             return no_update
         
         try:
+            year, health_unit, region = [_normalize_filter(v) for v in [year, health_unit, region]]
             region, health_unit = _enforce_access(region, health_unit)
             navigation_list_df = get_patient_navigation_list_sql(
                 year, health_unit, region, 
@@ -307,6 +313,8 @@ def register_callbacks(app):
     def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks, is_masked,
                             year, health_unit, region,
                             patient_name, sex, birads, page_size, current_page):
+        year, health_unit, region = [_normalize_filter(v) for v in [year, health_unit, region]]
+        birads = _normalize_filter(birads)
         region, health_unit = _enforce_access(region, health_unit)
         try:
             ctx = callback_context
@@ -369,6 +377,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def update_health_unit_analysis(btn_clicks, refresh_clicks, is_masked, selected_unit, year, region):
+        year, region = _normalize_filter(year), _normalize_filter(region)
         region, _ = _enforce_access(region, None)
         try:
             if not selected_unit:
@@ -436,6 +445,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def update_unit_prioritization(n_clicks, is_masked, selected_unit, year, region):
+        year, region = _normalize_filter(year), _normalize_filter(region)
         region, _ = _enforce_access(region, None)
         if not n_clicks or not selected_unit:
             empty_msg = html.Div(
@@ -481,6 +491,7 @@ def register_callbacks(app):
     )
     def update_indicators(n_clicks, year, region, health_unit):
         try:
+            year, region, health_unit = [_normalize_filter(v) for v in [year, region, health_unit]]
             region, health_unit = _enforce_access(region, health_unit)
             indicators = get_indicators_data_sql(year, region, health_unit)
             
@@ -653,6 +664,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def download_busca_ativa_csv(n_clicks, selected_unit, year, region):
+        year, region = _normalize_filter(year), _normalize_filter(region)
         region, _ = _enforce_access(region, None)
         if not n_clicks or not selected_unit:
             return no_update
@@ -852,6 +864,7 @@ def register_callbacks(app):
             return no_update
         
         try:
+            year, health_unit, region = [_normalize_filter(v) for v in [year, health_unit, region]]
             region, health_unit = _enforce_access(region, health_unit)
             outliers_df = get_outliers_audit_sql(year, health_unit, region)
             return create_outliers_table(outliers_df, is_masked, sort_field, sort_order)

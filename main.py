@@ -356,8 +356,6 @@ def display_page(pathname, search):
     
     if user_access_level == 'distrito' and user_district:
         selected_region = user_district
-    elif user_access_level == 'unidade' and user_health_unit:
-        selected_region = regions[0] if regions else None
     else:
         selected_region = None
 

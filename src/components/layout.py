@@ -500,7 +500,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     label_with_tip('Ano', 'tip-year'),
                     dcc.Dropdown(
                         id='year-filter',
-                        options=[{'label': str(y), 'value': y} for y in years],
+                        options=[{'label': 'Todos os anos', 'value': 'ALL'}] + [{'label': str(y), 'value': y} for y in years],
                         value=selected_year,
                         placeholder='Todos os anos',
                         clearable=True,
@@ -512,12 +512,12 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     label_with_tip('Unidade de Saúde', 'tip-unit'),
                     dcc.Dropdown(
                         id='health-unit-filter',
-                        options=[{'label': u, 'value': u} for u in health_units],
+                        options=([] if lock_unit else [{'label': 'Todas as unidades', 'value': 'ALL'}]) + [{'label': u, 'value': u} for u in health_units],
                         value=selected_health_unit,
                         placeholder='Todas as unidades',
                         clearable=not lock_unit,
                         disabled=lock_unit,
-                        searchable=not lock_unit,
+                        searchable=True,
                         optionHeight=50,
                         style={'fontSize': '0.85rem', 'minWidth': '200px'}
                     )
@@ -527,7 +527,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     label_with_tip('Distrito Sanitário', 'tip-region'),
                     dcc.Dropdown(
                         id='region-filter',
-                        options=[{'label': r, 'value': r} for r in regions],
+                        options=([] if lock_region else [{'label': 'Todos os distritos', 'value': 'ALL'}]) + [{'label': r, 'value': r} for r in regions],
                         value=selected_region,
                         placeholder='Todos os distritos',
                         clearable=not lock_region,
@@ -541,6 +541,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     dcc.Dropdown(
                         id='age-range-filter',
                         options=[
+                            {'label': 'Todas as idades', 'value': 'ALL'},
                             {'label': 'Menos de 40 anos', 'value': '0-39'},
                             {'label': '40-49 anos', 'value': '40-49'},
                             {'label': '50-69 anos (rastreamento)', 'value': '50-69'},
@@ -558,6 +559,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     dcc.Dropdown(
                         id='birads-filter',
                         options=[
+                            {'label': 'Todos os BI-RADS', 'value': 'ALL'},
                             {'label': html.Span(['● ', 'BI-RADS 0'], style={'color': '#fd7e14'}), 'value': '0'},
                             {'label': html.Span(['● ', 'BI-RADS 1'], style={'color': '#17a2b8'}), 'value': '1'},
                             {'label': html.Span(['● ', 'BI-RADS 2'], style={'color': '#17a2b8'}), 'value': '2'},
@@ -587,6 +589,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                     dcc.Dropdown(
                         id='priority-filter',
                         options=[
+                            {'label': 'Todas as prioridades', 'value': 'ALL'},
                             {'label': html.Span(['● ', 'CRÍTICA (BI-RADS 4/5)'], style={'color': '#dc3545', 'fontWeight': 'bold'}), 'value': 'CRITICA'},
                             {'label': html.Span(['● ', 'ALTA (BI-RADS 0)'], style={'color': '#fd7e14', 'fontWeight': 'bold'}), 'value': 'ALTA'},
                             {'label': html.Span(['● ', 'MÉDIA (BI-RADS 3)'], style={'color': '#ffc107', 'fontWeight': 'bold'}), 'value': 'MEDIA'},
@@ -1690,7 +1693,7 @@ def create_main_layout(years, health_units, regions, initial_content=None,
         last_update_text = initial_content.get('last_update', '')
     
     show_access_management = user_access_level in ('secretaria', 'distrito')
-    lock_region = user_access_level in ('distrito', 'unidade')
+    lock_region = user_access_level == 'distrito'
     lock_unit = user_access_level == 'unidade'
     
     return html.Div([
