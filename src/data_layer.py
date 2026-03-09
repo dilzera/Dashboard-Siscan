@@ -887,10 +887,8 @@ def get_patient_data_list_sql(year=None, health_unit=None, region=None, conformi
         COALESCE(e.resultado_exame__mama_direita__tipo_de_mama, e.resultado_exame__mama_esquerda__tipo_de_mama) as tipo_mama,
         e.resultado_exame__linfonodos_axilares__linfonodos_axilares as linfonodos_axilares,
         e.resultado_exame__achados_benignos__achados_benignos as achados_benignos,
-        COALESCE(e.resultado_exame__nodulos__nodulo_01, '') || 
-            CASE WHEN e.resultado_exame__nodulos__nodulo_02 IS NOT NULL THEN ' | ' || e.resultado_exame__nodulos__nodulo_02 ELSE '' END ||
-            CASE WHEN e.resultado_exame__nodulos__nodulo_03 IS NOT NULL THEN ' | ' || e.resultado_exame__nodulos__nodulo_03 ELSE '' END as nodulos,
-        e.resultado_exame__microcalcificacoes as microcalcificacoes,
+        '' as nodulos,
+        '' as microcalcificacoes,
         e.resultado_exame__classificacao_radiologica__mama_direita as birads_direita_class,
         e.resultado_exame__classificacao_radiologica__mama_esquerda as birads_esquerda_class,
         e.resultado_exame__recomendacoes as recomendacoes,
@@ -1023,7 +1021,7 @@ def get_unit_high_risk_patients_sql(health_unit, year=None, region=None):
         conformity_status as status_conformidade,
         resultado_exame__indicacao__mamografia_de_rastreamento as tipo_mamografia,
         prestador_de_servico__cnpj as cnpj_prestador,
-        prestador_de_servico__razao_social as prestador_servico
+        prestador_de_servico__nome as prestador_servico
     FROM exam_records
     WHERE {where_clause}
     AND birads_max IN ('4', '5')
@@ -1060,7 +1058,7 @@ def get_all_high_risk_patients_sql(year=None, health_unit=None, region=None):
         conformity_status as status_conformidade,
         resultado_exame__indicacao__mamografia_de_rastreamento as tipo_mamografia,
         prestador_de_servico__cnpj as cnpj_prestador,
-        prestador_de_servico__razao_social as prestador_servico
+        prestador_de_servico__nome as prestador_servico
     FROM exam_records
     {where_clause}
     {"AND" if where_clause else "WHERE"} birads_max IN ('4', '5')
