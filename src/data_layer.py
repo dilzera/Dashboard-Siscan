@@ -35,7 +35,7 @@ def _build_where_clause(year=None, health_unit=None, region=None, conformity_sta
         params['year'] = year
     
     if health_unit:
-        conditions.append("unidade_de_saude__nome = :health_unit")
+        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
         params['health_unit'] = health_unit
     
     if conformity_status:
@@ -86,11 +86,18 @@ def get_years():
 @cached(ttl=600)
 def get_health_units():
     engine = get_engine()
-    query = "SELECT DISTINCT unidade_de_saude__nome FROM exam_records WHERE unidade_de_saude__nome IS NOT NULL ORDER BY unidade_de_saude__nome LIMIT 500"
+    query = """
+        SELECT DISTINCT name FROM (
+            SELECT unidade_de_saude__nome AS name FROM exam_records WHERE unidade_de_saude__nome IS NOT NULL
+            UNION
+            SELECT prestador_de_servico__nome AS name FROM exam_records WHERE prestador_de_servico__nome IS NOT NULL
+        ) combined
+        ORDER BY name LIMIT 500
+    """
     with engine.connect() as conn:
         result = conn.execute(text(query))
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
-    return df['unidade_de_saude__nome'].dropna().tolist()
+    return df['name'].dropna().tolist()
 
 
 @cached(ttl=600)
@@ -302,7 +309,7 @@ def get_filtered_data(year=None, health_unit=None, conformity_status=None, regio
         params['year'] = year
     
     if health_unit:
-        conditions.append("unidade_de_saude__nome = :health_unit")
+        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
         params['health_unit'] = health_unit
     
     if conformity_status:
@@ -463,7 +470,7 @@ def get_outliers_audit_sql(year=None, health_unit=None, region=None):
         params['year'] = year
     
     if health_unit:
-        conditions.append("unidade_de_saude__nome = :health_unit")
+        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
         params['health_unit'] = health_unit
     
     if region:
@@ -559,7 +566,7 @@ def get_outliers_summary_sql(year=None, health_unit=None, region=None):
         params['year'] = year
     
     if health_unit:
-        conditions.append("unidade_de_saude__nome = :health_unit")
+        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
         params['health_unit'] = health_unit
     
     if region:
@@ -620,7 +627,7 @@ def _build_navigation_where_clause(year=None, health_unit=None, region=None, con
         conditions.append(f"EXTRACT(YEAR FROM {prefix}unidade_de_saude__data_da_solicitacao) = :nav_year")
         params['nav_year'] = year
     if health_unit:
-        conditions.append(f"{prefix}unidade_de_saude__nome = :nav_health_unit")
+        conditions.append(f"({prefix}unidade_de_saude__nome = :nav_health_unit OR {prefix}prestador_de_servico__nome = :nav_health_unit)")
         params['nav_health_unit'] = health_unit
     if region:
         conditions.append(f"{prefix}distrito_sanitario = :nav_region")
@@ -837,7 +844,7 @@ def _build_patient_data_where_clause(year=None, health_unit=None, region=None, c
         conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) = :pd_year")
         params['pd_year'] = year
     if health_unit:
-        conditions.append(f"{p}unidade_de_saude__nome = :pd_health_unit")
+        conditions.append(f"({p}unidade_de_saude__nome = :pd_health_unit OR {p}prestador_de_servico__nome = :pd_health_unit)")
         params['pd_health_unit'] = health_unit
     if region:
         conditions.append(f"{p}distrito_sanitario = :pd_region")
@@ -979,7 +986,7 @@ def _build_unit_where_clause(health_unit, year=None, region=None, table_prefix="
     """Build WHERE clause for health unit specific queries"""
     p = f"{table_prefix}." if table_prefix else ""
     conditions = [
-        f"{p}unidade_de_saude__nome = :unit_name",
+        f"({p}unidade_de_saude__nome = :unit_name OR {p}prestador_de_servico__nome = :unit_name)",
         f"{p}unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
         f"({p}prestador_de_servico__data_da_realizacao IS NULL OR {p}prestador_de_servico__data_da_realizacao >= {p}unidade_de_saude__data_da_solicitacao)",
         f"({p}wait_days IS NULL OR ({p}wait_days >= 0 AND {p}wait_days <= 365))"
@@ -1459,9 +1466,9 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None):
     
     if health_unit:
         if where_clause:
-            where_clause += " AND unidade_de_saude__nome = :ind_health_unit"
+            where_clause += " AND (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
         else:
-            where_clause = " WHERE unidade_de_saude__nome = :ind_health_unit"
+            where_clause = " WHERE (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
         params['ind_health_unit'] = health_unit
     
     base_where = where_clause if where_clause else " WHERE 1=1"
@@ -1704,9 +1711,9 @@ def get_indicator_details_sql(indicator_type, year=None, region=None, health_uni
     
     if health_unit:
         if where_clause:
-            where_clause += " AND unidade_de_saude__nome = :ind_health_unit"
+            where_clause += " AND (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
         else:
-            where_clause = " WHERE unidade_de_saude__nome = :ind_health_unit"
+            where_clause = " WHERE (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
         params['ind_health_unit'] = health_unit
     
     base_where = where_clause if where_clause else " WHERE 1=1"
@@ -2064,7 +2071,7 @@ def get_unit_prioritization_sql(health_unit, year=None, region=None):
         return pd.DataFrame()
     
     conditions = [
-        "e.unidade_de_saude__nome = :unit_name",
+        "(e.unidade_de_saude__nome = :unit_name OR e.prestador_de_servico__nome = :unit_name)",
         "e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
         "(e.prestador_de_servico__data_da_realizacao IS NULL OR e.prestador_de_servico__data_da_realizacao >= e.unidade_de_saude__data_da_solicitacao)",
         "(e.wait_days IS NULL OR (e.wait_days >= 0 AND e.wait_days <= 365))"
@@ -2379,7 +2386,7 @@ def get_district_for_unit(health_unit):
     query = """
         SELECT DISTINCT distrito_sanitario 
         FROM exam_records 
-        WHERE unidade_de_saude__nome = :health_unit AND distrito_sanitario IS NOT NULL
+        WHERE (unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit) AND distrito_sanitario IS NOT NULL
         LIMIT 1
     """
     with engine.connect() as conn:
