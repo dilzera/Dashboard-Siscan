@@ -63,6 +63,21 @@ COLUMN_LEGENDS = {
 }
 
 
+def _th_with_tip(label, legend_key, extra_style=None):
+    """Create a Th element with tooltip from COLUMN_LEGENDS"""
+    tip_text = COLUMN_LEGENDS.get(legend_key, '')
+    style = {'fontSize': '0.85rem', 'cursor': 'help' if tip_text else 'default'}
+    if extra_style:
+        style.update(extra_style)
+    if tip_text:
+        dot_color = '#fff' if style.get('color') == 'white' else '#999'
+        return html.Th(
+            html.Span(label, title=tip_text, style={'borderBottom': f'1px dotted {dot_color}'}),
+            style=style
+        )
+    return html.Th(label, style=style)
+
+
 def create_table_legend(column_keys, compact=False):
     legend_items = []
     for key in column_keys:
@@ -269,7 +284,7 @@ def create_high_risk_table(df, is_masked=True):
     available_columns = [col for col in columns if col in df.columns]
     
     header = html.Thead(
-        html.Tr([html.Th(column_labels.get(col, col), style={'fontSize': '0.85rem'}) for col in available_columns])
+        html.Tr([_th_with_tip(column_labels.get(col, col), col) for col in available_columns])
     )
     
     rows = []
@@ -315,11 +330,6 @@ def create_high_risk_table(df, is_masked=True):
         rows.append(html.Tr(cells))
     
     body = html.Tbody(rows)
-    
-    legend = create_table_legend([
-        'patient_name', 'patient_cns', 'patient_phone', 'health_unit',
-        'birads_category', 'request_date', 'completion_date', 'wait_days', 'conformity_status'
-    ])
 
     return dbc.Card([
         dbc.CardHeader(
@@ -335,8 +345,7 @@ def create_high_risk_table(df, is_masked=True):
                 striped=True,
                 size='sm',
                 className='mb-0'
-            ),
-            legend
+            )
         ])
     ],
         className='shadow-sm',
@@ -371,7 +380,7 @@ def create_other_birads_table(df, is_masked=True):
     available_columns = [col for col in columns if col in df.columns]
     
     header = html.Thead(
-        html.Tr([html.Th(column_labels.get(col, col), style={'fontSize': '0.85rem'}) for col in available_columns])
+        html.Tr([_th_with_tip(column_labels.get(col, col), col) for col in available_columns])
     )
     
     rows = []
@@ -415,11 +424,6 @@ def create_other_birads_table(df, is_masked=True):
         rows.append(html.Tr(cells))
     
     body = html.Tbody(rows)
-    
-    legend = create_table_legend([
-        'patient_name', 'patient_cns', 'patient_phone', 'health_unit',
-        'birads_category', 'request_date', 'completion_date', 'wait_days', 'conformity_status'
-    ])
 
     return dbc.Card([
         dbc.CardHeader(
@@ -435,8 +439,7 @@ def create_other_birads_table(df, is_masked=True):
                 striped=True,
                 size='sm',
                 className='mb-0'
-            ),
-            legend
+            )
         ])
     ],
         className='shadow-sm',
@@ -468,14 +471,14 @@ def create_outliers_table(df, is_masked=True, sort_field='descricao_motivo', sor
     
     header = html.Thead(
         html.Tr([
-            html.Th('Descrição', style={'fontSize': '0.85rem'}),
-            html.Th('Motivo', style={'fontSize': '0.85rem', 'width': '60px'}),
-            html.Th('Nome do Paciente', style={'fontSize': '0.85rem'}),
-            html.Th('Cartão SUS', style={'fontSize': '0.85rem'}),
-            html.Th('Distrito', style={'fontSize': '0.85rem'}),
-            html.Th('Unidade de Saúde', style={'fontSize': '0.85rem'}),
-            html.Th('Data Inconsistente', style={'fontSize': '0.85rem'}),
-            html.Th('Valor Crítico', style={'fontSize': '0.85rem'})
+            _th_with_tip('Descrição', 'descricao_motivo'),
+            _th_with_tip('Motivo', 'motivo_do_outlier', {'width': '60px'}),
+            _th_with_tip('Nome do Paciente', 'nome_paciente'),
+            _th_with_tip('Cartão SUS', 'cartao_sus'),
+            _th_with_tip('Distrito', 'distrito_saude'),
+            _th_with_tip('Unidade de Saúde', 'unidade_saude'),
+            _th_with_tip('Data Inconsistente', 'data_inconsistente'),
+            _th_with_tip('Valor Crítico', 'valor_critico')
         ])
     )
     
@@ -513,11 +516,6 @@ def create_outliers_table(df, is_masked=True, sort_field='descricao_motivo', sor
     
     body = html.Tbody(rows)
     
-    legend = create_table_legend([
-        'descricao_motivo', 'motivo_do_outlier', 'nome_paciente', 'cartao_sus',
-        'distrito_saude', 'unidade_saude', 'data_inconsistente', 'valor_critico'
-    ])
-
     return dbc.Card([
         dbc.CardHeader(
             html.H5('Lista de Outliers para Auditoria', className='mb-0', style={'fontWeight': '500'}),
@@ -532,8 +530,7 @@ def create_outliers_table(df, is_masked=True, sort_field='descricao_motivo', sor
                 striped=True,
                 size='sm',
                 className='mb-0'
-            ),
-            legend
+            )
         ])
     ],
         className='shadow-sm',
@@ -720,8 +717,6 @@ def create_patient_navigation_table(df, is_masked=True):
             wait = exam.get('wait_days', '-')
             ordem = exam.get('exam_order', '-')
             apac = str(exam.get('conclusao_apac', ''))[:10] if exam.get('conclusao_apac') and str(exam.get('conclusao_apac')).strip() else '-'
-            tempest = exam.get('tempestividade', '')
-            tempest_badge = dbc.Badge('Tempestivo', color='success', className='px-1') if tempest == 'Tempestivo' else (dbc.Badge('Atrasado', color='danger', className='px-1') if tempest == 'Atrasado' else '-')
             
             exams_rows.append(html.Tr([
                 html.Td(f'{ordem}º', style={'fontWeight': '500', 'textAlign': 'center'}),
@@ -736,8 +731,7 @@ def create_patient_navigation_table(df, is_masked=True):
                 html.Td(unidade, style={'fontSize': '0.85rem'}),
                 html.Td(prestador, style={'fontSize': '0.85rem'}),
                 html.Td(f'{wait} dias' if wait and wait != '-' else '-', style={'fontSize': '0.85rem'}),
-                html.Td(apac, style={'fontSize': '0.8rem'}),
-                html.Td(tempest_badge, style={'textAlign': 'center'})
+                html.Td(apac, style={'fontSize': '0.8rem'})
             ]))
         
         evolucao_badge = None
@@ -747,17 +741,16 @@ def create_patient_navigation_table(df, is_masked=True):
         exam_table = dbc.Table(
             [
                 html.Thead(html.Tr([
-                    html.Th('#', style={'width': '50px', 'textAlign': 'center'}),
-                    html.Th('Solicitação', style={'width': '90px'}),
-                    html.Th('Realização', style={'width': '90px'}),
-                    html.Th('Liberação', style={'width': '90px'}),
-                    html.Th('BI-RADS', style={'width': '90px', 'textAlign': 'center'}),
-                    html.Th('Detalhe', style={'width': '90px'}),
-                    html.Th('Unidade de Saúde'),
-                    html.Th('Prestador'),
-                    html.Th('Espera', style={'width': '70px'}),
-                    html.Th('APAC', style={'width': '80px'}),
-                    html.Th('Tempest.', style={'width': '80px', 'textAlign': 'center'})
+                    _th_with_tip('#', 'exam_order', {'width': '50px', 'textAlign': 'center'}),
+                    _th_with_tip('Solicitação', 'data_solicitacao', {'width': '90px'}),
+                    _th_with_tip('Realização', 'data_realizacao', {'width': '90px'}),
+                    _th_with_tip('Liberação', 'data_liberacao', {'width': '90px'}),
+                    _th_with_tip('BI-RADS', 'birads_max', {'width': '90px', 'textAlign': 'center'}),
+                    _th_with_tip('Detalhe', 'birads_direita', {'width': '90px'}),
+                    _th_with_tip('Unidade de Saúde', 'unidade_saude'),
+                    _th_with_tip('Prestador', 'prestador_executante'),
+                    _th_with_tip('Espera', 'wait_days', {'width': '70px'}),
+                    _th_with_tip('APAC', 'conclusao_apac', {'width': '80px'})
                 ])),
                 html.Tbody(exams_rows)
             ],
@@ -785,12 +778,6 @@ def create_patient_navigation_table(df, is_masked=True):
             )
         )
     
-    legend = create_table_legend([
-        'exam_order', 'data_solicitacao', 'data_realizacao', 'data_liberacao',
-        'birads_max', 'birads_direita', 'birads_esquerda', 'unidade_saude',
-        'prestador_executante', 'wait_days', 'conclusao_apac', 'tempestividade'
-    ])
-
     return dbc.Card([
         dbc.CardHeader(
             html.H5('Histórico de Atendimentos por Paciente', className='mb-0', style={'fontWeight': '500'}),
@@ -799,8 +786,7 @@ def create_patient_navigation_table(df, is_masked=True):
         dbc.CardBody([
             html.P(f'Mostrando {min(50, len(grouped))} pacientes com mais atendimentos', 
                    className='text-muted mb-3', style={'fontSize': '0.85rem'}),
-            dbc.Accordion(accordion_items, start_collapsed=True, flush=True),
-            legend
+            dbc.Accordion(accordion_items, start_collapsed=True, flush=True)
         ])
     ],
         className='shadow-sm',
@@ -864,7 +850,7 @@ def create_patient_data_table(df, is_masked=True):
     
     header = html.Thead(
         html.Tr([
-            html.Th(label, style={
+            _th_with_tip(label, col, {
                 'fontSize': '0.75rem', 
                 'minWidth': f'{width}px',
                 'whiteSpace': 'nowrap',
@@ -874,7 +860,7 @@ def create_patient_data_table(df, is_masked=True):
                 'color': 'white',
                 'fontWeight': '500',
                 'zIndex': '1'
-            }) 
+            })
             for col, label, width in available_cols
         ])
     )
@@ -946,15 +932,6 @@ def create_patient_data_table(df, is_masked=True):
     
     body = html.Tbody(rows)
     
-    legend = create_table_legend([
-        'nome', 'idade', 'sexo', 'data_nascimento', 'nome_mae', 'unidade_saude',
-        'data_solicitacao', 'data_realizacao', 'data_liberacao', 'prestador_servico',
-        'numero_exame', 'tipo_mamografia', 'tipo_mama', 'linfonodos_axilares',
-        'achados_benignos', 'nodulos', 'microcalcificacoes',
-        'birads_direita_class', 'birads_esquerda_class', 'recomendacoes',
-        'conclusao_apac', 'tempestividade'
-    ])
-
     return dbc.Card([
         dbc.CardBody([
             html.Div([
@@ -966,16 +943,16 @@ def create_patient_data_table(df, is_masked=True):
                     striped=True,
                     size='sm',
                     className='mb-0',
-                    style={'fontSize': '0.8rem'}
+                    style={'fontSize': '0.8rem', 'minWidth': '2500px'}
                 )
             ], style={
-                'maxHeight': '500px', 
+                'maxHeight': '600px', 
                 'overflowY': 'auto', 
-                'overflowX': 'auto',
+                'overflowX': 'scroll',
                 'display': 'block',
-                'width': '100%'
-            }),
-            legend
+                'width': '100%',
+                'WebkitOverflowScrolling': 'touch'
+            })
         ], className='p-2')
     ],
         className='shadow-sm',
@@ -998,17 +975,17 @@ def create_follow_up_overdue_table(df, is_masked=True):
     
     header = html.Thead(
         html.Tr([
-            html.Th('Nome', style={'fontSize': '0.8rem', 'minWidth': '150px'}),
-            html.Th('Idade', style={'fontSize': '0.8rem', 'width': '60px'}),
-            html.Th('BI-RADS', style={'fontSize': '0.8rem', 'width': '80px'}),
-            html.Th('Data Exame', style={'fontSize': '0.8rem', 'width': '100px'}),
-            html.Th('Liberação', style={'fontSize': '0.8rem', 'width': '100px'}),
-            html.Th('Prestador', style={'fontSize': '0.8rem', 'minWidth': '120px'}),
-            html.Th('Data Prevista', style={'fontSize': '0.8rem', 'width': '100px'}),
-            html.Th('Dias Atraso', style={'fontSize': '0.8rem', 'width': '90px'}),
-            html.Th('Motivo Retorno', style={'fontSize': '0.8rem', 'minWidth': '150px'}),
-            html.Th('APAC', style={'fontSize': '0.8rem', 'width': '80px'}),
-            html.Th('Cartão SUS', style={'fontSize': '0.8rem', 'width': '130px'})
+            _th_with_tip('Nome', 'nome', {'fontSize': '0.8rem', 'minWidth': '150px'}),
+            _th_with_tip('Idade', 'idade', {'fontSize': '0.8rem', 'width': '60px'}),
+            _th_with_tip('BI-RADS', 'birads_max', {'fontSize': '0.8rem', 'width': '80px'}),
+            _th_with_tip('Data Exame', 'data_realizacao', {'fontSize': '0.8rem', 'width': '100px'}),
+            _th_with_tip('Liberação', 'data_liberacao', {'fontSize': '0.8rem', 'width': '100px'}),
+            _th_with_tip('Prestador', 'prestador_servico', {'fontSize': '0.8rem', 'minWidth': '120px'}),
+            _th_with_tip('Data Prevista', 'data_prevista_retorno', {'fontSize': '0.8rem', 'width': '100px'}),
+            _th_with_tip('Dias Atraso', 'dias_atraso', {'fontSize': '0.8rem', 'width': '90px'}),
+            _th_with_tip('Motivo Retorno', 'motivo_retorno', {'fontSize': '0.8rem', 'minWidth': '150px'}),
+            _th_with_tip('APAC', 'conclusao_apac', {'fontSize': '0.8rem', 'width': '80px'}),
+            _th_with_tip('Cartão SUS', 'cartao_sus', {'fontSize': '0.8rem', 'width': '130px'})
         ])
     )
     
@@ -1074,12 +1051,6 @@ def create_follow_up_overdue_table(df, is_masked=True):
     
     body = html.Tbody(rows)
     
-    legend = create_table_legend([
-        'nome', 'idade', 'birads_max', 'data_realizacao', 'data_liberacao',
-        'prestador_servico', 'data_prevista_retorno', 'dias_atraso', 'motivo_retorno',
-        'conclusao_apac', 'cartao_sus'
-    ])
-
     return dbc.Card([
         dbc.CardHeader([
             html.Div([
@@ -1098,8 +1069,7 @@ def create_follow_up_overdue_table(df, is_masked=True):
                     size='sm',
                     className='mb-0'
                 )
-            ], style={'maxHeight': '400px', 'overflowY': 'auto', 'overflowX': 'auto'}),
-            legend
+            ], style={'maxHeight': '400px', 'overflowY': 'auto', 'overflowX': 'auto'})
         ], className='p-2')
     ],
         className='shadow-sm',
@@ -1253,13 +1223,13 @@ def create_priority_table(df, is_masked=True):
     
     header = html.Thead(
         html.Tr([
-            html.Th('Prioridade', style={'fontSize': '0.8rem', 'width': '100px'}),
-            html.Th('Paciente', style={'fontSize': '0.8rem'}),
-            html.Th('BI-RADS', style={'fontSize': '0.8rem', 'width': '80px'}),
-            html.Th('Idade', style={'fontSize': '0.8rem', 'width': '60px'}),
-            html.Th('Ação Recomendada', style={'fontSize': '0.8rem'}),
-            html.Th('SLA', style={'fontSize': '0.8rem', 'width': '80px'})
-        ], style={'backgroundColor': COLORS['primary'], 'color': 'white'})
+            _th_with_tip('Prioridade', 'prioridade', {'fontSize': '0.8rem', 'width': '100px', 'backgroundColor': COLORS['primary'], 'color': 'white'}),
+            _th_with_tip('Paciente', 'nome', {'fontSize': '0.8rem', 'backgroundColor': COLORS['primary'], 'color': 'white'}),
+            _th_with_tip('BI-RADS', 'birads_max', {'fontSize': '0.8rem', 'width': '80px', 'backgroundColor': COLORS['primary'], 'color': 'white'}),
+            _th_with_tip('Idade', 'idade', {'fontSize': '0.8rem', 'width': '60px', 'backgroundColor': COLORS['primary'], 'color': 'white'}),
+            _th_with_tip('Ação Recomendada', 'acao', {'fontSize': '0.8rem', 'backgroundColor': COLORS['primary'], 'color': 'white'}),
+            _th_with_tip('SLA', 'sla_resolucao', {'fontSize': '0.8rem', 'width': '80px', 'backgroundColor': COLORS['primary'], 'color': 'white'})
+        ])
     )
     
     rows = []
@@ -1302,10 +1272,6 @@ def create_priority_table(df, is_masked=True):
             ])
         )
     
-    legend = create_table_legend([
-        'prioridade', 'nome', 'cartao_sus', 'birads_max', 'idade', 'acao', 'sla_resolucao'
-    ])
-
     return html.Div([
         dbc.Table(
             [header, html.Tbody(rows)],
@@ -1314,6 +1280,5 @@ def create_priority_table(df, is_masked=True):
             responsive=True,
             size='sm',
             className='mb-0'
-        ),
-        legend
+        )
     ])
