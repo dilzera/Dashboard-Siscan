@@ -1766,9 +1766,9 @@ def get_database_comparison_sql():
         WHERE paciente__cartao_sus IS NOT NULL
     ),
     termo_cns AS (
-        SELECT DISTINCT cartao_sus as cns 
+        SELECT DISTINCT cartao_sus::text as cns 
         FROM termo_linkage 
-        WHERE cartao_sus IS NOT NULL AND cartao_sus != ''
+        WHERE cartao_sus IS NOT NULL
     )
     SELECT 
         (SELECT COUNT(*) FROM exam_records) as total_exam_records,

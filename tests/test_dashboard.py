@@ -1452,7 +1452,7 @@ class TestTableLegends:
         from src.components.tables import COLUMN_LEGENDS
         expected_keys = ['nome', 'idade', 'birads_max', 'data_solicitacao',
                          'data_realizacao', 'data_liberacao', 'unidade_saude',
-                         'distrito', 'tempestividade']
+                         'distrito_saude', 'tempestividade']
         for key in expected_keys:
             assert key in COLUMN_LEGENDS, f"Legenda '{key}' ausente no COLUMN_LEGENDS"
 
