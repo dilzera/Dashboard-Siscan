@@ -254,6 +254,32 @@ def register_callbacks(app):
         return not is_open
     
     @app.callback(
+        [Output('health-unit-filter', 'options'),
+         Output('health-unit-filter', 'value', allow_duplicate=True),
+         Output('unit-analysis-selector', 'options')],
+        [Input('region-filter', 'value')],
+        [State('user-access-level-store', 'data'),
+         State('user-health-unit-store', 'data')],
+        prevent_initial_call=True
+    )
+    def update_units_by_district(region, access_level, user_health_unit):
+        from src.data_layer import get_health_units, get_units_by_district
+        region = _normalize_filter(region)
+
+        if access_level == 'unidade':
+            opts = [{'label': user_health_unit, 'value': user_health_unit}]
+            return opts, user_health_unit, opts
+
+        if region:
+            units = get_units_by_district(region)
+        else:
+            units = get_health_units()
+
+        all_opt = [{'label': 'Todas as unidades', 'value': 'ALL'}]
+        unit_opts = [{'label': u, 'value': u} for u in units]
+        return all_opt + unit_opts, None, unit_opts
+
+    @app.callback(
         Output('kpi-mean-wait', 'children'),
         Output('kpi-median-wait', 'children'),
         Output('kpi-conformity', 'children'),

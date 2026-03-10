@@ -2370,15 +2370,21 @@ def reject_access_request(request_id, reviewed_by, reason):
 def get_units_by_district(district):
     engine = get_engine()
     query = """
-        SELECT DISTINCT unidade_de_saude__nome 
-        FROM exam_records 
-        WHERE distrito_sanitario = :district AND unidade_de_saude__nome IS NOT NULL
-        ORDER BY unidade_de_saude__nome
+        SELECT DISTINCT name FROM (
+            SELECT unidade_de_saude__nome AS name 
+            FROM exam_records 
+            WHERE distrito_sanitario = :district AND unidade_de_saude__nome IS NOT NULL
+            UNION
+            SELECT DISTINCT prestador_de_servico__nome AS name
+            FROM exam_records
+            WHERE distrito_sanitario = :district AND prestador_de_servico__nome IS NOT NULL
+        ) combined
+        ORDER BY name
     """
     with engine.connect() as conn:
         result = conn.execute(text(query), {'district': district})
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
-    return df['unidade_de_saude__nome'].tolist() if not df.empty else []
+    return df['name'].tolist() if not df.empty else []
 
 
 def get_district_for_unit(health_unit):
