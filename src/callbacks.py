@@ -1,3 +1,4 @@
+import dash
 from dash import Input, Output, State, html, dcc, callback_context, no_update, ALL, MATCH
 from datetime import datetime
 import pandas as pd
@@ -180,7 +181,7 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
 
 def register_callbacks(app):
     @app.callback(
-        [Output('main-tabs', 'active_tab'),
+        [Output('active-sidebar-tab', 'data', allow_duplicate=True),
          Output('year-filter', 'value'),
          Output('health-unit-filter', 'value'),
          Output('age-range-filter', 'value'),
@@ -193,6 +194,64 @@ def register_callbacks(app):
         if n_clicks:
             return 'tab-performance', None, None, None, None, None
         return no_update, no_update, no_update, no_update, no_update, no_update
+
+    all_tab_ids = ['tab-performance', 'tab-audit', 'tab-outliers', 'tab-indicators',
+                   'tab-navigation', 'tab-patient-data', 'tab-health-unit', 'tab-linkage', 'tab-access-management']
+
+    @app.callback(
+        [Output(f'content-{tid}', 'style') for tid in all_tab_ids] +
+        [Output(f'sidebar-{tid}', 'className') for tid in all_tab_ids],
+        [Input('active-sidebar-tab', 'data')],
+        prevent_initial_call=True
+    )
+    def switch_tab_content(active_tab):
+        styles = []
+        classes = []
+        for tid in all_tab_ids:
+            if tid == active_tab:
+                styles.append({'display': 'block'})
+                classes.append('sidebar-btn text-start w-100 mb-1 d-flex align-items-center active-nav')
+            else:
+                styles.append({'display': 'none'})
+                classes.append('sidebar-btn text-start w-100 mb-1 d-flex align-items-center')
+        return styles + classes
+
+    sidebar_inputs = [Input(f'sidebar-{tid}', 'n_clicks') for tid in all_tab_ids]
+
+    @app.callback(
+        Output('active-sidebar-tab', 'data', allow_duplicate=True),
+        sidebar_inputs,
+        prevent_initial_call=True
+    )
+    def sidebar_nav_click(*args):
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return no_update
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        tab_id = triggered_id.replace('sidebar-', '')
+        return tab_id
+
+    @app.callback(
+        [Output('sidebar', 'className'),
+         Output('main-content', 'className'),
+         Output('sidebar-state', 'data')],
+        [Input('sidebar-toggle', 'n_clicks')],
+        [State('sidebar-state', 'data')],
+        prevent_initial_call=True
+    )
+    def toggle_sidebar(n_clicks, current_state):
+        if current_state == 'expanded':
+            return 'sidebar-collapsed', 'main-content-collapsed', 'collapsed'
+        return 'sidebar-expanded', 'main-content-expanded', 'expanded'
+
+    @app.callback(
+        Output('sidebar-config-collapse', 'is_open'),
+        [Input('sidebar-config-toggle', 'n_clicks')],
+        [State('sidebar-config-collapse', 'is_open')],
+        prevent_initial_call=True
+    )
+    def toggle_config_submenu(n_clicks, is_open):
+        return not is_open
     
     @app.callback(
         Output('kpi-mean-wait', 'children'),
@@ -698,7 +757,7 @@ def register_callbacks(app):
          Output('linkage-apac', 'children'),
          Output('linkage-nomes-conferem', 'children'),
          Output('linkage-duplicados', 'children')],
-        [Input('main-tabs', 'active_tab')]
+        [Input('active-sidebar-tab', 'data')]
     )
     def update_linkage_summary(active_tab):
         if active_tab != 'tab-linkage':
@@ -728,7 +787,7 @@ def register_callbacks(app):
          Output('comparison-common-cns', 'children'),
          Output('comparison-only-exam', 'children'),
          Output('comparison-only-termo', 'children')],
-        [Input('main-tabs', 'active_tab')]
+        [Input('active-sidebar-tab', 'data')]
     )
     def update_database_comparison(active_tab):
         if active_tab != 'tab-linkage':

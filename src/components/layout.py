@@ -1604,69 +1604,172 @@ def create_access_management_tab():
     ])
 
 
-def create_tabs(initial_content=None, sex_options=None, birads_options=None, health_units=None, show_access_management=False):
-    tabs = [
-        dbc.Tab(
-            create_performance_tab(initial_content),
-            label='Visão Geral de Performance',
-            tab_id='tab-performance',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_audit_tab(initial_content),
-            label='Auditoria de Risco',
-            tab_id='tab-audit',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_outliers_tab(initial_content),
-            label='Auditoria de Outliers',
-            tab_id='tab-outliers',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_indicators_tab(initial_content),
-            label='Indicadores',
-            tab_id='tab-indicators',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_patient_navigation_tab(initial_content),
-            label='Navegação da Paciente',
-            tab_id='tab-navigation',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_patient_data_tab(sex_options, birads_options, initial_content),
-            label='Dados do Paciente',
-            tab_id='tab-patient-data',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_health_unit_tab(health_units, initial_content),
-            label='Unidade de Saúde e Prestador',
-            tab_id='tab-health-unit',
-            className='p-3'
-        ),
-        dbc.Tab(
-            create_linkage_tab(initial_content),
-            label='Dados Interoperabilidade',
-            tab_id='tab-linkage',
-            className='p-3'
-        )
-    ]
-    
-    if show_access_management:
-        tabs.append(
-            dbc.Tab(
-                create_access_management_tab(),
-                label='Gerenciar Acessos',
-                tab_id='tab-access-management',
-                className='p-3'
+SIDEBAR_ITEMS = [
+    {'id': 'tab-performance', 'icon': 'fas fa-chart-line', 'label': 'Visão Geral'},
+    {'id': 'tab-audit', 'icon': 'fas fa-shield-alt', 'label': 'Auditoria de Risco'},
+    {'id': 'tab-outliers', 'icon': 'fas fa-exclamation-triangle', 'label': 'Auditoria de Outliers'},
+    {'id': 'tab-indicators', 'icon': 'fas fa-tachometer-alt', 'label': 'Indicadores'},
+    {'id': 'tab-navigation', 'icon': 'fas fa-route', 'label': 'Navegação da Paciente'},
+    {'id': 'tab-patient-data', 'icon': 'fas fa-database', 'label': 'Dados do Paciente'},
+    {'id': 'tab-health-unit', 'icon': 'fas fa-hospital', 'label': 'Unidade e Prestador'},
+    {'id': 'tab-linkage', 'icon': 'fas fa-link', 'label': 'Interoperabilidade'},
+]
+
+
+def create_sidebar(show_access_management=False):
+    nav_items = []
+    for item in SIDEBAR_ITEMS:
+        is_active = item['id'] == 'tab-performance'
+        btn_class = 'sidebar-btn text-start w-100 mb-1 d-flex align-items-center' + (' active-nav' if is_active else '')
+        nav_items.append(
+            dbc.Button(
+                [
+                    html.I(className=item['icon'], style={'width': '20px', 'textAlign': 'center'}),
+                    html.Span(item['label'], className='sidebar-label ms-3')
+                ],
+                id=f"sidebar-{item['id']}",
+                className=btn_class,
+                color='link',
+                style={
+                    'color': '#e0e0e0',
+                    'fontSize': '0.88rem',
+                    'padding': '10px 16px',
+                    'borderRadius': '8px',
+                    'border': 'none',
+                    'textDecoration': 'none',
+                    'transition': 'all 0.2s ease',
+                }
             )
         )
-    
-    return dbc.Tabs(tabs, id='main-tabs', active_tab='tab-performance')
+
+    nav_items.append(html.Hr(style={'borderColor': 'rgba(255,255,255,0.15)', 'margin': '12px 0'}))
+
+    config_items = []
+    if show_access_management:
+        config_items.append(
+            dbc.Button(
+                [
+                    html.I(className='fas fa-user-cog', style={'width': '20px', 'textAlign': 'center'}),
+                    html.Span('Gerenciar Acessos', className='sidebar-label ms-3')
+                ],
+                id='sidebar-tab-access-management',
+                className='sidebar-btn text-start w-100 mb-1 d-flex align-items-center',
+                color='link',
+                style={
+                    'color': '#e0e0e0',
+                    'fontSize': '0.85rem',
+                    'padding': '10px 16px 10px 20px',
+                    'borderRadius': '8px',
+                    'border': 'none',
+                    'textDecoration': 'none',
+                    'transition': 'all 0.2s ease',
+                }
+            )
+        )
+
+    config_section = html.Div([
+        dbc.Button(
+            [
+                html.I(className='fas fa-cog', style={'width': '20px', 'textAlign': 'center'}),
+                html.Span('Configuração', className='sidebar-label ms-3'),
+                html.I(className='fas fa-chevron-down ms-auto sidebar-label', style={'fontSize': '0.7rem'})
+            ],
+            id='sidebar-config-toggle',
+            className='sidebar-btn text-start w-100 mb-1 d-flex align-items-center',
+            color='link',
+            style={
+                'color': '#e0e0e0',
+                'fontSize': '0.88rem',
+                'padding': '10px 16px',
+                'borderRadius': '8px',
+                'border': 'none',
+                'textDecoration': 'none',
+            }
+        ),
+        dbc.Collapse(
+            html.Div(config_items, className='ps-2'),
+            id='sidebar-config-collapse',
+            is_open=False
+        )
+    ], style={'display': 'block' if show_access_management else 'none'})
+
+    hidden_placeholders = []
+    if not show_access_management:
+        hidden_placeholders.append(
+            html.Div(id='sidebar-tab-access-management', style={'display': 'none'})
+        )
+
+    return html.Div([
+        html.Div([
+            dbc.Button(
+                html.I(className='fas fa-bars', style={'fontSize': '1.1rem'}),
+                id='sidebar-toggle',
+                className='sidebar-toggle-btn',
+                style={
+                    'background': 'none',
+                    'border': 'none',
+                    'color': 'white',
+                    'padding': '8px 12px',
+                    'borderRadius': '8px',
+                    'cursor': 'pointer',
+                }
+            ),
+            html.Span('Menu', className='sidebar-label ms-2 fw-bold', style={'color': 'white', 'fontSize': '1rem'}),
+        ], className='d-flex align-items-center px-3 py-3', style={'borderBottom': '1px solid rgba(255,255,255,0.1)'}),
+
+        html.Div([
+            *nav_items,
+            config_section,
+            *hidden_placeholders
+        ], className='px-2 py-2', style={'overflowY': 'auto', 'flex': '1'}),
+    ], id='sidebar',
+       className='sidebar-expanded',
+       style={
+           'width': '260px',
+           'minHeight': '100vh',
+           'background': 'linear-gradient(180deg, #1a2332 0%, #243447 100%)',
+           'position': 'fixed',
+           'left': '0',
+           'top': '0',
+           'zIndex': '1050',
+           'display': 'flex',
+           'flexDirection': 'column',
+           'transition': 'width 0.3s ease',
+           'boxShadow': '2px 0 8px rgba(0,0,0,0.15)',
+           'paddingTop': '0',
+       }
+    )
+
+
+def create_tab_contents(initial_content=None, sex_options=None, birads_options=None, health_units=None, show_access_management=False):
+    sections = {
+        'tab-performance': create_performance_tab(initial_content),
+        'tab-audit': create_audit_tab(initial_content),
+        'tab-outliers': create_outliers_tab(initial_content),
+        'tab-indicators': create_indicators_tab(initial_content),
+        'tab-navigation': create_patient_navigation_tab(initial_content),
+        'tab-patient-data': create_patient_data_tab(sex_options, birads_options, initial_content),
+        'tab-health-unit': create_health_unit_tab(health_units, initial_content),
+        'tab-linkage': create_linkage_tab(initial_content),
+    }
+
+    tab_divs = []
+    for tab_id, content in sections.items():
+        display = 'block' if tab_id == 'tab-performance' else 'none'
+        tab_divs.append(
+            html.Div(content, id=f'content-{tab_id}', style={'display': display})
+        )
+
+    if show_access_management:
+        tab_divs.append(
+            html.Div(create_access_management_tab(), id='content-tab-access-management', style={'display': 'none'})
+        )
+    else:
+        tab_divs.append(
+            html.Div(id='content-tab-access-management', style={'display': 'none'})
+        )
+
+    return html.Div(tab_divs, id='tab-content-container')
 
 
 def create_footer():
@@ -1697,21 +1800,28 @@ def create_main_layout(years, health_units, regions, initial_content=None,
     lock_unit = user_access_level == 'unidade'
     
     return html.Div([
-        create_header(user_name=user_name),
+        create_sidebar(show_access_management=show_access_management),
         
-        dbc.Container([
-            create_filters(years, health_units, regions, 
-                          selected_year, selected_health_unit, 
-                          selected_region, selected_conformity,
-                          lock_region=lock_region, lock_unit=lock_unit),
-            html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
-                    style={'fontSize': '0.85rem'}),
-            create_kpi_row(initial_content),
-            create_tabs(initial_content, sex_options, birads_options, health_units, show_access_management=show_access_management),
-            create_footer()
-        ], fluid=True, className='px-4'),
+        html.Div([
+            create_header(user_name=user_name),
+            
+            html.Div([
+                create_filters(years, health_units, regions, 
+                              selected_year, selected_health_unit, 
+                              selected_region, selected_conformity,
+                              lock_region=lock_region, lock_unit=lock_unit),
+                html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
+                        style={'fontSize': '0.85rem'}),
+                create_kpi_row(initial_content),
+                create_tab_contents(initial_content, sex_options, birads_options, health_units, show_access_management=show_access_management),
+                create_footer()
+            ], className='px-4 py-2'),
+        ], id='main-content', className='main-content-expanded',
+           style={'backgroundColor': COLORS['background'], 'minHeight': '100vh', 'transition': 'margin-left 0.3s ease'}),
         
+        dcc.Store(id='active-sidebar-tab', data='tab-performance'),
+        dcc.Store(id='sidebar-state', data='expanded'),
         dcc.Store(id='user-access-level-store', data=user_access_level),
         dcc.Store(id='user-district-store', data=user_district),
         dcc.Store(id='user-health-unit-store', data=user_health_unit)
-    ], style={'backgroundColor': COLORS['background'], 'minHeight': '100vh'})
+    ])
