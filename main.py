@@ -349,11 +349,6 @@ def display_page(pathname, search):
         district = get_district_for_unit(user_health_unit)
         regions = [district] if district else []
     
-    initial_content = build_dashboard_content(
-        health_unit=user_health_unit if user_access_level == 'unidade' else None,
-        region=user_district if user_access_level == 'distrito' else None
-    )
-    
     if user_access_level == 'distrito' and user_district:
         selected_region = user_district
     else:
@@ -363,7 +358,7 @@ def display_page(pathname, search):
         years, 
         health_units, 
         regions, 
-        initial_content,
+        initial_content=None,
         selected_region=selected_region,
         selected_health_unit=user_health_unit if user_access_level == 'unidade' else None,
         sex_options=sex_options,
@@ -377,7 +372,9 @@ def display_page(pathname, search):
 @app.callback(
     [Output('url', 'pathname'),
      Output('login-error', 'children'),
-     Output('login-error', 'style')],
+     Output('login-error', 'style'),
+     Output('login-loading-overlay', 'style'),
+     Output('login-button', 'disabled')],
     Input('login-button', 'n_clicks'),
     [State('login-username', 'value'),
      State('login-password', 'value')],
@@ -385,10 +382,10 @@ def display_page(pathname, search):
 )
 def handle_login(n_clicks, username, password):
     if not n_clicks:
-        return dash.no_update, '', {'display': 'none'}
+        return dash.no_update, '', {'display': 'none'}, {'display': 'none'}, False
     
     if not username or not password:
-        return dash.no_update, 'Por favor, preencha todos os campos.', {'display': 'block', 'color': COLORS['danger'], 'marginTop': '10px'}
+        return dash.no_update, 'Por favor, preencha todos os campos.', {'display': 'block', 'color': COLORS['danger'], 'marginTop': '10px'}, {'display': 'none'}, False
     
     db_session = get_session()
     try:
@@ -404,9 +401,9 @@ def handle_login(n_clicks, username, password):
             public_paths = ['/solicitar-acesso', '/recuperar-senha', '/redefinir-senha/', '/login', '/logout']
             if any(next_url.startswith(p) for p in public_paths):
                 next_url = '/'
-            return next_url, '', {'display': 'none'}
+            return next_url, '', {'display': 'none'}, {'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'}, True
         else:
-            return dash.no_update, 'Usuário ou senha incorretos.', {'display': 'block', 'color': COLORS['danger'], 'marginTop': '10px', 'fontWeight': '500'}
+            return dash.no_update, 'Usuário ou senha incorretos.', {'display': 'block', 'color': COLORS['danger'], 'marginTop': '10px', 'fontWeight': '500'}, {'display': 'none'}, False
     finally:
         db_session.close()
 

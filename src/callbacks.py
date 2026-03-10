@@ -270,17 +270,19 @@ def register_callbacks(app):
         Output('navigation-stats', 'children'),
         Output('navigation-table', 'children', allow_duplicate=True),
         Output('last-update-display', 'children'),
+        Output('dashboard-loading-overlay', 'style'),
         Input('refresh-btn', 'n_clicks'),
         Input('data-masked-store', 'data'),
+        Input('initial-load-trigger', 'data'),
         State('year-filter', 'value'),
         State('health-unit-filter', 'value'),
         State('region-filter', 'value'),
         State('age-range-filter', 'value'),
         State('birads-filter', 'value'),
         State('priority-filter', 'value'),
-        prevent_initial_call=True
+        prevent_initial_call='initial_duplicate'
     )
-    def update_dashboard(n_clicks, is_masked, year, health_unit, region, age_range, birads, priority):
+    def update_dashboard(n_clicks, is_masked, initial_trigger, year, health_unit, region, age_range, birads, priority):
         try:
             ctx = callback_context
             if ctx.triggered and ctx.triggered[0]['prop_id'].split('.')[0] == 'refresh-btn':
@@ -289,6 +291,7 @@ def register_callbacks(app):
             year, health_unit, region, age_range, birads, priority = [_normalize_filter(v) for v in [year, health_unit, region, age_range, birads, priority]]
             region, health_unit = _enforce_access(region, health_unit)
             content = build_dashboard_content(year, health_unit, region, age_range, birads, priority, is_masked)
+            hide_overlay = {'display': 'none'}
             return (
                 content['kpi_mean'],
                 content['kpi_median'],
@@ -305,7 +308,8 @@ def register_callbacks(app):
                 content['outliers_table'],
                 content['navigation_stats'],
                 content['navigation_table'],
-                content['last_update']
+                content['last_update'],
+                hide_overlay
             )
         except Exception as e:
             error_message = f'Erro ao atualizar: {str(e)}'
@@ -317,7 +321,8 @@ def register_callbacks(app):
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_card, error_card,
                 error_card, error_card, error_card, error_card,
-                error_card, error_card, error_card, error_message
+                error_card, error_card, error_card, error_message,
+                {'display': 'none'}
             )
     
     @app.callback(

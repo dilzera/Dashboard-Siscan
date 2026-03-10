@@ -193,20 +193,28 @@ def create_login_layout(colors, session_expired=False):
                     
                     html.Div(id='login-error', style={'display': 'none'}),
                     
-                    dbc.Button(
-                        [html.I(className='fas fa-sign-in-alt me-2'), 'Entrar'],
-                        id='login-button',
-                        color='primary',
-                        className='w-100 mt-3',
-                        style={
-                            'backgroundColor': colors['primary'],
-                            'borderColor': colors['primary'],
-                            'padding': '12px',
-                            'fontSize': '1.1rem',
-                            'fontWeight': '600',
-                            'borderRadius': '5px'
-                        }
-                    )
+                    html.Div([
+                        dbc.Button(
+                            [html.I(className='fas fa-sign-in-alt me-2'), 'Entrar'],
+                            id='login-button',
+                            color='primary',
+                            className='w-100 mt-3',
+                            style={
+                                'backgroundColor': colors['primary'],
+                                'borderColor': colors['primary'],
+                                'padding': '12px',
+                                'fontSize': '1.1rem',
+                                'fontWeight': '600',
+                                'borderRadius': '5px'
+                            }
+                        ),
+                        html.Div([
+                            dbc.Spinner(size='sm', color='primary', spinner_class_name='me-2'),
+                            html.Span('Entrando e carregando dados...', style={'color': colors['primary'], 'fontWeight': '500'})
+                        ], id='login-loading-overlay',
+                           className='text-center mt-3',
+                           style={'display': 'none'})
+                    ])
                 ]),
                 
                 html.Div([
@@ -637,6 +645,13 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
     )
 
 
+def _loading_placeholder():
+    return html.Div([
+        dbc.Spinner(color='primary', size='sm', spinner_class_name='me-2'),
+        html.Span('Carregando...', style={'color': '#999', 'fontSize': '0.85rem'})
+    ], className='text-center py-3')
+
+
 def create_kpi_row(initial_content=None):
     if initial_content:
         return dbc.Row([
@@ -645,10 +660,11 @@ def create_kpi_row(initial_content=None):
             dbc.Col(html.Div(initial_content['kpi_conformity'], id='kpi-conformity'), lg=3, md=6, className='mb-3'),
             dbc.Col(html.Div(initial_content['kpi_risk'], id='kpi-high-risk'), lg=3, md=6, className='mb-3'),
         ], className='mb-4')
+    placeholder = _loading_placeholder()
     return dbc.Row([
-        dbc.Col(html.Div(id='kpi-mean-wait'), lg=3, md=6, className='mb-3'),
-        dbc.Col(html.Div(id='kpi-median-wait'), lg=3, md=6, className='mb-3'),
-        dbc.Col(html.Div(id='kpi-conformity'), lg=3, md=6, className='mb-3'),
+        dbc.Col(html.Div(placeholder, id='kpi-mean-wait'), lg=3, md=6, className='mb-3'),
+        dbc.Col(html.Div(placeholder, id='kpi-median-wait'), lg=3, md=6, className='mb-3'),
+        dbc.Col(html.Div(placeholder, id='kpi-conformity'), lg=3, md=6, className='mb-3'),
         dbc.Col(html.Div(id='kpi-high-risk'), lg=3, md=6, className='mb-3'),
     ], className='mb-4')
 
@@ -1806,6 +1822,20 @@ def create_main_layout(years, health_units, regions, initial_content=None,
             create_header(user_name=user_name),
             
             html.Div([
+                html.Div([
+                    html.Div([
+                        dbc.Spinner(color='primary', type='border', spinner_style={'width': '3rem', 'height': '3rem'}),
+                        html.P('Carregando dados do painel...', className='mt-3 mb-0', 
+                               style={'color': COLORS['primary'], 'fontWeight': '500', 'fontSize': '1.1rem'}),
+                        html.P('Isso pode levar alguns segundos', className='mt-1',
+                               style={'color': '#999', 'fontSize': '0.85rem'})
+                    ], className='text-center')
+                ], id='dashboard-loading-overlay',
+                   style={
+                       'position': 'fixed', 'top': '0', 'left': '0', 'right': '0', 'bottom': '0',
+                       'backgroundColor': 'rgba(245,247,250,0.95)', 'zIndex': '1040',
+                       'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center',
+                   }),
                 create_filters(years, health_units, regions, 
                               selected_year, selected_health_unit, 
                               selected_region, selected_conformity,
@@ -1821,6 +1851,7 @@ def create_main_layout(years, health_units, regions, initial_content=None,
         
         dcc.Store(id='active-sidebar-tab', data='tab-performance'),
         dcc.Store(id='sidebar-state', data='expanded'),
+        dcc.Store(id='initial-load-trigger', data='pending'),
         dcc.Store(id='user-access-level-store', data=user_access_level),
         dcc.Store(id='user-district-store', data=user_district),
         dcc.Store(id='user-health-unit-store', data=user_health_unit)
