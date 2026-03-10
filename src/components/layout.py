@@ -1727,7 +1727,7 @@ def create_sidebar(show_access_management=False):
        style={
            'width': '260px',
            'minHeight': '100vh',
-           'background': 'linear-gradient(180deg, #1a2332 0%, #243447 100%)',
+           'background': 'linear-gradient(180deg, #148a9e 0%, #117a8b 100%)',
            'position': 'fixed',
            'left': '0',
            'top': '0',

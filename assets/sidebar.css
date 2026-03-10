@@ -22,9 +22,9 @@
 }
 
 .sidebar-btn.active-nav {
-    background-color: rgba(23, 162, 184, 0.25) !important;
-    color: #4dd0e1 !important;
-    border-left: 3px solid #17a2b8 !important;
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    border-left: 3px solid #ffffff !important;
 }
 
 .main-content-expanded {
