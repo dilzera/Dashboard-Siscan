@@ -1830,9 +1830,9 @@ def create_main_layout(years, health_units, regions, initial_content=None,
                 html.Div([
                     html.Div([
                         dbc.Spinner(color='primary', type='border', spinner_style={'width': '3rem', 'height': '3rem'}),
-                        html.P('Carregando dados do painel...', className='mt-3 mb-0', 
+                        html.P('Atualizando dados...', id='loading-overlay-text', className='mt-3 mb-0', 
                                style={'color': COLORS['primary'], 'fontWeight': '500', 'fontSize': '1.1rem'}),
-                        html.P('Isso pode levar alguns segundos', className='mt-1',
+                        html.P('Buscando informações mais recentes do sistema', id='loading-overlay-subtext', className='mt-1',
                                style={'color': '#999', 'fontSize': '0.85rem'})
                     ], className='text-center')
                 ], id='dashboard-loading-overlay',

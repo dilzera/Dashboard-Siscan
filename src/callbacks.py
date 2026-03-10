@@ -253,6 +253,24 @@ def register_callbacks(app):
     def toggle_config_submenu(n_clicks, is_open):
         return not is_open
     
+    app.clientside_callback(
+        """
+        function(n_clicks) {
+            if (n_clicks > 0) {
+                return {
+                    'position': 'fixed', 'top': '0', 'left': '0', 'right': '0', 'bottom': '0',
+                    'backgroundColor': 'rgba(245,247,250,0.95)', 'zIndex': '1040',
+                    'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'
+                };
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output('dashboard-loading-overlay', 'style', allow_duplicate=True),
+        Input('refresh-btn', 'n_clicks'),
+        prevent_initial_call=True
+    )
+
     @app.callback(
         [Output('health-unit-filter', 'options'),
          Output('health-unit-filter', 'value', allow_duplicate=True),
