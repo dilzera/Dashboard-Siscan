@@ -514,7 +514,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
+                ], lg=3, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     label_with_tip('Unidade de Saúde', 'tip-unit'),
@@ -529,7 +529,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         optionHeight=50,
                         style={'fontSize': '0.85rem', 'minWidth': '200px'}
                     )
-                ], lg=3, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
+                ], lg=5, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     label_with_tip('Distrito Sanitário', 'tip-region'),
@@ -542,8 +542,10 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         disabled=lock_region,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
-                
+                ], lg=4, md=4, sm=6, className='mb-3 mb-lg-0'),
+            ], className='g-3'),
+            
+            dbc.Row([
                 dbc.Col([
                     label_with_tip('Faixa Etária', 'tip-age'),
                     dcc.Dropdown(
@@ -560,7 +562,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
+                ], lg=3, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     label_with_tip('BI-RADS', 'tip-birads'),
@@ -590,7 +592,7 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                             html.Span('● ', style={'color': '#17a2b8'}), 'Benigno'
                         ], style={'fontSize': '0.7rem', 'color': '#666'})
                     ], className='mt-1')
-                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
+                ], lg=5, md=4, sm=6, className='mb-3 mb-lg-0 pe-lg-3'),
                 
                 dbc.Col([
                     label_with_tip('Prioridade', 'tip-priority'),
@@ -609,8 +611,8 @@ def create_filters(years, health_units, regions, selected_year=None, selected_he
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], lg=2, md=4, sm=6, className='mb-3 mb-lg-0')
-            ], className='g-3'),
+                ], lg=4, md=4, sm=6, className='mb-3 mb-lg-0')
+            ], className='g-3 mt-2'),
             *tooltips,
             
             dbc.Row([
@@ -670,8 +672,10 @@ def create_kpi_row(initial_content=None):
 
 
 def create_performance_tab(initial_content=None):
+    kpi_row = create_kpi_row(initial_content)
     if initial_content:
         return html.Div([
+            kpi_row,
             dbc.Row([
                 dbc.Col(html.Div(initial_content['chart_volume'], id='chart-monthly-volume'), lg=8, className='mb-4'),
                 dbc.Col(html.Div(initial_content['gauge_chart'], id='chart-conformity-gauge'), lg=4, className='mb-4')
@@ -681,6 +685,7 @@ def create_performance_tab(initial_content=None):
             ])
         ])
     return html.Div([
+        kpi_row,
         dbc.Row([
             dbc.Col([
                 html.Div(id='chart-monthly-volume')
@@ -1842,7 +1847,6 @@ def create_main_layout(years, health_units, regions, initial_content=None,
                               lock_region=lock_region, lock_unit=lock_unit),
                 html.Div(last_update_text, id='last-update-display', className='text-muted mb-3', 
                         style={'fontSize': '0.85rem'}),
-                create_kpi_row(initial_content),
                 create_tab_contents(initial_content, sex_options, birads_options, health_units, show_access_management=show_access_management),
                 create_footer()
             ], className='px-4 py-2'),
