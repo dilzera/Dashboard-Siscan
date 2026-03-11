@@ -415,9 +415,12 @@ def register_callbacks(app):
         Input('patient-data-next-btn', 'n_clicks'),
         Input('refresh-btn', 'n_clicks'),
         Input('data-masked-store', 'data'),
-        State('year-filter', 'value'),
-        State('health-unit-filter', 'value'),
-        State('region-filter', 'value'),
+        Input('year-filter', 'value'),
+        Input('health-unit-filter', 'value'),
+        Input('region-filter', 'value'),
+        Input('age-range-filter', 'value'),
+        Input('birads-filter', 'value'),
+        Input('priority-filter', 'value'),
         State('patient-data-name-filter', 'value'),
         State('patient-data-sex-filter', 'value'),
         State('patient-data-birads-filter', 'value'),
@@ -426,10 +429,12 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks, is_masked,
-                            year, health_unit, region,
+                            year, health_unit, region, age_range, birads_global, priority,
                             patient_name, sex, birads, page_size, current_page):
-        year, health_unit, region = [_normalize_filter(v) for v in [year, health_unit, region]]
+        year, health_unit, region, age_range, birads_global, priority = [_normalize_filter(v) for v in [year, health_unit, region, age_range, birads_global, priority]]
         birads = _normalize_filter(birads)
+        if birads_global and not birads:
+            birads = birads_global
         region, health_unit = _enforce_access(region, health_unit)
         try:
             ctx = callback_context
@@ -438,7 +443,9 @@ def register_callbacks(app):
             
             triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
             
-            if triggered_id in ['patient-data-search-btn', 'refresh-btn']:
+            filter_changed = triggered_id in ['year-filter', 'health-unit-filter', 'region-filter',
+                                                'age-range-filter', 'birads-filter', 'priority-filter']
+            if triggered_id in ['patient-data-search-btn', 'refresh-btn'] or filter_changed:
                 current_page = 1
             elif triggered_id == 'patient-data-prev-btn':
                 current_page = max(1, current_page - 1)
@@ -449,7 +456,8 @@ def register_callbacks(app):
             
             total_count = get_patient_data_count_sql(
                 year, health_unit, region, None,
-                patient_name, sex, birads
+                patient_name, sex, birads,
+                age_range=age_range, priority=priority
             )
             
             total_pages = max(1, (total_count + page_size - 1) // page_size)
@@ -458,7 +466,8 @@ def register_callbacks(app):
             df = get_patient_data_list_sql(
                 year, health_unit, region, None,
                 patient_name, sex, birads,
-                page=current_page, page_size=page_size
+                page=current_page, page_size=page_size,
+                age_range=age_range, priority=priority
             )
             
             table = create_patient_data_table(df, is_masked)

@@ -834,7 +834,8 @@ def get_patient_navigation_stats_sql(year=None, health_unit=None, region=None, c
 
 
 def _build_patient_data_where_clause(year=None, health_unit=None, region=None, conformity=None, 
-                                      patient_name=None, sex=None, birads=None, table_prefix="e"):
+                                      patient_name=None, sex=None, birads=None, table_prefix="e",
+                                      age_range=None, priority=None):
     """Build a safe parameterized WHERE clause for patient data queries"""
     p = f"{table_prefix}." if table_prefix else ""
     conditions = [f"{p}unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
@@ -861,16 +862,37 @@ def _build_patient_data_where_clause(year=None, health_unit=None, region=None, c
     if birads:
         conditions.append(f"{p}birads_max = :pd_birads")
         params['pd_birads'] = birads
+    if age_range:
+        if age_range == '0-39':
+            conditions.append(f"{p}paciente__idade < 40")
+        elif age_range == '40-49':
+            conditions.append(f"{p}paciente__idade >= 40 AND {p}paciente__idade < 50")
+        elif age_range == '50-69':
+            conditions.append(f"{p}paciente__idade >= 50 AND {p}paciente__idade < 70")
+        elif age_range == '70+':
+            conditions.append(f"{p}paciente__idade >= 70")
+    if priority:
+        if priority == 'CRITICA':
+            conditions.append(f"{p}birads_max IN ('4', '5')")
+        elif priority == 'ALTA':
+            conditions.append(f"{p}birads_max = '0'")
+        elif priority == 'MEDIA':
+            conditions.append(f"{p}birads_max = '3'")
+        elif priority == 'MONITORAMENTO':
+            conditions.append(f"{p}birads_max = '6'")
+        elif priority == 'ROTINA':
+            conditions.append(f"{p}birads_max IN ('1', '2')")
     
     return " AND ".join(conditions), params
 
 
 def get_patient_data_list_sql(year=None, health_unit=None, region=None, conformity=None,
                                patient_name=None, sex=None, birads=None, 
-                               page=1, page_size=50):
+                               page=1, page_size=50, age_range=None, priority=None):
     """Get paginated list of patient data with all clinical details"""
     where_clause, params = _build_patient_data_where_clause(
-        year, health_unit, region, conformity, patient_name, sex, birads
+        year, health_unit, region, conformity, patient_name, sex, birads,
+        age_range=age_range, priority=priority
     )
     
     offset = (page - 1) * page_size
@@ -932,10 +954,12 @@ def get_patient_data_list_sql(year=None, health_unit=None, region=None, conformi
 
 
 def get_patient_data_count_sql(year=None, health_unit=None, region=None, conformity=None,
-                                patient_name=None, sex=None, birads=None):
+                                patient_name=None, sex=None, birads=None,
+                                age_range=None, priority=None):
     """Get total count of patient records for pagination"""
     where_clause, params = _build_patient_data_where_clause(
-        year, health_unit, region, conformity, patient_name, sex, birads, table_prefix=""
+        year, health_unit, region, conformity, patient_name, sex, birads, table_prefix="",
+        age_range=age_range, priority=priority
     )
     
     query = f"""
