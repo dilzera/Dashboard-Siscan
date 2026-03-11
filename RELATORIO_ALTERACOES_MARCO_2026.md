@@ -1,6 +1,6 @@
 # Relatório de Alterações — Central Inteligente de Câncer de Mama
 
-**Período:** 02/03/2026 a 10/03/2026
+**Período:** 02/03/2026 a 11/03/2026
 **Sistema:** Central Inteligente de Câncer de Mama — Secretaria Municipal de Saúde de Curitiba
 **Plataforma:** SISCAN Dashboard (Python/Dash)
 
@@ -8,9 +8,9 @@
 
 ## Resumo Executivo
 
-No período de 02 a 10 de março de 2026, foram realizadas **14 entregas** no sistema, abrangendo melhorias em usabilidade, segurança, precisão de dados, cobertura de testes e infraestrutura. As alterações impactaram **14 arquivos**, com **2.936 linhas adicionadas** e **591 linhas removidas**.
+No período de 02 a 11 de março de 2026, foram realizadas **22 entregas** no sistema, abrangendo melhorias em usabilidade, segurança, precisão de dados, cobertura de testes, infraestrutura e navegação. As alterações impactaram **16 arquivos**.
 
-O sistema foi publicado em produção **3 vezes** durante o período (04/03, 06/03 e 09/03).
+O sistema foi publicado em produção **5 vezes** durante o período (04/03, 06/03, 09/03, 10/03 e 11/03).
 
 ---
 
@@ -204,15 +204,139 @@ O sistema foi publicado em produção **3 vezes** durante o período (04/03, 06/
 
 ---
 
+## 13. Navegação por Sidebar Colapsável
+
+**Data:** 10/03/2026
+
+- Substituição da **navegação por abas horizontais** por uma **sidebar lateral colapsável** com gradiente escuro (ciano #148a9e).
+- Três estados de visibilidade: **expandida** (260px com ícones e rótulos) → **colapsada** (60px com apenas ícones) → **oculta** (0px com botão flutuante para restaurar).
+- Itens de navegação: Visão Geral, Auditoria de Risco, Auditoria de Outliers, Indicadores, Navegação da Paciente, Dados do Paciente, Unidade e Prestador, Interoperabilidade.
+- Seção "Configuração" com submenu colapsável contendo "Gerenciar Acessos" (visível apenas para secretaria/distrito).
+- CSS dedicado em `assets/sidebar.css` com transições suaves (cubic-bezier) e responsividade para mobile.
+- Conteúdo das abas renderizado como divs ocultas, alternado via `display` style.
+
+**Arquivos alterados:** `assets/sidebar.css`, `src/callbacks.py`, `src/components/layout.py`, `replit.md`
+
+---
+
+## 14. Indicadores de Carregamento e Login
+
+**Data:** 10/03/2026
+
+- Implementação de **spinners de carregamento** na tela de login (indicando "Autenticando...") e no carregamento inicial do dashboard.
+- **Overlay de carregamento** (`dashboard-loading-overlay`) com fundo semitransparente, spinner animado e texto descritivo ("Atualizando dados..."), ativado instantaneamente via callback clientside ao alterar qualquer filtro ou clicar em "Atualizar Dados".
+- Ocultação automática do overlay quando o servidor termina de processar os dados.
+
+**Arquivos alterados:** `src/callbacks.py`, `src/components/layout.py`, `main.py`
+
+---
+
+## 15. Cascata de Filtros Distrito → Unidade
+
+**Data:** 10/03/2026
+
+- Implementação de **filtro cascata**: ao selecionar um Distrito Sanitário, os dropdowns de Unidade de Saúde e Seletor de Unidade (aba Unidade e Prestador) são automaticamente atualizados para mostrar apenas as unidades e prestadores daquele distrito.
+- A função `get_units_by_district()` inclui prestadores via `UNION` na consulta SQL.
+- Ao trocar de distrito, o filtro de unidade é limpo automaticamente.
+
+**Arquivos alterados:** `src/callbacks.py`, `src/data_layer.py`
+
+---
+
+## 16. Reorganização de Layout e KPIs
+
+**Data:** 10/03/2026
+
+- Remoção de KPIs duplicados que apareciam fora da aba de Performance.
+- Reorganização do layout principal para evitar redundâncias visuais.
+
+**Arquivos alterados:** `src/components/layout.py`
+
+---
+
+## 17. Filtros Globais Propagados para Todas as Abas
+
+**Data:** 11/03/2026
+
+- Os filtros globais (Ano, Unidade, Distrito, Faixa Etária, BI-RADS, Prioridade) agora são **`Input`** em todos os callbacks de todas as abas (Dados do Paciente, Unidade e Prestador, Indicadores, Navegação da Paciente).
+- Qualquer alteração em um filtro global **atualiza automaticamente** todas as abas visíveis, sem necessidade de clicar "Buscar" ou trocar de aba.
+- As funções `_build_unit_where_clause`, `_build_navigation_where_clause` e `_build_patient_data_where_clause` foram atualizadas para aceitar parâmetros de `age_range`, `birads` e `priority`.
+
+**Arquivos alterados:** `src/callbacks.py`, `src/data_layer.py`
+
+---
+
+## 18. Scroll Horizontal em Todas as Tabelas
+
+**Data:** 11/03/2026
+
+- Padronização do **scroll horizontal** em todas as tabelas de dados do sistema usando a classe CSS `.table-scroll-wrapper`.
+- Estilização personalizada da barra de rolagem (8px, bordas arredondadas, cores neutras).
+- Aplicação consistente em **todas as 9 tabelas**, incluindo as tabelas internas do Accordion da Navegação da Paciente.
+
+**Arquivos alterados:** `assets/sidebar.css`, `src/components/tables.py`
+
+---
+
+## 19. Exclusão Mútua entre Filtros BI-RADS e Prioridade
+
+**Data:** 11/03/2026
+
+- Os filtros globais **BI-RADS** e **Prioridade** agora são **mutuamente exclusivos**: ao selecionar um valor em um deles, o outro é automaticamente limpo e desabilitado.
+- Ao limpar o filtro ativo, o outro é reabilitado.
+- Quando o filtro global de BI-RADS está ativo, o **filtro local de BI-RADS** na aba Dados do Paciente também é desabilitado e limpo, garantindo que o filtro global tenha precedência.
+
+**Arquivos alterados:** `src/callbacks.py`
+
+---
+
+## 20. Filtros de CPF e Cartão SUS na Aba Dados do Paciente
+
+**Data:** 11/03/2026
+
+- Adição de dois novos campos de filtro na aba **Dados do Paciente**: **CPF** e **Cartão SUS (CNS)**.
+- Ambos suportam **busca parcial** (digitando parte do número).
+- O filtro de CPF normaliza automaticamente a entrada, removendo pontos e traços para comparação.
+- Os filtros são propagados para as consultas SQL com **parâmetros seguros** (bind parameters).
+
+**Arquivos alterados:** `src/components/layout.py`, `src/callbacks.py`, `src/data_layer.py`
+
+---
+
+## 21. Sidebar com Três Estados e Botão Flutuante
+
+**Data:** 11/03/2026
+
+- A sidebar agora suporta **três estados** de visibilidade: expandida (260px) → colapsada (60px) → **oculta** (0px).
+- No estado oculto, um **botão flutuante** (ícone de menu) aparece no canto superior esquerdo, permitindo restaurar a sidebar.
+- O ciclo completo: expandida → colapsada → oculta → expandida.
+
+**Arquivos alterados:** `assets/sidebar.css`, `src/callbacks.py`, `src/components/layout.py`
+
+---
+
+## 22. Exclusão de Outliers no Gráfico de Tendência de Espera por Unidade
+
+**Data:** 11/03/2026
+
+- O gráfico **"Tempo Médio de Espera por Mês"** na aba Unidade e Prestador agora exclui outliers para evitar distorções visuais:
+  - **Média** calculada apenas com exames de espera ≤ 120 dias (exclui esperas extremas).
+  - **Mediana** mantida com todos os registros (naturalmente resistente a outliers).
+  - **Meses com menos de 5 exames** são excluídos do gráfico.
+- A legenda da linha de média foi atualizada para "Média (≤120d)" e o tooltip informativo do gráfico foi atualizado para explicar os critérios de exclusão.
+- **Impacto:** Para o Hospital Erasto Gaertner, a média máxima caiu de 350 para 38.5 dias, eliminando o pico distorcido em janeiro/fevereiro de 2023 causado por apenas 1 registro com 350 dias de espera.
+
+**Arquivos alterados:** `src/data_layer.py`, `src/components/charts.py`, `src/components/layout.py`
+
+---
+
 ## Resumo Quantitativo
 
 | Métrica | Valor |
 |---|---|
-| Total de entregas (commits) | 14 |
-| Publicações em produção | 3 |
-| Arquivos modificados | 14 |
-| Linhas adicionadas | 2.936 |
-| Linhas removidas | 591 |
+| Total de entregas (commits) | 22 |
+| Publicações em produção | 5 |
+| Arquivos modificados | 16 |
 | Testes automatizados | 71+ |
 | Usuários POC criados | 146 |
 
@@ -220,13 +344,15 @@ O sistema foi publicado em produção **3 vezes** durante o período (04/03, 06/
 
 | Arquivo | Alterações |
 |---|---|
-| `src/components/tables.py` | Legendas, tooltips, remoção de colunas, scrollbar |
-| `src/callbacks.py` | Controle de acesso, normalização de filtros, tooltips |
-| `src/data_layer.py` | Queries SQL, filtros OR para prestadores, precisão |
-| `src/components/layout.py` | Tooltips em filtros, opção "Todos", layout |
+| `src/callbacks.py` | Controle de acesso, normalização de filtros, tooltips, sidebar, carregamento, filtros globais, exclusão mútua BI-RADS/Prioridade, lock de filtro local |
+| `src/components/layout.py` | Tooltips, opção "Todos", sidebar, overlay carregamento, filtros CPF/CNS, botão flutuante |
+| `src/data_layer.py` | Queries SQL, filtros OR para prestadores, cascata distrito→unidade, filtros globais, CPF/CNS, exclusão de outliers no gráfico de tendência |
+| `src/components/tables.py` | Legendas, tooltips, remoção de colunas, scroll horizontal padronizado |
+| `src/components/charts.py` | Legenda atualizada no gráfico de tendência de espera |
 | `src/components/cards.py` | Tooltips em KPIs |
+| `assets/sidebar.css` | Sidebar colapsável com 3 estados, scroll horizontal das tabelas, responsividade |
+| `main.py` | Controle de acesso, normalização, spinners de login |
 | `tests/test_dashboard.py` | Expansão de cobertura de testes |
-| `main.py` | Controle de acesso, normalização |
 | `src/models.py` | Campos adicionais |
 | `replit.md` | Documentação de arquitetura |
 | `README.md` | Documentação técnica completa |
@@ -236,5 +362,5 @@ O sistema foi publicado em produção **3 vezes** durante o período (04/03, 06/
 
 ---
 
-*Relatório gerado em 10/03/2026*
+*Relatório atualizado em 11/03/2026*
 *Central Inteligente de Câncer de Mama — Secretaria Municipal de Saúde de Curitiba*

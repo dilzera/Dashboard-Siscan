@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "tlfwJ16NVu6OS1ypcqzh6"
+uri = "file://RELATORIO_ALTERACOES_MARCO_2026.md"
+type = "text"
+title = "Relatório de Alterações — Março 2026"
