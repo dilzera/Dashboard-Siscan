@@ -255,19 +255,26 @@ def register_callbacks(app):
     
     app.clientside_callback(
         """
-        function(n_clicks) {
-            if (n_clicks > 0) {
-                return {
-                    'position': 'fixed', 'top': '0', 'left': '0', 'right': '0', 'bottom': '0',
-                    'backgroundColor': 'rgba(245,247,250,0.95)', 'zIndex': '1040',
-                    'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'
-                };
+        function(n_clicks, year, unit, region, age, birads, priority) {
+            var ctx = window.dash_clientside.callback_context;
+            if (!ctx.triggered || ctx.triggered.length === 0) {
+                return window.dash_clientside.no_update;
             }
-            return window.dash_clientside.no_update;
+            return {
+                'position': 'fixed', 'top': '0', 'left': '0', 'right': '0', 'bottom': '0',
+                'backgroundColor': 'rgba(245,247,250,0.95)', 'zIndex': '1040',
+                'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'
+            };
         }
         """,
         Output('dashboard-loading-overlay', 'style', allow_duplicate=True),
-        Input('refresh-btn', 'n_clicks'),
+        [Input('refresh-btn', 'n_clicks'),
+         Input('year-filter', 'value'),
+         Input('health-unit-filter', 'value'),
+         Input('region-filter', 'value'),
+         Input('age-range-filter', 'value'),
+         Input('birads-filter', 'value'),
+         Input('priority-filter', 'value')],
         prevent_initial_call=True
     )
 
@@ -318,12 +325,12 @@ def register_callbacks(app):
         Input('refresh-btn', 'n_clicks'),
         Input('data-masked-store', 'data'),
         Input('initial-load-trigger', 'data'),
-        State('year-filter', 'value'),
-        State('health-unit-filter', 'value'),
-        State('region-filter', 'value'),
-        State('age-range-filter', 'value'),
-        State('birads-filter', 'value'),
-        State('priority-filter', 'value'),
+        Input('year-filter', 'value'),
+        Input('health-unit-filter', 'value'),
+        Input('region-filter', 'value'),
+        Input('age-range-filter', 'value'),
+        Input('birads-filter', 'value'),
+        Input('priority-filter', 'value'),
         prevent_initial_call='initial_duplicate'
     )
     def update_dashboard(n_clicks, is_masked, initial_trigger, year, health_unit, region, age_range, birads, priority):
