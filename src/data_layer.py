@@ -616,7 +616,8 @@ def get_outliers_summary_sql(year=None, health_unit=None, region=None):
     return df
 
 
-def _build_navigation_where_clause(year=None, health_unit=None, region=None, conformity=None, table_prefix=""):
+def _build_navigation_where_clause(year=None, health_unit=None, region=None, conformity=None, table_prefix="",
+                                    age_range=None, birads=None, priority=None):
     """Build a safe parameterized WHERE clause for patient navigation queries"""
     conditions = ["patient_unique_id IS NOT NULL", "unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
     params = {}
@@ -635,6 +636,29 @@ def _build_navigation_where_clause(year=None, health_unit=None, region=None, con
     if conformity:
         conditions.append(f"{prefix}conformity_status = :nav_conformity")
         params['nav_conformity'] = conformity
+    if age_range:
+        if age_range == '0-39':
+            conditions.append(f"{prefix}paciente__idade < 40")
+        elif age_range == '40-49':
+            conditions.append(f"{prefix}paciente__idade >= 40 AND {prefix}paciente__idade < 50")
+        elif age_range == '50-69':
+            conditions.append(f"{prefix}paciente__idade >= 50 AND {prefix}paciente__idade < 70")
+        elif age_range == '70+':
+            conditions.append(f"{prefix}paciente__idade >= 70")
+    if birads:
+        conditions.append(f"{prefix}birads_max = :nav_birads")
+        params['nav_birads'] = birads
+    if priority:
+        if priority == 'CRITICA':
+            conditions.append(f"{prefix}birads_max IN ('4', '5')")
+        elif priority == 'ALTA':
+            conditions.append(f"{prefix}birads_max = '0'")
+        elif priority == 'MEDIA':
+            conditions.append(f"{prefix}birads_max = '3'")
+        elif priority == 'MONITORAMENTO':
+            conditions.append(f"{prefix}birads_max = '6'")
+        elif priority == 'ROTINA':
+            conditions.append(f"{prefix}birads_max IN ('1', '2')")
     
     if table_prefix:
         conditions = [c.replace("patient_unique_id", f"{table_prefix}.patient_unique_id") 
@@ -647,9 +671,9 @@ def _build_navigation_where_clause(year=None, health_unit=None, region=None, con
     return " AND ".join(conditions), params
 
 
-def get_patient_navigation_summary_sql(year=None, health_unit=None, region=None, conformity=None):
+def get_patient_navigation_summary_sql(year=None, health_unit=None, region=None, conformity=None, age_range=None, birads=None, priority=None):
     """Get summary of patients with multiple exams"""
-    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity)
+    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     WITH patient_exam_counts AS (
@@ -677,13 +701,14 @@ def get_patient_navigation_summary_sql(year=None, health_unit=None, region=None,
     return df
 
 
-def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, conformity=None, min_exams=2, limit=100, evolution_filter=None):
+def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, conformity=None, min_exams=2, limit=100, evolution_filter=None,
+                                     age_range=None, birads=None, priority=None):
     """Get list of patients with multiple exams and their exam history
     
     evolution_filter: 'positive' (BI-RADS desceu), 'negative' (BI-RADS subiu), None (todos)
     """
-    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity)
-    where_clause_e, _ = _build_navigation_where_clause(year, health_unit, region, conformity, table_prefix="e")
+    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity, age_range=age_range, birads=birads, priority=priority)
+    where_clause_e, _ = _build_navigation_where_clause(year, health_unit, region, conformity, table_prefix="e", age_range=age_range, birads=birads, priority=priority)
     
     params['min_exams'] = min_exams
     params['row_limit'] = limit * 10
@@ -797,9 +822,9 @@ def get_patient_navigation_list_sql(year=None, health_unit=None, region=None, co
     return df
 
 
-def get_patient_navigation_stats_sql(year=None, health_unit=None, region=None, conformity=None):
+def get_patient_navigation_stats_sql(year=None, health_unit=None, region=None, conformity=None, age_range=None, birads=None, priority=None):
     """Get overall statistics for patient navigation"""
-    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity)
+    where_clause, params = _build_navigation_where_clause(year, health_unit, region, conformity, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     WITH patient_exam_counts AS (
@@ -1006,7 +1031,8 @@ def get_birads_options():
     return df['birads_max'].dropna().tolist()
 
 
-def _build_unit_where_clause(health_unit, year=None, region=None, table_prefix=""):
+def _build_unit_where_clause(health_unit, year=None, region=None, table_prefix="",
+                              age_range=None, birads=None, priority=None):
     """Build WHERE clause for health unit specific queries"""
     p = f"{table_prefix}." if table_prefix else ""
     conditions = [
@@ -1023,6 +1049,29 @@ def _build_unit_where_clause(health_unit, year=None, region=None, table_prefix="
     if region:
         conditions.append(f"{p}distrito_sanitario = :unit_region")
         params['unit_region'] = region
+    if age_range:
+        if age_range == '0-39':
+            conditions.append(f"{p}paciente__idade < 40")
+        elif age_range == '40-49':
+            conditions.append(f"{p}paciente__idade >= 40 AND {p}paciente__idade < 50")
+        elif age_range == '50-69':
+            conditions.append(f"{p}paciente__idade >= 50 AND {p}paciente__idade < 70")
+        elif age_range == '70+':
+            conditions.append(f"{p}paciente__idade >= 70")
+    if birads:
+        conditions.append(f"{p}birads_max = :unit_birads")
+        params['unit_birads'] = birads
+    if priority:
+        if priority == 'CRITICA':
+            conditions.append(f"{p}birads_max IN ('4', '5')")
+        elif priority == 'ALTA':
+            conditions.append(f"{p}birads_max = '0'")
+        elif priority == 'MEDIA':
+            conditions.append(f"{p}birads_max = '3'")
+        elif priority == 'MONITORAMENTO':
+            conditions.append(f"{p}birads_max = '6'")
+        elif priority == 'ROTINA':
+            conditions.append(f"{p}birads_max IN ('1', '2')")
     
     return " AND ".join(conditions), params
 
@@ -1104,7 +1153,7 @@ def get_all_high_risk_patients_sql(year=None, health_unit=None, region=None):
     return df
 
 
-def get_unit_kpis_sql(health_unit, year=None, region=None):
+def get_unit_kpis_sql(health_unit, year=None, region=None, age_range=None, birads=None, priority=None):
     """Get KPIs for a specific health unit"""
     if not health_unit:
         return {
@@ -1116,7 +1165,7 @@ def get_unit_kpis_sql(health_unit, year=None, region=None):
             'casos_alto_risco': 0
         }
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 
@@ -1173,12 +1222,12 @@ def get_unit_kpis_sql(health_unit, year=None, region=None):
     }
 
 
-def get_unit_demographics_sql(health_unit, year=None, region=None):
+def get_unit_demographics_sql(health_unit, year=None, region=None, age_range=None, birads=None, priority=None):
     """Get patient demographics by age group and BI-RADS for a health unit"""
     if not health_unit:
         return pd.DataFrame()
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT faixa_etaria, birads_max, total FROM (
@@ -1237,12 +1286,12 @@ def get_unit_demographics_sql(health_unit, year=None, region=None):
     return df
 
 
-def get_unit_agility_sql(health_unit, year=None, region=None):
+def get_unit_agility_sql(health_unit, year=None, region=None, age_range=None, birads=None, priority=None):
     """Get service agility distribution (wait time buckets) for a health unit"""
     if not health_unit:
         return pd.DataFrame()
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT faixa_espera, total, percentual FROM (
@@ -1296,12 +1345,12 @@ def get_unit_agility_sql(health_unit, year=None, region=None):
     return df
 
 
-def get_unit_wait_time_trend_sql(health_unit, year=None, region=None):
+def get_unit_wait_time_trend_sql(health_unit, year=None, region=None, age_range=None, birads=None, priority=None):
     """Get monthly average wait time trend for a health unit"""
     if not health_unit:
         return pd.DataFrame()
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 
@@ -1324,7 +1373,7 @@ def get_unit_wait_time_trend_sql(health_unit, year=None, region=None):
     return df
 
 
-def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=100):
+def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=100, age_range=None, birads=None, priority=None):
     """
     Get patients who had exams but haven't returned for follow-up.
     Follow-up intervals based on BI-RADS:
@@ -1336,7 +1385,7 @@ def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=10
     if not health_unit:
         return pd.DataFrame()
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region, table_prefix="e")
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, table_prefix="e", age_range=age_range, birads=birads, priority=priority)
     params['follow_limit'] = limit
     
     query = f"""
@@ -1435,12 +1484,12 @@ def get_unit_follow_up_overdue_sql(health_unit, year=None, region=None, limit=10
     return df
 
 
-def get_unit_follow_up_count_sql(health_unit, year=None, region=None):
+def get_unit_follow_up_count_sql(health_unit, year=None, region=None, age_range=None, birads=None, priority=None):
     """Get count of patients with overdue follow-up"""
     if not health_unit:
         return 0
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     WITH latest_exams AS (
@@ -1484,9 +1533,9 @@ def get_unit_follow_up_count_sql(health_unit, year=None, region=None):
     return int(row[0]) if row[0] else 0
 
 
-def get_indicators_data_sql(year=None, region=None, health_unit=None):
+def get_indicators_data_sql(year=None, region=None, health_unit=None, age_range=None, birads=None, priority=None):
     """Get all indicators data for the Indicadores tab"""
-    where_clause, params = _build_where_clause(year, None, region, None, exclude_outliers=True)
+    where_clause, params = _build_where_clause(year, None, region, None, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
     if health_unit:
         if where_clause:
@@ -2089,27 +2138,12 @@ def calculate_priority(birads, data_liberacao=None, tem_apac_cancer=False, idade
         }
 
 
-def get_unit_prioritization_sql(health_unit, year=None, region=None):
+def get_unit_prioritization_sql(health_unit, year=None, region=None, age_range=None, birads=None, priority=None):
     """Get prioritization data for patients in a specific health unit"""
     if not health_unit:
         return pd.DataFrame()
     
-    conditions = [
-        "(e.unidade_de_saude__nome = :unit_name OR e.prestador_de_servico__nome = :unit_name)",
-        "e.unidade_de_saude__data_da_solicitacao >= '2023-01-01'",
-        "(e.prestador_de_servico__data_da_realizacao IS NULL OR e.prestador_de_servico__data_da_realizacao >= e.unidade_de_saude__data_da_solicitacao)",
-        "(e.wait_days IS NULL OR (e.wait_days >= 0 AND e.wait_days <= 365))"
-    ]
-    params = {'unit_name': health_unit}
-    
-    if year:
-        conditions.append("EXTRACT(YEAR FROM e.unidade_de_saude__data_da_solicitacao) = :unit_year")
-        params['unit_year'] = year
-    if region:
-        conditions.append("e.distrito_sanitario = :unit_region")
-        params['unit_region'] = region
-    
-    where_clause = " AND ".join(conditions)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, table_prefix="e", age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 
@@ -2171,12 +2205,12 @@ def get_unit_prioritization_sql(health_unit, year=None, region=None):
     return df
 
 
-def get_unit_priority_summary_sql(health_unit, year=None, region=None):
+def get_unit_priority_summary_sql(health_unit, year=None, region=None, age_range=None, birads=None, priority=None):
     """Get summary of priorities for a specific health unit"""
     if not health_unit:
         return {}
     
-    where_clause, params = _build_unit_where_clause(health_unit, year, region)
+    where_clause, params = _build_unit_where_clause(health_unit, year, region, age_range=age_range, birads=birads, priority=priority)
     
     query = f"""
     SELECT 

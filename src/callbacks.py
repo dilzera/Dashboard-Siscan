@@ -152,8 +152,8 @@ def build_dashboard_content(year=None, health_unit=None, region=None, age_range=
     outliers_table = create_outliers_table(outliers_df, is_masked)
     outliers_summary = create_outliers_summary_cards(outliers_summary_df)
     
-    navigation_stats = get_patient_navigation_stats_sql(year, health_unit, region)
-    navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, min_exams=2, limit=50)
+    navigation_stats = get_patient_navigation_stats_sql(year, health_unit, region, age_range=age_range, birads=birads, priority=priority)
+    navigation_list_df = get_patient_navigation_list_sql(year, health_unit, region, min_exams=2, limit=50, age_range=age_range, birads=birads, priority=priority)
     navigation_stats_cards = create_patient_navigation_stats_cards(navigation_stats)
     navigation_table = create_patient_navigation_table(navigation_list_df, is_masked)
     
@@ -383,20 +383,24 @@ def register_callbacks(app):
          State('year-filter', 'value'),
          State('health-unit-filter', 'value'),
          State('region-filter', 'value'),
+         State('age-range-filter', 'value'),
+         State('birads-filter', 'value'),
+         State('priority-filter', 'value'),
          State('data-masked-store', 'data')],
         prevent_initial_call=True
     )
-    def update_navigation_with_evolution_filter(n_clicks, evolution_filter, year, health_unit, region, is_masked):
+    def update_navigation_with_evolution_filter(n_clicks, evolution_filter, year, health_unit, region, age_range, birads, priority, is_masked):
         if not n_clicks:
             return no_update
         
         try:
-            year, health_unit, region = [_normalize_filter(v) for v in [year, health_unit, region]]
+            year, health_unit, region, age_range, birads, priority = [_normalize_filter(v) for v in [year, health_unit, region, age_range, birads, priority]]
             region, health_unit = _enforce_access(region, health_unit)
             navigation_list_df = get_patient_navigation_list_sql(
                 year, health_unit, region, 
                 min_exams=2, limit=50, 
-                evolution_filter=evolution_filter
+                evolution_filter=evolution_filter,
+                age_range=age_range, birads=birads, priority=priority
             )
             return create_patient_navigation_table(navigation_list_df, is_masked)
         except Exception as e:
@@ -495,13 +499,17 @@ def register_callbacks(app):
         Input('unit-analysis-btn', 'n_clicks'),
         Input('refresh-btn', 'n_clicks'),
         Input('data-masked-store', 'data'),
+        Input('year-filter', 'value'),
+        Input('region-filter', 'value'),
+        Input('age-range-filter', 'value'),
+        Input('birads-filter', 'value'),
+        Input('priority-filter', 'value'),
         State('unit-analysis-selector', 'value'),
-        State('year-filter', 'value'),
-        State('region-filter', 'value'),
         prevent_initial_call=True
     )
-    def update_health_unit_analysis(btn_clicks, refresh_clicks, is_masked, selected_unit, year, region):
-        year, region = _normalize_filter(year), _normalize_filter(region)
+    def update_health_unit_analysis(btn_clicks, refresh_clicks, is_masked, year, region,
+                                     age_range, birads, priority, selected_unit):
+        year, region, age_range, birads, priority = [_normalize_filter(v) for v in [year, region, age_range, birads, priority]]
         region, _ = _enforce_access(region, None)
         try:
             if not selected_unit:
@@ -518,22 +526,22 @@ def register_callbacks(app):
                     ""
                 )
             
-            kpis = get_unit_kpis_sql(selected_unit, year, region)
+            kpis = get_unit_kpis_sql(selected_unit, year, region, age_range=age_range, birads=birads, priority=priority)
             kpi_cards = create_unit_kpi_cards(kpis)
             
-            demographics_df = get_unit_demographics_sql(selected_unit, year, region)
+            demographics_df = get_unit_demographics_sql(selected_unit, year, region, age_range=age_range, birads=birads, priority=priority)
             demographics_chart = create_demographics_heatmap(demographics_df)
             
-            agility_df = get_unit_agility_sql(selected_unit, year, region)
+            agility_df = get_unit_agility_sql(selected_unit, year, region, age_range=age_range, birads=birads, priority=priority)
             agility_chart = create_agility_chart(agility_df)
             
-            wait_time_df = get_unit_wait_time_trend_sql(selected_unit, year, region)
+            wait_time_df = get_unit_wait_time_trend_sql(selected_unit, year, region, age_range=age_range, birads=birads, priority=priority)
             wait_time_chart = create_wait_time_trend_chart(wait_time_df)
             
-            follow_up_df = get_unit_follow_up_overdue_sql(selected_unit, year, region, limit=100)
+            follow_up_df = get_unit_follow_up_overdue_sql(selected_unit, year, region, limit=100, age_range=age_range, birads=birads, priority=priority)
             follow_up_table = create_follow_up_overdue_table(follow_up_df, is_masked)
             
-            follow_up_count = get_unit_follow_up_count_sql(selected_unit, year, region)
+            follow_up_count = get_unit_follow_up_count_sql(selected_unit, year, region, age_range=age_range, birads=birads, priority=priority)
             follow_up_badge = f'{follow_up_count} pacientes' if follow_up_count > 0 else ''
             
             return (
@@ -562,26 +570,29 @@ def register_callbacks(app):
         [Output('unit-priority-summary', 'children'),
          Output('unit-priority-table', 'children')],
         [Input('unit-analysis-btn', 'n_clicks'),
-         Input('data-masked-store', 'data')],
-        [State('unit-analysis-selector', 'value'),
-         State('year-filter', 'value'),
-         State('region-filter', 'value')],
+         Input('data-masked-store', 'data'),
+         Input('year-filter', 'value'),
+         Input('region-filter', 'value'),
+         Input('age-range-filter', 'value'),
+         Input('birads-filter', 'value'),
+         Input('priority-filter', 'value')],
+        [State('unit-analysis-selector', 'value')],
         prevent_initial_call=True
     )
-    def update_unit_prioritization(n_clicks, is_masked, selected_unit, year, region):
-        year, region = _normalize_filter(year), _normalize_filter(region)
+    def update_unit_prioritization(n_clicks, is_masked, year, region, age_range, birads, priority, selected_unit):
+        year, region, age_range, birads, priority = [_normalize_filter(v) for v in [year, region, age_range, birads, priority]]
         region, _ = _enforce_access(region, None)
-        if not n_clicks or not selected_unit:
+        if not selected_unit:
             empty_msg = html.Div(
                 html.P('Selecione uma unidade para ver a priorização.', className='text-muted text-center py-3')
             )
             return empty_msg, empty_msg
         
         try:
-            summary = get_unit_priority_summary_sql(selected_unit, year, region)
+            summary = get_unit_priority_summary_sql(selected_unit, year, region, age_range=age_range, birads=birads, priority=priority)
             summary_cards = create_priority_summary_cards(summary)
             
-            priority_df = get_unit_prioritization_sql(selected_unit, year, region)
+            priority_df = get_unit_prioritization_sql(selected_unit, year, region, age_range=age_range, birads=birads, priority=priority)
             priority_table = create_priority_table(priority_df, is_masked)
             
             return summary_cards, priority_table
@@ -608,16 +619,19 @@ def register_callbacks(app):
         Output('indicator-10-card', 'children'),
         Output('indicator-11-card', 'children'),
         Input('refresh-btn', 'n_clicks'),
-        State('year-filter', 'value'),
-        State('region-filter', 'value'),
-        State('health-unit-filter', 'value'),
+        Input('year-filter', 'value'),
+        Input('region-filter', 'value'),
+        Input('health-unit-filter', 'value'),
+        Input('age-range-filter', 'value'),
+        Input('birads-filter', 'value'),
+        Input('priority-filter', 'value'),
         prevent_initial_call=False
     )
-    def update_indicators(n_clicks, year, region, health_unit):
+    def update_indicators(n_clicks, year, region, health_unit, age_range, birads, priority):
         try:
-            year, region, health_unit = [_normalize_filter(v) for v in [year, region, health_unit]]
+            year, region, health_unit, age_range, birads, priority = [_normalize_filter(v) for v in [year, region, health_unit, age_range, birads, priority]]
             region, health_unit = _enforce_access(region, health_unit)
-            indicators = get_indicators_data_sql(year, region, health_unit)
+            indicators = get_indicators_data_sql(year, region, health_unit, age_range=age_range, birads=birads, priority=priority)
             
             total = indicators.get('total_exames', 1)
             
