@@ -1011,7 +1011,7 @@ def create_health_unit_tab(health_units=None, initial_content=None):
                             html.I(className='fas fa-info-circle ms-2', id='tip-unit-wait-trend',
                                    style={'fontSize': '0.65rem', 'color': '#999', 'cursor': 'pointer'})
                         ], className='mb-0'),
-                        tip('tip-unit-wait-trend', 'Evolução mensal do tempo médio de espera da unidade. Linha de referência em 30 dias (meta INCA).')
+                        tip('tip-unit-wait-trend', 'Evolução mensal do tempo de espera da unidade (exclui outliers >120 dias da média e meses com <5 exames). Linha de referência em 30 dias (meta INCA).')
                     ], style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}),
                     dbc.CardBody([
                         html.Div(id='unit-wait-time-chart')

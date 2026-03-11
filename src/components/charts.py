@@ -351,9 +351,10 @@ def create_wait_time_trend_chart(df):
         x=df['mes'],
         y=df['media_espera'],
         mode='lines+markers',
-        name='Média',
+        name='Média (≤120d)',
         line=dict(color=COLORS['primary'], width=3),
-        marker=dict(size=8)
+        marker=dict(size=8),
+        connectgaps=False
     ))
     
     fig.add_trace(go.Scatter(
