@@ -849,7 +849,6 @@ def create_patient_data_table(df, is_masked=True):
         ('birads_esquerda_class', 'BI-RADS Esq.', 100),
         ('recomendacoes', 'Recomendações', 200),
         ('conclusao_apac', 'APAC Câncer', 100),
-        ('tempestividade', 'Tempestividade', 100),
     ]
     
     available_cols = [(col, label, width) for col, label, width in column_config if col in df.columns]
@@ -902,13 +901,6 @@ def create_patient_data_table(df, is_masked=True):
                 if len(str(value)) > 50:
                     text += '...'
                 cell_content = html.Span(text, title=str(value))
-            elif col == 'tempestividade':
-                if value == 'Tempestivo':
-                    cell_content = dbc.Badge('Tempestivo', color='success', className='px-2')
-                elif value == 'Atrasado':
-                    cell_content = dbc.Badge('Atrasado', color='danger', className='px-2')
-                else:
-                    cell_content = '-'
             elif col == 'conclusao_apac':
                 cell_content = str(value)[:10] if value and str(value).strip() else '-'
             elif col == 'prestador_servico':
@@ -945,13 +937,13 @@ def create_patient_data_table(df, is_masked=True):
                     [header, body],
                     bordered=True,
                     hover=True,
-                    responsive=True,
-                    striped=True,
+                    responsive=False,
+                    striped=False,
                     size='sm',
-                    className='mb-0',
-                    style={'fontSize': '0.8rem', 'minWidth': '2500px'}
+                    className='mb-0 patient-data-table',
+                    style={'fontSize': '0.8rem', 'minWidth': '2400px'}
                 )
-            ], className='table-scroll-wrapper')
+            ], className='patient-data-scroll-wrapper')
         ], className='p-2')
     ],
         className='shadow-sm',
