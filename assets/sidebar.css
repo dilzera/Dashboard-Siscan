@@ -46,6 +46,45 @@
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.sidebar-hidden {
+    width: 0px !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+.main-content-hidden {
+    margin-left: 0px;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.table-scroll-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #b0b0b0;
+    border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
 @media (max-width: 768px) {
     .sidebar-expanded {
         width: 220px !important;

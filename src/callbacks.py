@@ -234,15 +234,33 @@ def register_callbacks(app):
     @app.callback(
         [Output('sidebar', 'className'),
          Output('main-content', 'className'),
-         Output('sidebar-state', 'data')],
-        [Input('sidebar-toggle', 'n_clicks')],
+         Output('sidebar-state', 'data'),
+         Output('sidebar-toggle-floating', 'style')],
+        [Input('sidebar-toggle', 'n_clicks'),
+         Input('sidebar-toggle-floating', 'n_clicks')],
         [State('sidebar-state', 'data')],
         prevent_initial_call=True
     )
-    def toggle_sidebar(n_clicks, current_state):
+    def toggle_sidebar(n_clicks_sidebar, n_clicks_floating, current_state):
+        floating_hidden = {
+            'position': 'fixed', 'top': '12px', 'left': '12px', 'zIndex': '1060',
+            'background': 'linear-gradient(135deg, #148a9e, #117a8b)', 'border': 'none',
+            'color': 'white', 'padding': '8px 12px', 'borderRadius': '8px',
+            'cursor': 'pointer', 'display': 'none', 'boxShadow': '0 2px 8px rgba(0,0,0,0.2)',
+        }
+        floating_visible = {**floating_hidden, 'display': 'block'}
+
+        ctx = callback_context
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else ''
+
+        if triggered_id == 'sidebar-toggle-floating':
+            return 'sidebar-expanded', 'main-content-expanded', 'expanded', floating_hidden
+
         if current_state == 'expanded':
-            return 'sidebar-collapsed', 'main-content-collapsed', 'collapsed'
-        return 'sidebar-expanded', 'main-content-expanded', 'expanded'
+            return 'sidebar-collapsed', 'main-content-collapsed', 'collapsed', floating_hidden
+        elif current_state == 'collapsed':
+            return 'sidebar-hidden', 'main-content-hidden', 'hidden', floating_visible
+        return 'sidebar-expanded', 'main-content-expanded', 'expanded', floating_hidden
 
     @app.callback(
         Output('sidebar-config-collapse', 'is_open'),
@@ -277,6 +295,42 @@ def register_callbacks(app):
          Input('priority-filter', 'value')],
         prevent_initial_call=True
     )
+
+    @app.callback(
+        Output('priority-filter', 'value', allow_duplicate=True),
+        Output('priority-filter', 'disabled'),
+        Input('birads-filter', 'value'),
+        prevent_initial_call=True
+    )
+    def birads_clears_priority(birads_val):
+        birads_val = _normalize_filter(birads_val)
+        if birads_val:
+            return None, True
+        return no_update, False
+
+    @app.callback(
+        Output('birads-filter', 'value', allow_duplicate=True),
+        Output('birads-filter', 'disabled'),
+        Input('priority-filter', 'value'),
+        prevent_initial_call=True
+    )
+    def priority_clears_birads(priority_val):
+        priority_val = _normalize_filter(priority_val)
+        if priority_val:
+            return None, True
+        return no_update, False
+
+    @app.callback(
+        Output('patient-data-birads-filter', 'disabled'),
+        Output('patient-data-birads-filter', 'value', allow_duplicate=True),
+        Input('birads-filter', 'value'),
+        prevent_initial_call=True
+    )
+    def lock_local_birads_when_global_set(birads_global):
+        birads_global = _normalize_filter(birads_global)
+        if birads_global:
+            return True, None
+        return False, no_update
 
     @app.callback(
         [Output('health-unit-filter', 'options'),
@@ -426,6 +480,8 @@ def register_callbacks(app):
         Input('birads-filter', 'value'),
         Input('priority-filter', 'value'),
         State('patient-data-name-filter', 'value'),
+        State('patient-data-cpf-filter', 'value'),
+        State('patient-data-cns-filter', 'value'),
         State('patient-data-sex-filter', 'value'),
         State('patient-data-birads-filter', 'value'),
         State('patient-data-page-size', 'value'),
@@ -434,10 +490,10 @@ def register_callbacks(app):
     )
     def update_patient_data(search_clicks, prev_clicks, next_clicks, refresh_clicks, is_masked,
                             year, health_unit, region, age_range, birads_global, priority,
-                            patient_name, sex, birads, page_size, current_page):
+                            patient_name, cpf_filter, cns_filter, sex, birads, page_size, current_page):
         year, health_unit, region, age_range, birads_global, priority = [_normalize_filter(v) for v in [year, health_unit, region, age_range, birads_global, priority]]
         birads = _normalize_filter(birads)
-        if birads_global and not birads:
+        if birads_global:
             birads = birads_global
         region, health_unit = _enforce_access(region, health_unit)
         try:
@@ -461,7 +517,8 @@ def register_callbacks(app):
             total_count = get_patient_data_count_sql(
                 year, health_unit, region, None,
                 patient_name, sex, birads,
-                age_range=age_range, priority=priority
+                age_range=age_range, priority=priority,
+                cpf=cpf_filter, cns=cns_filter
             )
             
             total_pages = max(1, (total_count + page_size - 1) // page_size)
@@ -471,7 +528,8 @@ def register_callbacks(app):
                 year, health_unit, region, None,
                 patient_name, sex, birads,
                 page=current_page, page_size=page_size,
-                age_range=age_range, priority=priority
+                age_range=age_range, priority=priority,
+                cpf=cpf_filter, cns=cns_filter
             )
             
             table = create_patient_data_table(df, is_masked)

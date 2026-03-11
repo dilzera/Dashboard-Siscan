@@ -337,16 +337,18 @@ def create_high_risk_table(df, is_masked=True):
             style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}
         ),
         dbc.CardBody([
-            dbc.Table(
-                [header, body],
-                bordered=True,
-                hover=True,
-                responsive=True,
-                striped=True,
-                size='sm',
-                className='mb-0'
-            )
-        ])
+            html.Div([
+                dbc.Table(
+                    [header, body],
+                    bordered=True,
+                    hover=True,
+                    responsive=True,
+                    striped=True,
+                    size='sm',
+                    className='mb-0'
+                )
+            ], className='table-scroll-wrapper')
+        ], className='p-2')
     ],
         className='shadow-sm',
         style={
@@ -431,16 +433,18 @@ def create_other_birads_table(df, is_masked=True):
             style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}
         ),
         dbc.CardBody([
-            dbc.Table(
-                [header, body],
-                bordered=True,
-                hover=True,
-                responsive=True,
-                striped=True,
-                size='sm',
-                className='mb-0'
-            )
-        ])
+            html.Div([
+                dbc.Table(
+                    [header, body],
+                    bordered=True,
+                    hover=True,
+                    responsive=True,
+                    striped=True,
+                    size='sm',
+                    className='mb-0'
+                )
+            ], className='table-scroll-wrapper')
+        ], className='p-2')
     ],
         className='shadow-sm',
         style={
@@ -522,16 +526,18 @@ def create_outliers_table(df, is_masked=True, sort_field='descricao_motivo', sor
             style={'backgroundColor': COLORS['card_bg'], 'border': 'none'}
         ),
         dbc.CardBody([
-            dbc.Table(
-                [header, body],
-                bordered=True,
-                hover=True,
-                responsive=True,
-                striped=True,
-                size='sm',
-                className='mb-0'
-            )
-        ])
+            html.Div([
+                dbc.Table(
+                    [header, body],
+                    bordered=True,
+                    hover=True,
+                    responsive=True,
+                    striped=True,
+                    size='sm',
+                    className='mb-0'
+                )
+            ], className='table-scroll-wrapper')
+        ], className='p-2')
     ],
         className='shadow-sm',
         style={
@@ -772,7 +778,7 @@ def create_patient_navigation_table(df, is_masked=True):
         
         accordion_items.append(
             dbc.AccordionItem(
-                exam_table,
+                html.Div(exam_table, className='table-scroll-wrapper'),
                 title=html.Div(title_elements),
                 item_id=str(patient_id)
             )
@@ -945,14 +951,7 @@ def create_patient_data_table(df, is_masked=True):
                     className='mb-0',
                     style={'fontSize': '0.8rem', 'minWidth': '2500px'}
                 )
-            ], style={
-                'maxHeight': '600px', 
-                'overflowY': 'auto', 
-                'overflowX': 'scroll',
-                'display': 'block',
-                'width': '100%',
-                'WebkitOverflowScrolling': 'touch'
-            })
+            ], className='table-scroll-wrapper')
         ], className='p-2')
     ],
         className='shadow-sm',
@@ -1069,7 +1068,7 @@ def create_follow_up_overdue_table(df, is_masked=True):
                     size='sm',
                     className='mb-0'
                 )
-            ], style={'maxHeight': '400px', 'overflowY': 'auto', 'overflowX': 'auto'})
+            ], className='table-scroll-wrapper', style={'maxHeight': '400px'})
         ], className='p-2')
     ],
         className='shadow-sm',
@@ -1281,4 +1280,4 @@ def create_priority_table(df, is_masked=True):
             size='sm',
             className='mb-0'
         )
-    ])
+    ], className='table-scroll-wrapper')

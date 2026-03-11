@@ -1058,7 +1058,29 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                         debounce=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=4, sm=12, className='mb-2 mb-md-0'),
+                ], md=3, sm=12, className='mb-2 mb-md-0'),
+                
+                dbc.Col([
+                    label_with_tip('CPF', 'tip-pd-cpf'),
+                    dbc.Input(
+                        id='patient-data-cpf-filter',
+                        type='text',
+                        placeholder='Digite o CPF...',
+                        debounce=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=2, sm=6, className='mb-2 mb-md-0'),
+                
+                dbc.Col([
+                    label_with_tip('Cartão SUS', 'tip-pd-cns'),
+                    dbc.Input(
+                        id='patient-data-cns-filter',
+                        type='text',
+                        placeholder='Digite o CNS...',
+                        debounce=True,
+                        style={'fontSize': '0.9rem'}
+                    )
+                ], md=2, sm=6, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
                     label_with_tip('Sexo', 'tip-pd-sex'),
@@ -1069,7 +1091,7 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=2, sm=6, className='mb-2 mb-md-0'),
+                ], md=1, sm=6, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
                     label_with_tip('BI-RADS', 'tip-pd-birads'),
@@ -1080,10 +1102,10 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                         clearable=True,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=2, sm=6, className='mb-2 mb-md-0'),
+                ], md=1, sm=6, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
-                    label_with_tip('Registros por página', 'tip-pd-pagesize'),
+                    label_with_tip('Por página', 'tip-pd-pagesize'),
                     dcc.Dropdown(
                         id='patient-data-page-size',
                         options=[
@@ -1095,7 +1117,7 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                         clearable=False,
                         style={'fontSize': '0.9rem'}
                     )
-                ], md=2, sm=6, className='mb-2 mb-md-0'),
+                ], md=1, sm=6, className='mb-2 mb-md-0'),
                 
                 dbc.Col([
                     html.Label('\u00a0', className='fw-bold mb-1', style={'fontSize': '0.85rem'}),
@@ -1110,6 +1132,8 @@ def create_patient_data_tab(sex_options=None, birads_options=None, initial_conte
                 ], md=2, sm=6)
             ]),
             tip('tip-pd-name', 'Busca parcial pelo nome da paciente. Dados mascarados quando ativo.'),
+            tip('tip-pd-cpf', 'Busca pelo CPF da paciente. Aceita busca parcial.'),
+            tip('tip-pd-cns', 'Busca pelo Cartão Nacional de Saúde (CNS) da paciente.'),
             tip('tip-pd-sex', 'Filtra os registros pelo sexo da paciente.'),
             tip('tip-pd-birads', 'Filtra pela categoria BI-RADS do resultado do exame.'),
             tip('tip-pd-pagesize', 'Define quantos registros são exibidos por página na tabela.')
@@ -1822,6 +1846,25 @@ def create_main_layout(years, health_units, regions, initial_content=None,
     
     return html.Div([
         create_sidebar(show_access_management=show_access_management),
+        
+        dbc.Button(
+            html.I(className='fas fa-bars', style={'fontSize': '1.1rem'}),
+            id='sidebar-toggle-floating',
+            style={
+                'position': 'fixed',
+                'top': '12px',
+                'left': '12px',
+                'zIndex': '1060',
+                'background': 'linear-gradient(135deg, #148a9e, #117a8b)',
+                'border': 'none',
+                'color': 'white',
+                'padding': '8px 12px',
+                'borderRadius': '8px',
+                'cursor': 'pointer',
+                'display': 'none',
+                'boxShadow': '0 2px 8px rgba(0,0,0,0.2)',
+            }
+        ),
         
         html.Div([
             create_header(user_name=user_name),
