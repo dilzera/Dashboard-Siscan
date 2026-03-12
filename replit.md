@@ -84,3 +84,12 @@ The system is built on Python 3.11 using Dash 2.18.2 and Flask, with Dash Bootst
     - gunicorn (WSGI HTTP server for deployment)
     - openpyxl (for reading Excel files)
     - werkzeug (for password hashing)
+
+## Docker
+
+The project includes Docker support for deployment outside Replit:
+- `Dockerfile` — Python 3.11-slim image, installs dependencies from `requirements.txt`, runs with gunicorn (2 workers, 4 threads).
+- `docker-compose.yml` — Includes app and PostgreSQL 15 services. Requires `.env` file with `DATABASE_URL`, `SESSION_SECRET`, `ADMIN_PASSWORD`.
+- `.dockerignore` — Excludes dev files, tests, and caches.
+- Build: `docker compose build` / Run: `docker compose up -d`
+- The app listens on port 5000. If using the compose PostgreSQL, set `DATABASE_URL=postgresql://siscan_user:siscan_pass@db:5432/siscan`.

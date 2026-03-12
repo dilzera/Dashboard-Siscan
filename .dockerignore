@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+.git
+.replit
+.local
+.cache
+.config
+.pythonlibs
+replit.md
+replit_zip_error_log.txt
+tests/
+.upm/
+node_modules/
+*.md
+!requirements.txt
