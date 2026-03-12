@@ -8,6 +8,11 @@ from src.cache import clear_cache
 
 
 def _normalize_filter(value):
+    if value is None:
+        return None
+    if isinstance(value, list):
+        filtered = [v for v in value if v is not None and v != 'ALL' and v != '']
+        return filtered if filtered else None
     if value == 'ALL' or value == '':
         return None
     return value
@@ -305,7 +310,7 @@ def register_callbacks(app):
     def birads_clears_priority(birads_val):
         birads_val = _normalize_filter(birads_val)
         if birads_val:
-            return None, True
+            return [], True
         return no_update, False
 
     @app.callback(
@@ -317,7 +322,7 @@ def register_callbacks(app):
     def priority_clears_birads(priority_val):
         priority_val = _normalize_filter(priority_val)
         if priority_val:
-            return None, True
+            return [], True
         return no_update, False
 
     @app.callback(
@@ -350,13 +355,20 @@ def register_callbacks(app):
             return opts, user_health_unit, opts
 
         if region:
-            units = get_units_by_district(region)
+            region_list = region if isinstance(region, list) else [region]
+            seen = set()
+            units = []
+            for r in region_list:
+                for u in get_units_by_district(r):
+                    if u not in seen:
+                        seen.add(u)
+                        units.append(u)
+            units.sort()
         else:
             units = get_health_units()
 
-        all_opt = [{'label': 'Todas as unidades', 'value': 'ALL'}]
         unit_opts = [{'label': u, 'value': u} for u in units]
-        return all_opt + unit_opts, None, unit_opts
+        return unit_opts, [], unit_opts
 
     @app.callback(
         Output('kpi-mean-wait', 'children'),

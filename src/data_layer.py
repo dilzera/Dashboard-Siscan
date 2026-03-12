@@ -23,6 +23,18 @@ def _get_outlier_exclusion_conditions():
     ]
 
 
+def _normalize_to_list(value):
+    """Convert a filter value to a non-empty list, or None if empty/ALL."""
+    if value is None:
+        return None
+    if isinstance(value, list):
+        filtered = [v for v in value if v is not None and v != 'ALL' and v != '']
+        return filtered if filtered else None
+    if value == 'ALL' or value == '':
+        return None
+    return [value]
+
+
 def _build_where_clause(year=None, health_unit=None, region=None, conformity_status=None, exclude_outliers=False, age_range=None, birads=None, priority=None):
     conditions = []
     params = {}
@@ -30,47 +42,93 @@ def _build_where_clause(year=None, health_unit=None, region=None, conformity_sta
     if exclude_outliers:
         conditions.extend(_get_outlier_exclusion_conditions())
     
-    if year:
-        conditions.append("year = :year")
-        params['year'] = year
+    years = _normalize_to_list(year)
+    if years:
+        if len(years) == 1:
+            conditions.append("year = :year")
+            params['year'] = years[0]
+        else:
+            placeholders = ', '.join([f':year_{i}' for i in range(len(years))])
+            conditions.append(f"year IN ({placeholders})")
+            for i, y in enumerate(years):
+                params[f'year_{i}'] = y
     
-    if health_unit:
-        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
-        params['health_unit'] = health_unit
+    health_units = _normalize_to_list(health_unit)
+    if health_units:
+        if len(health_units) == 1:
+            conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
+            params['health_unit'] = health_units[0]
+        else:
+            placeholders = ', '.join([f':hu_{i}' for i in range(len(health_units))])
+            conditions.append(f"(unidade_de_saude__nome IN ({placeholders}) OR prestador_de_servico__nome IN ({placeholders}))")
+            for i, hu in enumerate(health_units):
+                params[f'hu_{i}'] = hu
     
     if conformity_status:
         conditions.append("conformity_status = :conformity_status")
         params['conformity_status'] = conformity_status
     
-    if region:
-        conditions.append("distrito_sanitario = :region")
-        params['region'] = region
+    regions = _normalize_to_list(region)
+    if regions:
+        if len(regions) == 1:
+            conditions.append("distrito_sanitario = :region")
+            params['region'] = regions[0]
+        else:
+            placeholders = ', '.join([f':region_{i}' for i in range(len(regions))])
+            conditions.append(f"distrito_sanitario IN ({placeholders})")
+            for i, r in enumerate(regions):
+                params[f'region_{i}'] = r
     
-    if age_range:
-        if age_range == '0-39':
-            conditions.append("paciente__idade < 40")
-        elif age_range == '40-49':
-            conditions.append("paciente__idade >= 40 AND paciente__idade < 50")
-        elif age_range == '50-69':
-            conditions.append("paciente__idade >= 50 AND paciente__idade < 70")
-        elif age_range == '70+':
-            conditions.append("paciente__idade >= 70")
+    age_ranges = _normalize_to_list(age_range)
+    if age_ranges:
+        age_conditions = []
+        for ar in age_ranges:
+            if ar == '0-39':
+                age_conditions.append("paciente__idade < 40")
+            elif ar == '40-49':
+                age_conditions.append("(paciente__idade >= 40 AND paciente__idade < 50)")
+            elif ar == '50-69':
+                age_conditions.append("(paciente__idade >= 50 AND paciente__idade < 70)")
+            elif ar == '70+':
+                age_conditions.append("paciente__idade >= 70")
+        if age_conditions:
+            conditions.append(f"({' OR '.join(age_conditions)})")
     
-    if birads:
-        conditions.append("birads_max = :birads")
-        params['birads'] = birads
+    birads_list = _normalize_to_list(birads)
+    if birads_list:
+        if len(birads_list) == 1:
+            conditions.append("birads_max = :birads")
+            params['birads'] = birads_list[0]
+        else:
+            placeholders = ', '.join([f':birads_{i}' for i in range(len(birads_list))])
+            conditions.append(f"birads_max IN ({placeholders})")
+            for i, b in enumerate(birads_list):
+                params[f'birads_{i}'] = b
     
-    if priority:
-        if priority == 'CRITICA':
-            conditions.append("birads_max IN ('4', '5')")
-        elif priority == 'ALTA':
-            conditions.append("birads_max = '0'")
-        elif priority == 'MEDIA':
-            conditions.append("birads_max = '3'")
-        elif priority == 'MONITORAMENTO':
-            conditions.append("birads_max = '6'")
-        elif priority == 'ROTINA':
-            conditions.append("birads_max IN ('1', '2')")
+    priority_list = _normalize_to_list(priority)
+    if priority_list:
+        priority_birads = []
+        for p in priority_list:
+            if p == 'CRITICA':
+                priority_birads.extend(['4', '5'])
+            elif p == 'ALTA':
+                priority_birads.append('0')
+            elif p == 'MEDIA':
+                priority_birads.append('3')
+            elif p == 'MONITORAMENTO':
+                priority_birads.append('6')
+            elif p == 'ROTINA':
+                priority_birads.extend(['1', '2'])
+        priority_birads = list(dict.fromkeys(priority_birads))
+        if priority_birads:
+            if len(priority_birads) == 1:
+                conditions.append("birads_max = :pb_0")
+                params['pb_0'] = priority_birads[0]
+            else:
+                placeholders = ', '.join([f':pb_{i}' for i in range(len(priority_birads))])
+                conditions.append(f"birads_max IN ({placeholders})")
+                for i, pb in enumerate(priority_birads):
+                    params[f'pb_{i}'] = pb
     
     where_clause = ""
     if conditions:
