@@ -35,6 +35,82 @@ def _normalize_to_list(value):
     return [value]
 
 
+def _add_list_condition(conditions, params, column, values, param_prefix):
+    """Add an IN/= condition to conditions list, supporting single values or lists."""
+    vals = _normalize_to_list(values)
+    if not vals:
+        return
+    if len(vals) == 1:
+        conditions.append(f"{column} = :{param_prefix}")
+        params[param_prefix] = vals[0]
+    else:
+        placeholders = ', '.join([f':{param_prefix}_{i}' for i in range(len(vals))])
+        conditions.append(f"{column} IN ({placeholders})")
+        for i, v in enumerate(vals):
+            params[f'{param_prefix}_{i}'] = v
+
+
+def _add_unit_condition(conditions, params, unit_col, prestador_col, values, param_prefix):
+    """Add an OR-IN condition for health unit / provider, supporting lists."""
+    vals = _normalize_to_list(values)
+    if not vals:
+        return
+    if len(vals) == 1:
+        conditions.append(f"({unit_col} = :{param_prefix} OR {prestador_col} = :{param_prefix})")
+        params[param_prefix] = vals[0]
+    else:
+        placeholders = ', '.join([f':{param_prefix}_{i}' for i in range(len(vals))])
+        conditions.append(f"({unit_col} IN ({placeholders}) OR {prestador_col} IN ({placeholders}))")
+        for i, v in enumerate(vals):
+            params[f'{param_prefix}_{i}'] = v
+
+
+def _add_age_range_conditions(conditions, prefix=''):
+    """Build age range OR conditions for a list of age ranges. Returns condition string or None."""
+    return None  # deprecated – use _add_age_range_conditions_v2
+
+
+def _add_age_range_multi(conditions, values, prefix=''):
+    """Add age range OR conditions, supporting multiple ranges."""
+    age_ranges = _normalize_to_list(values)
+    if not age_ranges:
+        return
+    age_parts = []
+    for ar in age_ranges:
+        if ar == '0-39':
+            age_parts.append(f"{prefix}paciente__idade < 40")
+        elif ar == '40-49':
+            age_parts.append(f"({prefix}paciente__idade >= 40 AND {prefix}paciente__idade < 50)")
+        elif ar == '50-69':
+            age_parts.append(f"({prefix}paciente__idade >= 50 AND {prefix}paciente__idade < 70)")
+        elif ar == '70+':
+            age_parts.append(f"{prefix}paciente__idade >= 70")
+    if age_parts:
+        conditions.append(f"({' OR '.join(age_parts)})")
+
+
+def _add_priority_multi(conditions, params, values, prefix='', param_prefix='pri'):
+    """Add priority conditions mapped to BI-RADS values, supporting multiple priorities."""
+    priority_list = _normalize_to_list(values)
+    if not priority_list:
+        return
+    birads_vals = []
+    for p in priority_list:
+        if p == 'CRITICA':
+            birads_vals.extend(['4', '5'])
+        elif p == 'ALTA':
+            birads_vals.append('0')
+        elif p == 'MEDIA':
+            birads_vals.append('3')
+        elif p == 'MONITORAMENTO':
+            birads_vals.append('6')
+        elif p == 'ROTINA':
+            birads_vals.extend(['1', '2'])
+    birads_vals = list(dict.fromkeys(birads_vals))
+    if birads_vals:
+        _add_list_condition(conditions, params, f"{prefix}birads_max", birads_vals, param_prefix)
+
+
 def _build_where_clause(year=None, health_unit=None, region=None, conformity_status=None, exclude_outliers=False, age_range=None, birads=None, priority=None):
     conditions = []
     params = {}
@@ -361,23 +437,18 @@ def get_other_birads_cases_sql(year=None, health_unit=None, region=None, conform
 def get_filtered_data(year=None, health_unit=None, conformity_status=None, region=None, municipality=None):
     conditions = []
     params = {}
-    
-    if year:
-        conditions.append("year = :year")
-        params['year'] = year
-    
-    if health_unit:
-        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
-        params['health_unit'] = health_unit
-    
+
+    _add_list_condition(conditions, params, "year", year, "fd_year")
+    _add_unit_condition(conditions, params,
+                        "unidade_de_saude__nome", "prestador_de_servico__nome",
+                        health_unit, "fd_health_unit")
+
     if conformity_status:
         conditions.append("conformity_status = :conformity_status")
         params['conformity_status'] = conformity_status
-    
-    if region:
-        conditions.append("distrito_sanitario = :region")
-        params['region'] = region
-    
+
+    _add_list_condition(conditions, params, "distrito_sanitario", region, "fd_region")
+
     if municipality:
         conditions.append("unidade_de_saude__municipio = :municipality")
         params['municipality'] = municipality
@@ -522,19 +593,13 @@ def get_high_risk_cases(df):
 def get_outliers_audit_sql(year=None, health_unit=None, region=None):
     conditions = []
     params = {}
-    
-    if year:
-        conditions.append("year = :year")
-        params['year'] = year
-    
-    if health_unit:
-        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
-        params['health_unit'] = health_unit
-    
-    if region:
-        conditions.append("distrito_sanitario = :region")
-        params['region'] = region
-    
+
+    _add_list_condition(conditions, params, "year", year, "out_year")
+    _add_unit_condition(conditions, params,
+                        "unidade_de_saude__nome", "prestador_de_servico__nome",
+                        health_unit, "out_health_unit")
+    _add_list_condition(conditions, params, "distrito_sanitario", region, "out_region")
+
     where_filter = ""
     if conditions:
         where_filter = " AND " + " AND ".join(conditions)
@@ -618,19 +683,13 @@ def get_outliers_audit_sql(year=None, health_unit=None, region=None):
 def get_outliers_summary_sql(year=None, health_unit=None, region=None):
     conditions = []
     params = {}
-    
-    if year:
-        conditions.append("year = :year")
-        params['year'] = year
-    
-    if health_unit:
-        conditions.append("(unidade_de_saude__nome = :health_unit OR prestador_de_servico__nome = :health_unit)")
-        params['health_unit'] = health_unit
-    
-    if region:
-        conditions.append("distrito_sanitario = :region")
-        params['region'] = region
-    
+
+    _add_list_condition(conditions, params, "year", year, "outs_year")
+    _add_unit_condition(conditions, params,
+                        "unidade_de_saude__nome", "prestador_de_servico__nome",
+                        health_unit, "outs_health_unit")
+    _add_list_condition(conditions, params, "distrito_sanitario", region, "outs_region")
+
     where_filter = ""
     if conditions:
         where_filter = " WHERE " + " AND ".join(conditions)
@@ -677,55 +736,39 @@ def get_outliers_summary_sql(year=None, health_unit=None, region=None):
 def _build_navigation_where_clause(year=None, health_unit=None, region=None, conformity=None, table_prefix="",
                                     age_range=None, birads=None, priority=None):
     """Build a safe parameterized WHERE clause for patient navigation queries"""
-    conditions = ["patient_unique_id IS NOT NULL", "unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
-    params = {}
-    
     prefix = f"{table_prefix}." if table_prefix else ""
-    
-    if year:
-        conditions.append(f"EXTRACT(YEAR FROM {prefix}unidade_de_saude__data_da_solicitacao) = :nav_year")
-        params['nav_year'] = year
-    if health_unit:
-        conditions.append(f"({prefix}unidade_de_saude__nome = :nav_health_unit OR {prefix}prestador_de_servico__nome = :nav_health_unit)")
-        params['nav_health_unit'] = health_unit
-    if region:
-        conditions.append(f"{prefix}distrito_sanitario = :nav_region")
-        params['nav_region'] = region
+    conditions = [
+        f"{prefix}patient_unique_id IS NOT NULL",
+        f"{prefix}unidade_de_saude__data_da_solicitacao >= '2023-01-01'"
+    ]
+    params = {}
+
+    years = _normalize_to_list(year)
+    if years:
+        if len(years) == 1:
+            conditions.append(f"EXTRACT(YEAR FROM {prefix}unidade_de_saude__data_da_solicitacao) = :nav_year")
+            params['nav_year'] = years[0]
+        else:
+            placeholders = ', '.join([f':nav_year_{i}' for i in range(len(years))])
+            conditions.append(f"EXTRACT(YEAR FROM {prefix}unidade_de_saude__data_da_solicitacao) IN ({placeholders})")
+            for i, y in enumerate(years):
+                params[f'nav_year_{i}'] = y
+
+    _add_unit_condition(conditions, params,
+                        f"{prefix}unidade_de_saude__nome",
+                        f"{prefix}prestador_de_servico__nome",
+                        health_unit, 'nav_health_unit')
+
+    _add_list_condition(conditions, params, f"{prefix}distrito_sanitario", region, 'nav_region')
+
     if conformity:
         conditions.append(f"{prefix}conformity_status = :nav_conformity")
         params['nav_conformity'] = conformity
-    if age_range:
-        if age_range == '0-39':
-            conditions.append(f"{prefix}paciente__idade < 40")
-        elif age_range == '40-49':
-            conditions.append(f"{prefix}paciente__idade >= 40 AND {prefix}paciente__idade < 50")
-        elif age_range == '50-69':
-            conditions.append(f"{prefix}paciente__idade >= 50 AND {prefix}paciente__idade < 70")
-        elif age_range == '70+':
-            conditions.append(f"{prefix}paciente__idade >= 70")
-    if birads:
-        conditions.append(f"{prefix}birads_max = :nav_birads")
-        params['nav_birads'] = birads
-    if priority:
-        if priority == 'CRITICA':
-            conditions.append(f"{prefix}birads_max IN ('4', '5')")
-        elif priority == 'ALTA':
-            conditions.append(f"{prefix}birads_max = '0'")
-        elif priority == 'MEDIA':
-            conditions.append(f"{prefix}birads_max = '3'")
-        elif priority == 'MONITORAMENTO':
-            conditions.append(f"{prefix}birads_max = '6'")
-        elif priority == 'ROTINA':
-            conditions.append(f"{prefix}birads_max IN ('1', '2')")
-    
-    if table_prefix:
-        conditions = [c.replace("patient_unique_id", f"{table_prefix}.patient_unique_id") 
-                     .replace("unidade_de_saude__data_da_solicitacao", f"{table_prefix}.unidade_de_saude__data_da_solicitacao")
-                     if "patient_unique_id" in c and table_prefix not in c else c 
-                     for c in conditions]
-        conditions[0] = f"{table_prefix}.patient_unique_id IS NOT NULL"
-        conditions[1] = f"{table_prefix}.unidade_de_saude__data_da_solicitacao >= '2023-01-01'"
-    
+
+    _add_age_range_multi(conditions, age_range, prefix)
+    _add_list_condition(conditions, params, f"{prefix}birads_max", birads, 'nav_birads')
+    _add_priority_multi(conditions, params, priority, prefix, 'nav_pri')
+
     return " AND ".join(conditions), params
 
 
@@ -916,23 +959,32 @@ def get_patient_navigation_stats_sql(year=None, health_unit=None, region=None, c
     }
 
 
-def _build_patient_data_where_clause(year=None, health_unit=None, region=None, conformity=None, 
+def _build_patient_data_where_clause(year=None, health_unit=None, region=None, conformity=None,
                                       patient_name=None, sex=None, birads=None, table_prefix="e",
                                       age_range=None, priority=None, cpf=None, cns=None):
     """Build a safe parameterized WHERE clause for patient data queries"""
     p = f"{table_prefix}." if table_prefix else ""
     conditions = [f"{p}unidade_de_saude__data_da_solicitacao >= '2023-01-01'"]
     params = {}
-    
-    if year:
-        conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) = :pd_year")
-        params['pd_year'] = year
-    if health_unit:
-        conditions.append(f"({p}unidade_de_saude__nome = :pd_health_unit OR {p}prestador_de_servico__nome = :pd_health_unit)")
-        params['pd_health_unit'] = health_unit
-    if region:
-        conditions.append(f"{p}distrito_sanitario = :pd_region")
-        params['pd_region'] = region
+
+    years = _normalize_to_list(year)
+    if years:
+        if len(years) == 1:
+            conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) = :pd_year")
+            params['pd_year'] = years[0]
+        else:
+            placeholders = ', '.join([f':pd_year_{i}' for i in range(len(years))])
+            conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) IN ({placeholders})")
+            for i, y in enumerate(years):
+                params[f'pd_year_{i}'] = y
+
+    _add_unit_condition(conditions, params,
+                        f"{p}unidade_de_saude__nome",
+                        f"{p}prestador_de_servico__nome",
+                        health_unit, 'pd_health_unit')
+
+    _add_list_condition(conditions, params, f"{p}distrito_sanitario", region, 'pd_region')
+
     if conformity:
         conditions.append(f"{p}conformity_status = :pd_conformity")
         params['pd_conformity'] = conformity
@@ -942,36 +994,18 @@ def _build_patient_data_where_clause(year=None, health_unit=None, region=None, c
     if sex:
         conditions.append(f"{p}paciente__sexo = :pd_sex")
         params['pd_sex'] = sex
-    if birads:
-        conditions.append(f"{p}birads_max = :pd_birads")
-        params['pd_birads'] = birads
-    if age_range:
-        if age_range == '0-39':
-            conditions.append(f"{p}paciente__idade < 40")
-        elif age_range == '40-49':
-            conditions.append(f"{p}paciente__idade >= 40 AND {p}paciente__idade < 50")
-        elif age_range == '50-69':
-            conditions.append(f"{p}paciente__idade >= 50 AND {p}paciente__idade < 70")
-        elif age_range == '70+':
-            conditions.append(f"{p}paciente__idade >= 70")
-    if priority:
-        if priority == 'CRITICA':
-            conditions.append(f"{p}birads_max IN ('4', '5')")
-        elif priority == 'ALTA':
-            conditions.append(f"{p}birads_max = '0'")
-        elif priority == 'MEDIA':
-            conditions.append(f"{p}birads_max = '3'")
-        elif priority == 'MONITORAMENTO':
-            conditions.append(f"{p}birads_max = '6'")
-        elif priority == 'ROTINA':
-            conditions.append(f"{p}birads_max IN ('1', '2')")
+
+    _add_list_condition(conditions, params, f"{p}birads_max", birads, 'pd_birads')
+    _add_age_range_multi(conditions, age_range, p)
+    _add_priority_multi(conditions, params, priority, p, 'pd_pri')
+
     if cpf:
         conditions.append(f"REPLACE(REPLACE({p}paciente__cpf, '.', ''), '-', '') LIKE :pd_cpf")
         params['pd_cpf'] = f"%{cpf.replace('.', '').replace('-', '')}%"
     if cns:
         conditions.append(f"{p}paciente__cartao_sus LIKE :pd_cns")
         params['pd_cns'] = f"%{cns}%"
-    
+
     return " AND ".join(conditions), params
 
 
@@ -1107,37 +1141,23 @@ def _build_unit_where_clause(health_unit, year=None, region=None, table_prefix="
         f"({p}wait_days IS NULL OR ({p}wait_days >= 0 AND {p}wait_days <= 365))"
     ]
     params = {'unit_name': health_unit}
-    
-    if year:
-        conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) = :unit_year")
-        params['unit_year'] = year
-    if region:
-        conditions.append(f"{p}distrito_sanitario = :unit_region")
-        params['unit_region'] = region
-    if age_range:
-        if age_range == '0-39':
-            conditions.append(f"{p}paciente__idade < 40")
-        elif age_range == '40-49':
-            conditions.append(f"{p}paciente__idade >= 40 AND {p}paciente__idade < 50")
-        elif age_range == '50-69':
-            conditions.append(f"{p}paciente__idade >= 50 AND {p}paciente__idade < 70")
-        elif age_range == '70+':
-            conditions.append(f"{p}paciente__idade >= 70")
-    if birads:
-        conditions.append(f"{p}birads_max = :unit_birads")
-        params['unit_birads'] = birads
-    if priority:
-        if priority == 'CRITICA':
-            conditions.append(f"{p}birads_max IN ('4', '5')")
-        elif priority == 'ALTA':
-            conditions.append(f"{p}birads_max = '0'")
-        elif priority == 'MEDIA':
-            conditions.append(f"{p}birads_max = '3'")
-        elif priority == 'MONITORAMENTO':
-            conditions.append(f"{p}birads_max = '6'")
-        elif priority == 'ROTINA':
-            conditions.append(f"{p}birads_max IN ('1', '2')")
-    
+
+    years = _normalize_to_list(year)
+    if years:
+        if len(years) == 1:
+            conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) = :unit_year")
+            params['unit_year'] = years[0]
+        else:
+            placeholders = ', '.join([f':unit_year_{i}' for i in range(len(years))])
+            conditions.append(f"EXTRACT(YEAR FROM {p}unidade_de_saude__data_da_solicitacao) IN ({placeholders})")
+            for i, y in enumerate(years):
+                params[f'unit_year_{i}'] = y
+
+    _add_list_condition(conditions, params, f"{p}distrito_sanitario", region, 'unit_region')
+    _add_age_range_multi(conditions, age_range, p)
+    _add_list_condition(conditions, params, f"{p}birads_max", birads, 'unit_birads')
+    _add_priority_multi(conditions, params, priority, p, 'unit_pri')
+
     return " AND ".join(conditions), params
 
 
@@ -1604,14 +1624,7 @@ def get_unit_follow_up_count_sql(health_unit, year=None, region=None, age_range=
 
 def get_indicators_data_sql(year=None, region=None, health_unit=None, age_range=None, birads=None, priority=None):
     """Get all indicators data for the Indicadores tab"""
-    where_clause, params = _build_where_clause(year, None, region, None, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
-    
-    if health_unit:
-        if where_clause:
-            where_clause += " AND (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
-        else:
-            where_clause = " WHERE (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
-        params['ind_health_unit'] = health_unit
+    where_clause, params = _build_where_clause(year, health_unit, region, None, exclude_outliers=True, age_range=age_range, birads=birads, priority=priority)
     
     base_where = where_clause if where_clause else " WHERE 1=1"
     
@@ -1849,14 +1862,7 @@ def get_indicators_data_sql(year=None, region=None, health_unit=None, age_range=
 
 def get_indicator_details_sql(indicator_type, year=None, region=None, health_unit=None, limit=100):
     """Get detailed list of patients for a specific indicator"""
-    where_clause, params = _build_where_clause(year, None, region, None, exclude_outliers=True)
-    
-    if health_unit:
-        if where_clause:
-            where_clause += " AND (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
-        else:
-            where_clause = " WHERE (unidade_de_saude__nome = :ind_health_unit OR prestador_de_servico__nome = :ind_health_unit)"
-        params['ind_health_unit'] = health_unit
+    where_clause, params = _build_where_clause(year, health_unit, region, None, exclude_outliers=True)
     
     base_where = where_clause if where_clause else " WHERE 1=1"
     params['detail_limit'] = limit

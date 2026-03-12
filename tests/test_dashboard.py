@@ -50,6 +50,8 @@ from src.data_layer import (
     calculate_priority,
     get_units_by_district,
     get_district_for_unit,
+    _normalize_to_list,
+    _build_where_clause,
 )
 from sqlalchemy import text
 
@@ -1499,6 +1501,273 @@ class TestPasswordManagement:
         assert callable(change_password_first_access)
 
 
+class TestMultiSelectFilters:
+    """Tests for multi-select filter support (lists of values) in all data layer functions"""
+
+    # --- _normalize_to_list unit tests ---
+
+    def test_normalize_to_list_none_returns_none(self):
+        assert _normalize_to_list(None) is None
+
+    def test_normalize_to_list_all_string_returns_none(self):
+        assert _normalize_to_list('ALL') is None
+
+    def test_normalize_to_list_empty_string_returns_none(self):
+        assert _normalize_to_list('') is None
+
+    def test_normalize_to_list_scalar_returns_list(self):
+        result = _normalize_to_list('ARARAQUARA')
+        assert result == ['ARARAQUARA']
+
+    def test_normalize_to_list_integer_returns_list(self):
+        result = _normalize_to_list(2024)
+        assert result == [2024]
+
+    def test_normalize_to_list_empty_list_returns_none(self):
+        assert _normalize_to_list([]) is None
+
+    def test_normalize_to_list_all_in_list_returns_none(self):
+        assert _normalize_to_list(['ALL']) is None
+
+    def test_normalize_to_list_filters_all_from_mixed_list(self):
+        result = _normalize_to_list(['ALL', '2023', '2024'])
+        assert result == ['2023', '2024']
+
+    def test_normalize_to_list_valid_list_unchanged(self):
+        result = _normalize_to_list(['4', '5'])
+        assert result == ['4', '5']
+
+    def test_normalize_to_list_filters_none_from_list(self):
+        result = _normalize_to_list([None, '4', None])
+        assert result == ['4']
+
+    # --- _build_where_clause with lists ---
+
+    def test_build_where_clause_single_year_scalar(self):
+        clause, params = _build_where_clause(year=2024)
+        assert 'year = :year' in clause
+        assert params.get('year') == 2024
+
+    def test_build_where_clause_single_year_list(self):
+        clause, params = _build_where_clause(year=[2024])
+        assert 'year = :year' in clause
+        assert params.get('year') == 2024
+
+    def test_build_where_clause_multi_year(self):
+        clause, params = _build_where_clause(year=[2023, 2024])
+        assert 'year IN' in clause
+        assert params.get('year_0') == 2023
+        assert params.get('year_1') == 2024
+
+    def test_build_where_clause_multi_birads(self):
+        clause, params = _build_where_clause(birads=['4', '5'])
+        assert 'birads_max IN' in clause
+        assert params.get('birads_0') == '4'
+        assert params.get('birads_1') == '5'
+
+    def test_build_where_clause_single_birads_list(self):
+        clause, params = _build_where_clause(birads=['3'])
+        assert 'birads_max = :birads' in clause
+        assert params.get('birads') == '3'
+
+    def test_build_where_clause_multi_age_range(self):
+        clause, params = _build_where_clause(age_range=['40-49', '50-69'])
+        assert 'OR' in clause
+        assert 'paciente__idade' in clause
+
+    def test_build_where_clause_multi_priority(self):
+        clause, params = _build_where_clause(priority=['CRITICA', 'ALTA'])
+        assert 'birads_max IN' in clause
+
+    def test_build_where_clause_empty_list_ignored(self):
+        clause, params = _build_where_clause(year=[])
+        assert 'year' not in clause
+
+    # --- KPI with multi-select ---
+
+    def test_kpi_multi_year_list(self):
+        years = get_years()
+        if len(years) >= 2:
+            stats = get_kpi_data_sql(year=years[:2])
+            assert isinstance(stats, dict)
+            assert stats['total_exams'] >= 0
+
+    def test_kpi_multi_year_covers_more_than_single(self):
+        years = get_years()
+        if len(years) >= 2:
+            stats_single = get_kpi_data_sql(year=years[0])
+            stats_multi = get_kpi_data_sql(year=years[:2])
+            assert stats_multi['total_exams'] >= stats_single['total_exams']
+
+    def test_kpi_multi_birads(self):
+        stats = get_kpi_data_sql(birads=['4', '5'])
+        assert isinstance(stats, dict)
+        assert stats['total_exams'] >= 0
+
+    def test_kpi_multi_birads_covers_more_than_single(self):
+        stats_4 = get_kpi_data_sql(birads='4')
+        stats_5 = get_kpi_data_sql(birads='5')
+        stats_multi = get_kpi_data_sql(birads=['4', '5'])
+        assert stats_multi['total_exams'] >= max(stats_4['total_exams'], stats_5['total_exams'])
+
+    def test_kpi_multi_age_range(self):
+        stats = get_kpi_data_sql(age_range=['40-49', '50-69'])
+        assert isinstance(stats, dict)
+        assert stats['total_exams'] >= 0
+
+    def test_kpi_multi_age_range_covers_more_than_single(self):
+        stats_40 = get_kpi_data_sql(age_range='40-49')
+        stats_50 = get_kpi_data_sql(age_range='50-69')
+        stats_multi = get_kpi_data_sql(age_range=['40-49', '50-69'])
+        assert stats_multi['total_exams'] >= max(stats_40['total_exams'], stats_50['total_exams'])
+
+    def test_kpi_multi_priority(self):
+        stats = get_kpi_data_sql(priority=['CRITICA', 'ALTA'])
+        assert isinstance(stats, dict)
+        assert stats['total_exams'] >= 0
+
+    def test_kpi_multi_region(self, ):
+        regions = get_regions()
+        if len(regions) >= 2:
+            stats = get_kpi_data_sql(region=regions[:2])
+            assert isinstance(stats, dict)
+            assert stats['total_exams'] >= 0
+
+    def test_kpi_multi_region_covers_more_than_single(self):
+        regions = get_regions()
+        if len(regions) >= 2:
+            stats_r1 = get_kpi_data_sql(region=regions[0])
+            stats_r2 = get_kpi_data_sql(region=regions[1])
+            stats_multi = get_kpi_data_sql(region=regions[:2])
+            assert stats_multi['total_exams'] >= max(stats_r1['total_exams'], stats_r2['total_exams'])
+
+    def test_kpi_empty_list_same_as_no_filter(self):
+        stats_all = get_kpi_data_sql()
+        stats_empty = get_kpi_data_sql(year=[], birads=[], region=[])
+        assert stats_all['total_exams'] == stats_empty['total_exams']
+
+    def test_kpi_single_item_list_same_as_scalar(self):
+        years = get_years()
+        stats_scalar = get_kpi_data_sql(year=years[0])
+        stats_list = get_kpi_data_sql(year=[years[0]])
+        assert stats_scalar['total_exams'] == stats_list['total_exams']
+
+    # --- Patient data with multi-select ---
+
+    def test_patient_data_multi_birads(self):
+        df = get_patient_data_list_sql(birads=['4', '5'], page_size=10)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_patient_data_count_multi_birads(self):
+        count_4 = get_patient_data_count_sql(birads='4')
+        count_5 = get_patient_data_count_sql(birads='5')
+        count_multi = get_patient_data_count_sql(birads=['4', '5'])
+        assert count_multi >= max(count_4, count_5)
+
+    def test_patient_data_multi_age_range(self):
+        df = get_patient_data_list_sql(age_range=['40-49', '50-69'], page_size=10)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_patient_data_multi_year(self):
+        years = get_years()
+        if len(years) >= 2:
+            df = get_patient_data_list_sql(year=years[:2], page_size=10)
+            assert isinstance(df, pd.DataFrame)
+
+    def test_patient_data_multi_priority(self):
+        df = get_patient_data_list_sql(priority=['CRITICA', 'ALTA'], page_size=10)
+        assert isinstance(df, pd.DataFrame)
+
+    # --- Navigation with multi-select ---
+
+    def test_navigation_multi_birads(self):
+        df = get_patient_navigation_list_sql(birads=['4', '5'], limit=20)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_navigation_multi_age_range(self):
+        df = get_patient_navigation_list_sql(age_range=['40-49', '50-69'], limit=20)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_navigation_multi_priority(self):
+        df = get_patient_navigation_list_sql(priority=['CRITICA', 'ALTA'], limit=20)
+        assert isinstance(df, pd.DataFrame)
+
+    def test_navigation_multi_year(self):
+        years = get_years()
+        if len(years) >= 2:
+            df = get_patient_navigation_list_sql(year=years[:2], limit=20)
+            assert isinstance(df, pd.DataFrame)
+
+    # --- Outliers with multi-select ---
+
+    def test_outliers_audit_multi_year(self):
+        years = get_years()
+        if len(years) >= 2:
+            df = get_outliers_audit_sql(year=years[:2])
+            assert isinstance(df, pd.DataFrame)
+
+    def test_outliers_audit_multi_region(self):
+        regions = get_regions()
+        if len(regions) >= 2:
+            df = get_outliers_audit_sql(region=regions[:2])
+            assert isinstance(df, pd.DataFrame)
+
+    def test_outliers_summary_multi_year(self):
+        years = get_years()
+        if len(years) >= 2:
+            df = get_outliers_summary_sql(year=years[:2])
+            assert isinstance(df, pd.DataFrame)
+
+    # --- Monthly volume with multi-select ---
+
+    def test_monthly_volume_multi_year(self):
+        years = get_years()
+        if len(years) >= 2:
+            df = get_monthly_volume_sql(year=years[:2])
+            assert isinstance(df, pd.DataFrame)
+
+    def test_monthly_volume_multi_region(self):
+        regions = get_regions()
+        if len(regions) >= 2:
+            df = get_monthly_volume_sql(region=regions[:2])
+            assert isinstance(df, pd.DataFrame)
+
+    # --- Indicators with multi-select ---
+
+    def test_indicators_multi_year(self):
+        years = get_years()
+        if len(years) >= 2:
+            result = get_indicators_data_sql(year=years[:2])
+            assert isinstance(result, dict)
+
+    def test_indicators_multi_age_range(self):
+        result = get_indicators_data_sql(age_range=['40-49', '50-69'])
+        assert isinstance(result, dict)
+
+    def test_indicators_multi_birads(self):
+        result = get_indicators_data_sql(birads=['4', '5'])
+        assert isinstance(result, dict)
+
+    # --- Priority combinations ---
+
+    def test_priority_critica_maps_birads_4_5(self):
+        stats_pri = get_kpi_data_sql(priority='CRITICA')
+        stats_br = get_kpi_data_sql(birads=['4', '5'])
+        assert stats_pri['total_exams'] == stats_br['total_exams']
+
+    def test_priority_rotina_maps_birads_1_2(self):
+        stats_pri = get_kpi_data_sql(priority='ROTINA')
+        stats_br = get_kpi_data_sql(birads=['1', '2'])
+        assert stats_pri['total_exams'] == stats_br['total_exams']
+
+    def test_priority_multi_covers_combined_birads(self):
+        stats_critica = get_kpi_data_sql(priority='CRITICA')
+        stats_alta = get_kpi_data_sql(priority='ALTA')
+        stats_multi = get_kpi_data_sql(priority=['CRITICA', 'ALTA'])
+        expected = stats_critica['total_exams'] + stats_alta['total_exams']
+        assert stats_multi['total_exams'] == expected
+
+
 def run_all_tests():
     """Executa todos os testes e exibe resumo"""
     print("=" * 60)
@@ -1528,6 +1797,7 @@ def run_all_tests():
         TestTableLegends,
         TestAccessRequests,
         TestPasswordManagement,
+        TestMultiSelectFilters,
     ]
 
     passed = 0
